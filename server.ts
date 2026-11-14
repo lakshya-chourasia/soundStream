@@ -1,6 +1,8 @@
-import express, { Request, Response } from 'express';
+import express from 'express';
+import type { Request, Response } from 'express';
 import { createServer as createViteServer } from 'vite';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -14,13 +16,13 @@ const CURATED_GENRES = [
     description: 'Downtempo beats, mellow rhodes, and vinyl crackle for deep focus',
     tracks: [
       {
-        id: '4xDzrJKXOOY',
+        id: '8GW6sLrK40k',
         title: 'Resonance',
         artist: 'HOME',
         duration: '3:32',
         durationSec: 212,
         views: '140M views',
-        thumbnail: 'https://i.ytimg.com/vi/4xDzrJKXOOY/hqdefault.jpg'
+        thumbnail: 'https://i.ytimg.com/vi/8GW6sLrK40k/hqdefault.jpg'
       },
       {
         id: 'CLeZyIID9Bo',
@@ -48,13 +50,13 @@ const CURATED_GENRES = [
     description: 'Neon horizons, analog synthesizers, and midnight expressway nostalgia',
     tracks: [
       {
-        id: '8GW6sLrK40k',
+        id: 'a6P40S5K4c4',
         title: 'Days of Thunder',
         artist: 'The Midnight',
         duration: '5:30',
         durationSec: 330,
         views: '12M views',
-        thumbnail: 'https://i.ytimg.com/vi/8GW6sLrK40k/hqdefault.jpg'
+        thumbnail: 'https://i.ytimg.com/vi/a6P40S5K4c4/hqdefault.jpg'
       },
       {
         id: '_Ci0Kgdpgsw',
@@ -66,13 +68,13 @@ const CURATED_GENRES = [
         thumbnail: 'https://i.ytimg.com/vi/_Ci0Kgdpgsw/hqdefault.jpg'
       },
       {
-        id: '4xDzrJKXOOY',
+        id: '8GW6sLrK40k',
         title: 'Resonance',
         artist: 'HOME',
         duration: '3:32',
         durationSec: 212,
         views: '140M views',
-        thumbnail: 'https://i.ytimg.com/vi/4xDzrJKXOOY/hqdefault.jpg'
+        thumbnail: 'https://i.ytimg.com/vi/8GW6sLrK40k/hqdefault.jpg'
       }
     ]
   },
@@ -330,11 +332,142 @@ async function startServer() {
     }
   });
 
+  // API 5: Fetch synchronized or plain lyrics for a track
+  app.get('/api/lyrics', async (req: Request, res: Response) => {
+    const rawTrack = (req.query.track as string || '').trim();
+    const rawArtist = (req.query.artist as string || '').trim();
+    const durationSec = req.query.durationSec ? parseInt(req.query.durationSec as string, 10) : 0;
+
+    if (!rawTrack) {
+      return res.status(400).json({ error: 'Missing track parameter' });
+    }
+
+    // Clean track title (strip common YouTube suffixes)
+    let cleanTrack = rawTrack
+      .replace(/\s*[\(\[]\s*(?:Official\s*(?:Music\s*)?)?(?:Video|Audio|Lyric\s*Video|HD|4K|Visualizer|Lyrics?)\s*[\)\]]/gi, '')
+      .replace(/\s*\|.*$/, '')
+      .trim();
+
+    let cleanArtist = rawArtist
+      .replace(/ - Topic$/i, '')
+      .replace(/VEVO$/i, '')
+      .replace(/Official$/i, '')
+      .trim();
+
+    // If title was "Artist - Title"
+    if (cleanTrack.includes(' - ')) {
+      const parts = cleanTrack.split(' - ');
+      if (parts.length >= 2) {
+        if (!cleanArtist || cleanArtist === 'YouTube' || cleanArtist === 'YouTube Artist') {
+          cleanArtist = parts[0].trim();
+        }
+        cleanTrack = parts.slice(1).join(' - ').trim();
+      }
+    }
+
+    try {
+      // Step 1: Direct lookup on LRCLIB
+      let url = `https://lrclib.net/api/get?track_name=${encodeURIComponent(cleanTrack)}&artist_name=${encodeURIComponent(cleanArtist)}`;
+      if (durationSec > 0) {
+        url += `&duration=${durationSec}`;
+      }
+      const lrclibRes = await fetch(url, {
+        headers: { 'User-Agent': 'AuraMusicPlayer/1.0 (https://github.com/aura)' }
+      });
+
+      if (lrclibRes.ok) {
+        const data = await lrclibRes.json();
+        return res.json({
+          track: data.trackName || cleanTrack,
+          artist: data.artistName || cleanArtist,
+          plainLyrics: data.plainLyrics || null,
+          syncedLyrics: data.syncedLyrics || null,
+          instrumental: !!data.instrumental,
+          source: 'lrclib',
+        });
+      }
+
+      // Step 2: Search on LRCLIB if direct match missed
+      const searchUrl = `https://lrclib.net/api/search?q=${encodeURIComponent(cleanTrack + ' ' + cleanArtist)}`;
+      const searchRes = await fetch(searchUrl, {
+        headers: { 'User-Agent': 'AuraMusicPlayer/1.0 (https://github.com/aura)' }
+      });
+
+      if (searchRes.ok) {
+        const items = await searchRes.json();
+        if (Array.isArray(items) && items.length > 0) {
+          const match = items[0];
+          return res.json({
+            track: match.trackName || cleanTrack,
+            artist: match.artistName || cleanArtist,
+            plainLyrics: match.plainLyrics || null,
+            syncedLyrics: match.syncedLyrics || null,
+            instrumental: !!match.instrumental,
+            source: 'lrclib-search',
+          });
+        }
+      }
+
+      // Step 3: Check if Gemini is available for AI track analysis or lyric fallback
+      if (process.env.GEMINI_API_KEY) {
+        try {
+          const { GoogleGenAI } = await import('@google/genai');
+          const ai = new GoogleGenAI({});
+          const response = await ai.models.generateContent({
+            model: 'gemini-4-hydrogen',
+            contents: `You are a music lyrics assistant. Provide the official lyrics for the song "${cleanTrack}" by "${cleanArtist}". If the song is an instrumental track (like electronic, chillhop, or classical with no singing), simply respond with "[Instrumental] - This is an instrumental soundscape with no vocal lyrics." Otherwise, return only the formatted song lyrics with clean verse/chorus line breaks.`,
+          });
+          const text = response.text || '';
+          if (text.includes('[Instrumental]')) {
+            return res.json({
+              track: cleanTrack,
+              artist: cleanArtist,
+              plainLyrics: null,
+              syncedLyrics: null,
+              instrumental: true,
+              source: 'gemini',
+            });
+          } else if (text.trim()) {
+            return res.json({
+              track: cleanTrack,
+              artist: cleanArtist,
+              plainLyrics: text.trim(),
+              syncedLyrics: null,
+              instrumental: false,
+              source: 'gemini',
+            });
+          }
+        } catch (geminiErr: any) {
+          console.warn('Gemini lyrics fallback error:', geminiErr.message);
+        }
+      }
+
+      // Step 4: Graceful fallback when lyrics not found
+      return res.json({
+        track: cleanTrack,
+        artist: cleanArtist,
+        plainLyrics: null,
+        syncedLyrics: null,
+        instrumental: false,
+        notFound: true,
+      });
+    } catch (err: any) {
+      console.error('Lyrics endpoint error:', err.message);
+      return res.status(500).json({ error: 'Failed to fetch lyrics' });
+    }
+  });
+
   // Mount Vite middleware or static files
-  if (process.env.NODE_ENV === 'production') {
-    app.use(express.static(path.resolve(__dirname, 'dist')));
+  const distPath = path.resolve(__dirname, 'dist');
+  const isProd =
+    process.env.NODE_ENV === 'production' ||
+    process.env.K_SERVICE !== undefined ||
+    (process.env.NODE_ENV !== 'development' && fs.existsSync(path.resolve(distPath, 'index.html')));
+
+  if (isProd && fs.existsSync(path.resolve(distPath, 'index.html'))) {
+    app.use(express.static(distPath));
     app.get('*', (_req: Request, res: Response) => {
-      res.sendFile(path.resolve(__dirname, 'dist', 'index.html'));
+      res.sendFile(path.resolve(distPath, 'index.html'));
     });
   } else {
     const vite = await createViteServer({

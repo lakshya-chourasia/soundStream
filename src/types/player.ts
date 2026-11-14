@@ -38,3 +38,21 @@ export interface Playlist {
   createdAt: number;
   tracks: Track[];
 }
+
+export interface LyricLine {
+  time: number; // in seconds
+  text: string;
+}
+
+export interface LyricsData {
+  track: string;
+  artist: string;
+  plainLyrics: string | null;
+  syncedLyrics: string | null;
+  parsedLines: LyricLine[];
+  instrumental: boolean;
+  notFound?: boolean;
+}
+
+export type CrossfadeDuration = 0 | 1 | 1.5 | 2 | 3;
+

@@ -21,7 +21,11 @@ import {
   Gauge,
   Disc,
   Radio,
+  ExternalLink,
+  Mic2,
+  Blend,
 } from 'lucide-react';
+import { LyricsOverlay } from './LyricsOverlay';
 
 interface NowPlayingHeroProps {
   currentTrack: Track | null;
@@ -51,6 +55,8 @@ interface NowPlayingHeroProps {
   onChangeVisualizerMode: (mode: VisualizerMode) => void;
   onToggleVideo: () => void;
   onToggleFavorite: () => void;
+  crossfadeDuration: number;
+  onChangeCrossfadeDuration: (duration: number) => void;
 }
 
 const SPEED_OPTIONS = [0.75, 1, 1.25, 1.5];
@@ -89,16 +95,23 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
   onChangeVisualizerMode,
   onToggleVideo,
   onToggleFavorite,
+  crossfadeDuration,
+  onChangeCrossfadeDuration,
 }) => {
   const [isHoveringSeek, setIsHoveringSeek] = useState(false);
   const [seekHoverPercent, setSeekHoverPercent] = useState<number>(0);
   const [isMuted, setIsMuted] = useState(false);
   const [prevVolume, setPrevVolume] = useState(volume);
   const [showSpeedMenu, setShowSpeedMenu] = useState(false);
+  const [showCrossfadeMenu, setShowCrossfadeMenu] = useState(false);
+  const [isLyricsOpen, setIsLyricsOpen] = useState(false);
 
   if (!currentTrack) {
     return (
       <div className="flex flex-col items-center justify-center p-12 text-center text-zinc-500">
+        <div className="fixed -bottom-[9999px] -right-[9999px] w-64 h-36 opacity-0 pointer-events-none" aria-hidden="true">
+          {videoSlot}
+        </div>
         <Disc className="w-16 h-16 stroke-[1.2] opacity-30 mb-4 animate-spin-slow" />
         <p className="text-sm font-medium">No track currently loaded</p>
         <p className="text-xs text-zinc-400 mt-1">Select a track from discovery or paste a YouTube URL</p>
@@ -144,13 +157,31 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
         <span className="text-zinc-400">{themeConfig.name}</span>
       </div>
 
-      {/* Centerpiece: Either Video or Minimalist Vinyl Turntable Deck */}
-      {isVideoVisible && videoSlot ? (
-        <div className="w-full max-w-xl my-4">
-          {videoSlot}
-        </div>
-      ) : (
-        /* Vinyl Turntable Platter Deck with Tonearm */
+      {/* Video Container (ALWAYS permanently mounted so audio never stops or drops out) */}
+      <div
+        className={`transition-all duration-300 relative ${
+          isVideoVisible
+            ? 'w-full max-w-xl mx-auto my-4 aspect-video rounded-xl overflow-hidden border border-zinc-800 shadow-2xl bg-black block pointer-events-none select-none'
+            : 'fixed -bottom-[9999px] -right-[9999px] w-64 h-36 opacity-0 pointer-events-none'
+        }`}
+        aria-hidden={!isVideoVisible}
+      >
+        {videoSlot}
+      </div>
+
+      {/* Lyrics Overlay Centerpiece (When lyrics are toggled on in audio mode) */}
+      {!isVideoVisible && isLyricsOpen && (
+        <LyricsOverlay
+          currentTrack={currentTrack}
+          currentTime={currentTime}
+          onSeek={onSeek}
+          themeConfig={themeConfig}
+          onClose={() => setIsLyricsOpen(false)}
+        />
+      )}
+
+      {/* Vinyl Turntable Platter Deck with Tonearm (Visible in standard audio mode) */}
+      {!isVideoVisible && !isLyricsOpen && (
         <div className="relative w-72 h-72 sm:w-88 sm:h-88 my-3 flex items-center justify-center">
           {/* Subtle Ambient Theme Reactive Glow */}
           <div
@@ -247,9 +278,21 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
         <h2 className="text-xl sm:text-2xl font-bold tracking-tight truncate max-w-full text-zinc-900 dark:text-zinc-50">
           {title}
         </h2>
-        <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1 font-medium truncate">
-          {displayArtist}
-        </p>
+        <div className="flex items-center justify-center gap-2 mt-1">
+          <p className="text-sm text-zinc-500 dark:text-zinc-400 font-medium truncate">
+            {displayArtist}
+          </p>
+          <a
+            href={`https://www.youtube.com/watch?v=${currentTrack.id}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors inline-flex items-center gap-1 text-[11px] font-mono opacity-70 hover:opacity-100"
+            title="Open track on YouTube"
+            aria-label="Open track on YouTube"
+          >
+            <ExternalLink className="w-3.5 h-3.5" />
+          </a>
+        </div>
       </div>
 
       {/* Scrubber & Timestamps */}
@@ -417,8 +460,69 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
           </span>
         </div>
 
-        {/* Right: Mode Switchers (Visualizer, Speed, Video, Favorite) */}
-        <div className="flex items-center gap-2.5">
+        {/* Right: Mode Switchers (Lyrics, Crossfade, Visualizer, Speed, Video, Favorite) */}
+        <div className="flex items-center flex-wrap gap-2 sm:gap-2.5">
+          {/* Lyrics Overlay Toggle Button */}
+          <button
+            onClick={() => {
+              if (isVideoVisible) onToggleVideo();
+              setIsLyricsOpen(!isLyricsOpen);
+            }}
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-medium transition-colors ${
+              isLyricsOpen && !isVideoVisible
+                ? 'shadow-xs font-semibold'
+                : 'border-white/[0.08] text-zinc-400 hover:text-zinc-200 hover:border-white/20'
+            }`}
+            style={
+              isLyricsOpen && !isVideoVisible
+                ? {
+                    backgroundColor: `${themeConfig.accent}25`,
+                    borderColor: `${themeConfig.accent}40`,
+                    color: themeConfig.accent,
+                  }
+                : {}
+            }
+            title={isLyricsOpen ? 'Return to Turntable' : 'View Lyrics'}
+            aria-label={isLyricsOpen ? 'Hide lyrics overlay' : 'Show lyrics overlay'}
+          >
+            <Mic2 className="w-3.5 h-3.5" />
+            <span>Lyrics</span>
+          </button>
+
+          {/* Crossfade Selector */}
+          <div className="relative">
+            <button
+              onClick={() => setShowCrossfadeMenu(!showCrossfadeMenu)}
+              className="flex items-center gap-1 px-2 py-1 rounded-lg bg-white/5 dark:bg-black/30 border border-white/[0.08] text-[11px] font-mono text-zinc-300 hover:border-white/20 transition-colors"
+              title="Audio crossfade duration between tracks"
+              aria-label="Crossfade duration"
+            >
+              <Blend className="w-3 h-3 text-zinc-400" />
+              <span>{crossfadeDuration === 0 ? 'Fade: Off' : `${crossfadeDuration}s Fade`}</span>
+            </button>
+            {showCrossfadeMenu && (
+              <div className="absolute bottom-full right-0 mb-1.5 p-1 bg-zinc-900 border border-zinc-700/80 rounded-lg shadow-xl z-30 flex flex-col gap-0.5 min-w-[125px]">
+                <span className="text-[10px] font-mono uppercase text-zinc-500 px-2 py-0.5">Crossfade</span>
+                {[0, 1, 1.5, 2, 3].map((dur) => (
+                  <button
+                    key={dur}
+                    onClick={() => {
+                      onChangeCrossfadeDuration(dur);
+                      setShowCrossfadeMenu(false);
+                    }}
+                    className={`px-2.5 py-1 text-left text-xs font-mono rounded ${
+                      crossfadeDuration === dur
+                        ? 'bg-white/10 text-white font-medium'
+                        : 'text-zinc-400 hover:bg-white/5 hover:text-white'
+                    }`}
+                  >
+                    {dur === 0 ? 'Off (Instant)' : `${dur} seconds`}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
           {/* Favorite Toggle */}
           <button
             onClick={onToggleFavorite}
@@ -493,7 +597,10 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
 
           {/* Video Toggle */}
           <button
-            onClick={onToggleVideo}
+            onClick={() => {
+              if (isLyricsOpen) setIsLyricsOpen(false);
+              onToggleVideo();
+            }}
             className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-medium transition-colors"
             style={
               isVideoVisible

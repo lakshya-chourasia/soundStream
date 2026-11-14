@@ -175,3 +175,60 @@ export function cleanTrackTitle(rawTitle: string): { title: string; artistFromTi
 
   return { title: cleaned };
 }
+
+export interface LyricLine {
+  time: number; // in seconds
+  text: string;
+}
+
+/**
+ * Parses synchronized LRC lyrics string into array of timestamped lines
+ */
+export function parseLrcLyrics(lrcText: string): LyricLine[] {
+  if (!lrcText || typeof lrcText !== 'string') return [];
+  const lines = lrcText.split(/\r?\n/);
+  const result: LyricLine[] = [];
+  const timeRegex = /\[(\d{2}):(\d{2})(?:\.(\d{2,3}))?\]/g;
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+
+    let match;
+    const timestamps: number[] = [];
+    timeRegex.lastIndex = 0;
+    while ((match = timeRegex.exec(trimmed)) !== null) {
+      const min = parseInt(match[1], 10);
+      const sec = parseInt(match[2], 10);
+      const ms = match[3] ? parseInt(match[3].padEnd(3, '0').slice(0, 3), 10) : 0;
+      timestamps.push(min * 60 + sec + ms / 1000);
+    }
+
+    const text = trimmed.replace(timeRegex, '').trim();
+    if (timestamps.length > 0 && text) {
+      for (const time of timestamps) {
+        result.push({ time, text });
+      }
+    }
+  }
+
+  return result.sort((a, b) => a.time - b.time);
+}
+
+/**
+ * Finds the index of the active lyric line for the current playback position
+ */
+export function findActiveLyricIndex(lyrics: LyricLine[], currentTime: number): number {
+  if (!lyrics || lyrics.length === 0) return -1;
+  let activeIndex = -1;
+  for (let i = 0; i < lyrics.length; i++) {
+    // 0.25s anticipation offset for comfortable reading cadence
+    if (currentTime >= lyrics[i].time - 0.25) {
+      activeIndex = i;
+    } else {
+      break;
+    }
+  }
+  return activeIndex;
+}
+

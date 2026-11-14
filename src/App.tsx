@@ -14,11 +14,21 @@ import { SleepTimerModal } from './components/SleepTimerModal';
 import { getNextTrackIndex, getPrevTrackIndex, extractYouTubeId } from './utils/playerUtils';
 import { Music2, Compass, AlertCircle, Info } from 'lucide-react';
 
+const DEFAULT_INITIAL_TRACK: Track = {
+  id: '8GW6sLrK40k',
+  title: 'Resonance',
+  artist: 'HOME',
+  duration: '3:32',
+  durationSec: 212,
+  views: '140M views',
+  thumbnail: 'https://i.ytimg.com/vi/8GW6sLrK40k/hqdefault.jpg',
+};
+
 export default function App() {
   const playerRef = useRef<YouTubePlayerHandle | null>(null);
 
   // Core Player State
-  const [currentTrack, setCurrentTrack] = useState<Track | null>(null);
+  const [currentTrack, setCurrentTrack] = useState<Track>(DEFAULT_INITIAL_TRACK);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [isBuffering, setIsBuffering] = useState<boolean>(false);
   const [currentTime, setCurrentTime] = useState<number>(0);
@@ -32,6 +42,10 @@ export default function App() {
   const [playbackRate, setPlaybackRate] = useState<number>(1);
   const [visualizerMode, setVisualizerMode] = useState<VisualizerMode>('spectrum');
   const [isVideoVisible, setIsVideoVisible] = useState<boolean>(false);
+  const [crossfadeDuration, setCrossfadeDuration] = useState<number>(() => {
+    const saved = localStorage.getItem('aura_crossfade');
+    return saved !== null ? Number(saved) : 1.5;
+  });
 
   // Navigation & Modals State
   const [activeView, setActiveView] = useState<ActiveView>('now-playing');
@@ -40,7 +54,7 @@ export default function App() {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // Playlists, Favorites, and Queue
-  const [queue, setQueue] = useState<Track[]>([]);
+  const [queue, setQueue] = useState<Track[]>([DEFAULT_INITIAL_TRACK]);
   const [playedHistory, setPlayedHistory] = useState<number[]>([]);
   const [favorites, setFavorites] = useState<Track[]>(() => {
     try {
@@ -111,6 +125,11 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('aura_volume', volume.toString());
   }, [volume]);
+
+  // Persist Crossfade Duration
+  useEffect(() => {
+    localStorage.setItem('aura_crossfade', crossfadeDuration.toString());
+  }, [crossfadeDuration]);
 
   // Persist Favorites
   useEffect(() => {
@@ -194,20 +213,104 @@ export default function App() {
     }
   };
 
-  // Play a Track
-  const handlePlayTrack = useCallback((track: Track) => {
-    setCurrentTrack(track);
-    setIsPlaying(true);
-    setCurrentTime(0);
-
-    // If track not already in queue, add it
-    setQueue((prevQueue) => {
-      if (!prevQueue.some((t) => t.id === track.id)) {
-        return [...prevQueue, track];
+  // Synchronous Play/Pause on direct user gesture
+  const handleTogglePlay = useCallback(() => {
+    setIsPlaying((prev) => {
+      const next = !prev;
+      if (next) {
+        playerRef.current?.play();
+      } else {
+        playerRef.current?.pause();
       }
-      return prevQueue;
+      return next;
     });
   }, []);
+
+  // Crossfade Track Switcher (fades out active track, loads new track at 0 volume, fades in to target volume)
+  const isCrossfadingRef = useRef<boolean>(false);
+  const crossfadeTimerRef = useRef<any>(null);
+
+  const performTrackSwitch = useCallback(
+    (targetTrack: Track, autoPlay = true) => {
+      // If crossfade is 0 (off), or player is not currently playing, switch instantly
+      if (crossfadeDuration <= 0 || !isPlaying || !autoPlay) {
+        if (crossfadeTimerRef.current) {
+          clearInterval(crossfadeTimerRef.current);
+          isCrossfadingRef.current = false;
+        }
+        playerRef.current?.setVolume(volume);
+        setCurrentTrack(targetTrack);
+        setIsPlaying(autoPlay);
+        setCurrentTime(0);
+        playerRef.current?.loadTrack(targetTrack.id, autoPlay);
+        return;
+      }
+
+      // If already mid-crossfade, clear pending timer
+      if (crossfadeTimerRef.current) {
+        clearInterval(crossfadeTimerRef.current);
+      }
+
+      isCrossfadingRef.current = true;
+      const initialVol = volume;
+      const totalMs = crossfadeDuration * 1000;
+      const halfMs = totalMs / 2;
+      const steps = 10;
+      const stepInterval = Math.max(20, Math.floor(halfMs / steps));
+      let outStep = 0;
+
+      // Phase 1: Smooth Fade-Out
+      crossfadeTimerRef.current = setInterval(() => {
+        outStep++;
+        const factor = Math.max(0, 1 - outStep / steps);
+        const currentStepVol = Math.round(initialVol * factor);
+        playerRef.current?.setVolume(currentStepVol);
+
+        if (outStep >= steps) {
+          clearInterval(crossfadeTimerRef.current);
+
+          // Phase 2: Switch track at volume 0
+          playerRef.current?.setVolume(0);
+          setCurrentTrack(targetTrack);
+          setCurrentTime(0);
+          setIsPlaying(true);
+          playerRef.current?.loadTrack(targetTrack.id, true);
+
+          // Phase 3: Smooth Fade-In
+          let inStep = 0;
+          crossfadeTimerRef.current = setInterval(() => {
+            inStep++;
+            const inFactor = Math.min(1, inStep / steps);
+            const inVol = Math.round(initialVol * inFactor);
+            playerRef.current?.setVolume(inVol);
+
+            if (inStep >= steps) {
+              clearInterval(crossfadeTimerRef.current);
+              playerRef.current?.setVolume(initialVol);
+              isCrossfadingRef.current = false;
+            }
+          }, stepInterval);
+        }
+      }, stepInterval);
+    },
+    [crossfadeDuration, isPlaying, volume]
+  );
+
+  // Play a Track
+  const handlePlayTrack = useCallback(
+    (track: Track) => {
+      performTrackSwitch(track, true);
+
+      // If track not already in queue, add it
+      setQueue((prevQueue) => {
+        if (!prevQueue.some((t) => t.id === track.id)) {
+          return [...prevQueue, track];
+        }
+        return prevQueue;
+      });
+    },
+    [performTrackSwitch]
+  );
 
   // Direct play from YouTube URL or ID
   const handleDirectPlay = async (urlOrId: string) => {
@@ -356,7 +459,7 @@ export default function App() {
 
       if (e.code === 'Space') {
         e.preventDefault();
-        setIsPlaying((prev) => !prev);
+        handleTogglePlay();
       } else if (e.code === 'ArrowLeft') {
         e.preventDefault();
         const nextTime = Math.max(0, currentTime - 5);
@@ -378,7 +481,7 @@ export default function App() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentTime, duration, handleNext, handlePrev]);
+  }, [currentTime, duration, handleNext, handlePrev, handleTogglePlay]);
 
   return (
     <div
@@ -416,8 +519,8 @@ export default function App() {
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-6 pb-28">
-        {/* VIEW 1: NOW PLAYING */}
-        <div className={activeView === 'now-playing' ? 'block space-y-6' : 'hidden'}>
+        {/* VIEW 1: NOW PLAYING (kept in DOM with off-screen positioning so audio never pauses during tab switching) */}
+        <div className={activeView === 'now-playing' ? 'block space-y-6' : 'fixed -left-[99999px] top-0 opacity-0 pointer-events-none h-0 w-0 overflow-hidden'}>
           <NowPlayingHero
             currentTrack={currentTrack}
             isPlaying={isPlaying}
@@ -454,7 +557,9 @@ export default function App() {
               />
             }
             isFavorite={currentTrack ? favorites.some((f) => f.id === currentTrack.id) : false}
-            onTogglePlay={() => setIsPlaying(!isPlaying)}
+            crossfadeDuration={crossfadeDuration}
+            onChangeCrossfadeDuration={setCrossfadeDuration}
+            onTogglePlay={handleTogglePlay}
             onSeek={(time) => {
               playerRef.current?.seekTo(time);
               setCurrentTime(time);
@@ -619,7 +724,7 @@ export default function App() {
           duration={duration}
           volume={volume}
           accentColor={currentTheme.accent}
-          onTogglePlay={() => setIsPlaying(!isPlaying)}
+          onTogglePlay={handleTogglePlay}
           onPrev={handlePrev}
           onNext={handleNext}
           onSeek={(time) => {

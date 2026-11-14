@@ -7,6 +7,8 @@ import {
   getNextTrackIndex,
   getPrevTrackIndex,
   cleanTrackTitle,
+  parseLrcLyrics,
+  findActiveLyricIndex,
 } from './playerUtils.js';
 
 test('formatTime correctly formats seconds into mm:ss and hh:mm:ss', () => {
@@ -112,3 +114,37 @@ test('cleanTrackTitle strips video bloat and extracts artist', () => {
   const res3 = cleanTrackTitle('Acoustic Breeze (Lyrics)');
   assert.equal(res3.title, 'Acoustic Breeze');
 });
+
+test('parseLrcLyrics accurately converts LRC timestamps and text into sorted lyric lines', () => {
+  const lrc = `
+    [00:15.50] Look at the stars
+    [00:19.20] Look how they shine for you
+    [00:24.00] And everything you do
+  `;
+  const parsed = parseLrcLyrics(lrc);
+  assert.equal(parsed.length, 3);
+  assert.equal(parsed[0].time, 15.5);
+  assert.equal(parsed[0].text, 'Look at the stars');
+  assert.equal(parsed[1].time, 19.2);
+  assert.equal(parsed[1].text, 'Look how they shine for you');
+  assert.equal(parsed[2].time, 24);
+  assert.equal(parsed[2].text, 'And everything you do');
+
+  // Empty input returns empty array
+  assert.deepEqual(parseLrcLyrics(''), []);
+});
+
+test('findActiveLyricIndex detects correct current line based on playback time', () => {
+  const lines = [
+    { time: 10, text: 'First line' },
+    { time: 20, text: 'Second line' },
+    { time: 30, text: 'Third line' },
+  ];
+
+  assert.equal(findActiveLyricIndex(lines, 0), -1);
+  assert.equal(findActiveLyricIndex(lines, 9.8), 0); // within 0.25s anticipation
+  assert.equal(findActiveLyricIndex(lines, 15), 0);
+  assert.equal(findActiveLyricIndex(lines, 20.5), 1);
+  assert.equal(findActiveLyricIndex(lines, 35), 2);
+});
+

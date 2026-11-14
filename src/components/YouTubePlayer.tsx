@@ -9,6 +9,7 @@ export interface YouTubePlayerHandle {
   setPlaybackRate: (rate: number) => void;
   getCurrentTime: () => number;
   getDuration: () => number;
+  loadTrack: (videoId: string, autoPlay?: boolean) => void;
 }
 
 interface YouTubePlayerProps {
@@ -47,42 +48,80 @@ export const YouTubePlayer = forwardRef<YouTubePlayerHandle, YouTubePlayerProps>
   ) => {
     const playerRef = useRef<any>(null);
     const containerRef = useRef<HTMLDivElement | null>(null);
-    const [isApiReady, setIsApiReady] = useState<boolean>(false);
+    const [isApiReady, setIsApiReady] = useState<boolean>(() => !!(typeof window !== 'undefined' && window.YT && window.YT.Player));
     const [isPlayerReady, setIsPlayerReady] = useState<boolean>(false);
+    const lastLoadedIdRef = useRef<string | null>(null);
     const updateTimerRef = useRef<any>(null);
 
     // Expose imperative handle for instant seeks and controls
     useImperativeHandle(ref, () => ({
       play: () => {
-        if (playerRef.current?.playVideo) {
-          playerRef.current.playVideo();
+        try {
+          if (playerRef.current?.playVideo) {
+            playerRef.current.playVideo();
+          }
+        } catch (e) {
+          console.warn('YouTubePlayer play error:', e);
         }
       },
       pause: () => {
-        if (playerRef.current?.pauseVideo) {
-          playerRef.current.pauseVideo();
+        try {
+          if (playerRef.current?.pauseVideo) {
+            playerRef.current.pauseVideo();
+          }
+        } catch (e) {
+          console.warn('YouTubePlayer pause error:', e);
         }
       },
       seekTo: (seconds: number) => {
-        if (playerRef.current?.seekTo) {
-          playerRef.current.seekTo(seconds, true);
+        try {
+          if (playerRef.current?.seekTo) {
+            playerRef.current.seekTo(seconds, true);
+          }
+        } catch (e) {
+          console.warn('YouTubePlayer seekTo error:', e);
         }
       },
       setVolume: (vol: number) => {
-        if (playerRef.current?.setVolume) {
-          playerRef.current.setVolume(vol);
-        }
+        try {
+          if (playerRef.current?.setVolume) {
+            playerRef.current.setVolume(vol);
+          }
+        } catch {}
       },
       setPlaybackRate: (rate: number) => {
-        if (playerRef.current?.setPlaybackRate) {
-          playerRef.current.setPlaybackRate(rate);
-        }
+        try {
+          if (playerRef.current?.setPlaybackRate) {
+            playerRef.current.setPlaybackRate(rate);
+          }
+        } catch {}
       },
       getCurrentTime: () => {
-        return playerRef.current?.getCurrentTime ? playerRef.current.getCurrentTime() : 0;
+        try {
+          return playerRef.current?.getCurrentTime ? playerRef.current.getCurrentTime() : 0;
+        } catch {
+          return 0;
+        }
       },
       getDuration: () => {
-        return playerRef.current?.getDuration ? playerRef.current.getDuration() : 0;
+        try {
+          return playerRef.current?.getDuration ? playerRef.current.getDuration() : 0;
+        } catch {
+          return 0;
+        }
+      },
+      loadTrack: (videoId: string, autoPlay = true) => {
+        lastLoadedIdRef.current = videoId;
+        try {
+          if (!playerRef.current) return;
+          if (autoPlay && playerRef.current.loadVideoById) {
+            playerRef.current.loadVideoById({ videoId, startSeconds: 0 });
+          } else if (playerRef.current.cueVideoById) {
+            playerRef.current.cueVideoById({ videoId, startSeconds: 0 });
+          }
+        } catch (err) {
+          console.warn('YouTubePlayer loadTrack error:', err);
+        }
       },
     }));
 
@@ -131,27 +170,40 @@ export const YouTubePlayer = forwardRef<YouTubePlayerHandle, YouTubePlayerProps>
         containerRef.current.appendChild(element);
       }
 
+      const initialVideoId = currentTrack?.id || '8GW6sLrK40k';
+
       try {
         playerRef.current = new window.YT.Player(elementId, {
           height: '100%',
           width: '100%',
-          videoId: currentTrack?.id || '',
+          videoId: initialVideoId,
           playerVars: {
             autoplay: isPlaying ? 1 : 0,
-            controls: 1, // Video controls available in video mode
+            controls: 0, // Pure video: eliminate YouTube control bar & overlays
             modestbranding: 1,
             rel: 0,
+            showinfo: 0,
+            iv_load_policy: 3, // Disable annotations and interactive cards
+            disablekb: 1,
             playsinline: 1,
             enablejsapi: 1,
-            fs: 1,
+            fs: 0,
+            autohide: 1,
+            cc_load_policy: 0,
+            origin: typeof window !== 'undefined' ? window.location.origin : undefined,
           },
           events: {
             onReady: (event: any) => {
               setIsPlayerReady(true);
-              event.target.setVolume(volume);
-              event.target.setPlaybackRate(playbackRate);
-              if (isPlaying && currentTrack?.id) {
-                event.target.playVideo();
+              lastLoadedIdRef.current = initialVideoId;
+              try {
+                event.target.setVolume(volume);
+                event.target.setPlaybackRate(playbackRate);
+                if (isPlaying) {
+                  event.target.playVideo();
+                }
+              } catch (e) {
+                console.warn('onReady setup error:', e);
               }
             },
             onStateChange: (event: any) => {
@@ -165,7 +217,7 @@ export const YouTubePlayer = forwardRef<YouTubePlayerHandle, YouTubePlayerProps>
                 onStateChange(false, false);
               } else if (state === 3) {
                 // BUFFERING
-                onStateChange(isPlaying, true);
+                onStateChange(true, true);
               } else if (state === 0) {
                 // ENDED
                 onStateChange(false, false);
@@ -176,15 +228,14 @@ export const YouTubePlayer = forwardRef<YouTubePlayerHandle, YouTubePlayerProps>
               console.warn('YouTube Player error code:', event.data);
               let msg = 'Playback error occurred.';
               if (event.data === 101 || event.data === 150) {
-                msg = 'Video playback is restricted by the content owner. Skipping to next track...';
+                msg = 'Playback is restricted on this video by the owner. Try another track or open on YouTube.';
               } else if (event.data === 100) {
-                msg = 'Video not found or removed. Skipping to next track...';
+                msg = 'Video not found or removed. Try another track.';
+              } else if (event.data === 2) {
+                msg = 'Invalid YouTube video ID.';
               }
               onError(msg);
-              // Gracefully advance after brief delay
-              setTimeout(() => {
-                onTrackEnded();
-              }, 1200);
+              onStateChange(false, false);
             },
           },
         });
@@ -194,7 +245,9 @@ export const YouTubePlayer = forwardRef<YouTubePlayerHandle, YouTubePlayerProps>
 
       return () => {
         if (playerRef.current?.destroy) {
-          playerRef.current.destroy();
+          try {
+            playerRef.current.destroy();
+          } catch {}
           playerRef.current = null;
         }
       };
@@ -202,8 +255,10 @@ export const YouTubePlayer = forwardRef<YouTubePlayerHandle, YouTubePlayerProps>
 
     // Step 3: Handle track changes
     useEffect(() => {
-      if (!isPlayerReady || !playerRef.current || !currentTrack) return;
+      if (!isPlayerReady || !playerRef.current || !currentTrack?.id) return;
+      if (lastLoadedIdRef.current === currentTrack.id) return;
 
+      lastLoadedIdRef.current = currentTrack.id;
       try {
         if (isPlaying) {
           playerRef.current.loadVideoById({
@@ -219,7 +274,7 @@ export const YouTubePlayer = forwardRef<YouTubePlayerHandle, YouTubePlayerProps>
       } catch (err) {
         console.error('Error loading video by ID:', err);
       }
-    }, [currentTrack?.id, isPlayerReady]);
+    }, [currentTrack?.id, isPlayerReady, isPlaying]);
 
     // Step 4: Handle play/pause sync
     useEffect(() => {
@@ -274,15 +329,11 @@ export const YouTubePlayer = forwardRef<YouTubePlayerHandle, YouTubePlayerProps>
     }, [isPlayerReady]);
 
     return (
-      <div
-        className={`transition-all duration-300 overflow-hidden ${
-          isVideoVisible
-            ? 'relative w-full max-w-xl mx-auto aspect-video rounded-xl border border-zinc-800 shadow-2xl bg-black'
-            : 'fixed -bottom-[9999px] -right-[9999px] w-64 h-36 opacity-0 pointer-events-none'
-        }`}
-        aria-hidden={!isVideoVisible}
-      >
-        <div ref={containerRef} className="w-full h-full" />
+      <div className="w-full h-full relative overflow-hidden select-none bg-black pointer-events-none" aria-hidden={!isVideoVisible}>
+        <div
+          ref={containerRef}
+          className="w-full h-full scale-[1.42] origin-[50%_46%] pointer-events-none"
+        />
       </div>
     );
   }
