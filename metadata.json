@@ -1,0 +1,6 @@
+{
+  "name": "Aura Minimalist Music Player",
+  "description": "A distraction-free, beautifully crafted music player powered by YouTube with instant search, reactive audio visualizers, curated vibes, and seamless playback.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
