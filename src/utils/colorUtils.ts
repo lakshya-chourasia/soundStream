@@ -136,3 +136,4 @@ export function extractColorFromImage(imageUrl: string, fallbackSeed = ''): Prom
     img.src = imageUrl;
   });
 }
+

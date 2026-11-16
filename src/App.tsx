@@ -716,6 +716,7 @@ export default function App() {
         }}
         onOpenSleepTimer={() => setIsSleepTimerOpen(true)}
         onOpenQuickImport={() => setIsQuickImportOpen(true)}
+        genres={genres}
       />
 
       {/* Toast Notification */}
