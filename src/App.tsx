@@ -11,7 +11,6 @@ import { CuratedVibes } from './components/CuratedVibes';
 import { PlayerBottomBar } from './components/PlayerBottomBar';
 import { MobileBottomNav } from './components/MobileBottomNav';
 import { YouTubePlayer, YouTubePlayerHandle } from './components/YouTubePlayer';
-import { QuickImportModal } from './components/QuickImportModal';
 import { SleepTimerModal } from './components/SleepTimerModal';
 import { getNextTrackIndex, getPrevTrackIndex, extractYouTubeId, cleanTrackTitle, getDynamicTrackTag, getFullSingerName } from './utils/playerUtils';
 import { Compass, AlertCircle, X } from 'lucide-react';
@@ -150,7 +149,6 @@ export default function App() {
   // Navigation & Modals State
   const [activeView, setActiveView] = useState<ActiveView>('now-playing');
   const [selectedCollectionId, setSelectedCollectionId] = useState<string>('love-2k20');
-  const [isQuickImportOpen, setIsQuickImportOpen] = useState<boolean>(false);
   const [isSleepTimerOpen, setIsSleepTimerOpen] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
@@ -238,9 +236,11 @@ export default function App() {
     setIsRecommendationsLoading(true);
     try {
       const { title: cleanT, artistFromTitle } = cleanTrackTitle(track.title);
-      const artist = artistFromTitle || track.artist || '';
+      const rawArtist = artistFromTitle || track.artist || '';
+      const displayArtist = getFullSingerName(rawArtist, cleanT);
+      const vibeTag = getDynamicTrackTag(cleanT, displayArtist, track.views);
       const res = await fetch(
-        `/api/recommendations?trackId=${encodeURIComponent(track.id)}&artist=${encodeURIComponent(artist)}&limit=10`
+        `/api/recommendations?trackId=${encodeURIComponent(track.id)}&artist=${encodeURIComponent(displayArtist)}&tag=${encodeURIComponent(vibeTag)}&limit=12`
       );
       if (res.ok) {
         const data = await res.json();
@@ -494,20 +494,71 @@ export default function App() {
   };
 
   const handleNext = useCallback(() => {
-    if (!currentTrack || queue.length === 0) return;
-    const currentIndex = queue.findIndex((t) => t.id === currentTrack.id);
-    const nextIndex = getNextTrackIndex(currentIndex, queue.length, repeatMode, isShuffle, playedHistory);
+    if (!currentTrack) return;
 
-    if (nextIndex === null || nextIndex === -1) {
-      setIsPlaying(false);
-      setCurrentTime(0);
+    // 1. Loop current track if repeat mode is 'one'
+    if (repeatMode === 'one') {
+      playerRef.current?.seekTo(0);
+      playerRef.current?.play();
+      setIsPlaying(true);
       return;
     }
 
-    setPlayedHistory((prev) => [...prev, currentIndex]);
-    const nextTrack = queue[nextIndex];
-    if (nextTrack) handlePlayTrack(nextTrack);
-  }, [currentTrack, isShuffle, playedHistory, queue, repeatMode]);
+    const currentIndex = queue.findIndex((t) => t.id === currentTrack.id);
+
+    // 2. If there are manually queued / up-next tracks ahead in the queue, play them
+    if (currentIndex >= 0 && currentIndex < queue.length - 1) {
+      setPlayedHistory((prev) => [...prev, currentIndex]);
+      const nextTrack = queue[currentIndex + 1];
+      if (nextTrack) {
+        handlePlayTrack(nextTrack);
+        return;
+      }
+    }
+
+    // 3. Autoplay according to Vibe:
+    // Select the next unplayed track from recommendations matching the vibe
+    const playedIdSet = new Set<string>([
+      currentTrack.id,
+      ...playedHistory.map((idx) => queue[idx]?.id).filter(Boolean),
+    ]);
+
+    const unplayedVibeTrack = recommendations.find(
+      (t) => !playedIdSet.has(t.id) && !restrictedVideoIds.has(t.id)
+    );
+
+    if (unplayedVibeTrack) {
+      if (!queue.some((t) => t.id === unplayedVibeTrack.id)) {
+        setQueue((prev) => [...prev, unplayedVibeTrack]);
+      }
+      setPlayedHistory((prev) => [...prev, currentIndex]);
+      handlePlayTrack(unplayedVibeTrack);
+      const { title: nextT } = cleanTrackTitle(unplayedVibeTrack.title);
+      showToast(`Autoplaying vibe: "${nextT}"`);
+      return;
+    }
+
+    // 4. Fallback to standard shuffle or repeat-all if all vibe recommendations have been played
+    const nextIndex = getNextTrackIndex(currentIndex, queue.length, repeatMode, isShuffle, playedHistory);
+    if (nextIndex !== null && nextIndex !== -1 && queue[nextIndex]) {
+      setPlayedHistory((prev) => [...prev, currentIndex]);
+      handlePlayTrack(queue[nextIndex]);
+      return;
+    }
+
+    // 5. Continual flow: fetch new vibe recommendations so music never stops
+    fetchRecommendations(currentTrack);
+  }, [
+    currentTrack,
+    queue,
+    repeatMode,
+    playedHistory,
+    recommendations,
+    restrictedVideoIds,
+    handlePlayTrack,
+    isShuffle,
+    fetchRecommendations,
+  ]);
 
   const handlePrev = useCallback(() => {
     if (!currentTrack || queue.length === 0) return;
@@ -644,7 +695,6 @@ export default function App() {
           onToggleLyrics={() => setIsLyricsOpen(!isLyricsOpen)}
           isVisualizerOpen={isVisualizerOpen}
           onToggleVisualizer={() => setIsVisualizerOpen(!isVisualizerOpen)}
-          onOpenQuickImport={() => setIsQuickImportOpen(true)}
           sleepTimerRemaining={sleepTimerRemaining}
           onOpenSleepTimer={() => setIsSleepTimerOpen(true)}
           isPlaying={isPlaying}
@@ -659,7 +709,6 @@ export default function App() {
             curatedGenres={genres}
             selectedCollectionId={selectedCollectionId}
             onSelectCollection={handleSelectCollection}
-            onOpenQuickImport={() => setIsQuickImportOpen(true)}
             onOpenSleepTimer={() => setIsSleepTimerOpen(true)}
             sleepTimerRemaining={sleepTimerRemaining}
             onOpenSearch={() => setActiveView(activeView === 'discover' ? 'now-playing' : 'discover')}
@@ -908,14 +957,6 @@ export default function App() {
           <span>{toastMessage}</span>
         </div>
       )}
-
-      {/* Quick Import Modal */}
-      <QuickImportModal
-        isOpen={isQuickImportOpen}
-        onClose={() => setIsQuickImportOpen(false)}
-        onPlayTrack={handlePlayTrack}
-        onAddToQueue={handleAddToQueue}
-      />
 
       {/* Sleep Timer Modal */}
       <SleepTimerModal

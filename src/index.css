@@ -238,29 +238,6 @@ html, body, #root {
 }
 
 /* ─────────────────────────────────────────────
-   ADD A STORY PILL (top nav)
-───────────────────────────────────────────── */
-.add-story-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 14px;
-  border-radius: 9999px;
-  color: rgba(255, 255, 255, 0.85);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  transition: all 0.15s ease;
-  cursor: pointer;
-}
-
-.add-story-btn:hover {
-  color: #ffffff;
-  background: rgba(255, 255, 255, 0.08);
-}
-
-/* ─────────────────────────────────────────────
    LEFT RAIL ICONS
 ───────────────────────────────────────────── */
 .rail-btn {

@@ -3,13 +3,9 @@ import { ActiveView, GenreCollection } from '../types/player';
 import {
   ChevronDown,
   BookmarkPlus,
-  Compass,
-  Plus,
   User,
   Search,
   Bell,
-  Sparkles,
-  Music,
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -18,7 +14,6 @@ interface HeaderProps {
   curatedGenres: GenreCollection[];
   selectedCollectionId: string;
   onSelectCollection: (genreId: string) => void;
-  onOpenQuickImport: () => void;
   onOpenSleepTimer: () => void;
   sleepTimerRemaining: number | null;
   onOpenSearch: () => void;
@@ -31,7 +26,6 @@ export const Header: React.FC<HeaderProps> = ({
   curatedGenres,
   selectedCollectionId,
   onSelectCollection,
-  onOpenQuickImport,
   onOpenSleepTimer,
   sleepTimerRemaining,
   onOpenSearch,
@@ -89,52 +83,18 @@ export const Header: React.FC<HeaderProps> = ({
           )}
         </div>
 
-        {/* Bookmark Icon */}
+        {/* Saved Library / Queue Bookmark Icon */}
         <button
           onClick={() => onSelectView('queue')}
           className="ref-icon-btn p-1 text-white/70 hover:text-white"
-          title="Saved Library"
+          title="Saved Library & Queue"
           aria-label="Library"
         >
           <BookmarkPlus className="w-4 h-4" />
         </button>
-
-        {/* Discover Pill Button */}
-        <button
-          onClick={() => {
-            if (activeView === 'discover') {
-              onSelectView('now-playing');
-            } else {
-              onSelectView('discover');
-            }
-          }}
-          className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-[11px] font-bold tracking-wider uppercase transition-all ${
-            activeView === 'discover'
-              ? 'bg-white/20 text-white border border-white/30'
-              : 'text-white/70 hover:text-white hover:bg-white/10'
-          }`}
-          title="Search & Discover"
-        >
-          <Compass className="w-3.5 h-3.5" />
-          <span>DISCOVER</span>
-        </button>
       </div>
 
-      {/* ── CENTER SECTION: (+) ADD A STORY / IMPORT URL ── */}
-      <div className="flex items-center justify-center">
-        <button
-          onClick={onOpenQuickImport}
-          className="add-story-btn group"
-          title="Add YouTube Track URL"
-        >
-          <div className="w-5 h-5 rounded-full border border-yellow-400 flex items-center justify-center text-yellow-400 group-hover:bg-yellow-400 group-hover:text-black transition-colors">
-            <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-          </div>
-          <span className="text-white/90 group-hover:text-white">ADD A TRACK</span>
-        </button>
-      </div>
-
-      {/* ── RIGHT SECTION: User Profile + Search + Notifications ── */}
+      {/* ── RIGHT SECTION: User Profile + Search & Discover + Notifications ── */}
       <div className="flex items-center gap-4 sm:gap-6">
         {/* User Profile */}
         <div className="relative">
@@ -169,21 +129,25 @@ export const Header: React.FC<HeaderProps> = ({
           )}
         </div>
 
-        {/* Search Icon */}
+        {/* Unified Search & Discover Button */}
         <button
           onClick={onOpenSearch}
-          className="ref-icon-btn p-1 text-white/70 hover:text-white"
-          title="Search Music"
-          aria-label="Search"
+          className={`ref-icon-btn p-1.5 transition-all ${
+            activeView === 'discover'
+              ? 'text-yellow-400 bg-white/15 border border-yellow-400/30'
+              : 'text-white/70 hover:text-white'
+          }`}
+          title="Search & Discover"
+          aria-label="Search and Discover"
         >
           <Search className="w-4 h-4" />
         </button>
 
-        {/* Notifications / Collection Badge */}
+        {/* Notifications / Queue Badge */}
         <button
           onClick={() => onSelectView('queue')}
           className="relative ref-icon-btn p-1 text-white/70 hover:text-white"
-          title="Notifications & Queue"
+          title="Queue & Notifications"
           aria-label="Queue"
         >
           <Bell className="w-4 h-4" />

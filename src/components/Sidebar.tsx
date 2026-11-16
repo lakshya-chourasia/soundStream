@@ -19,7 +19,6 @@ interface SidebarProps {
   onToggleLyrics: () => void;
   isVisualizerOpen: boolean;
   onToggleVisualizer: () => void;
-  onOpenQuickImport: () => void;
   sleepTimerRemaining: number | null;
   onOpenSleepTimer: () => void;
   isPlaying: boolean;
@@ -54,12 +53,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
         </button>
 
-        {/* Menu Hamburger Icon */}
+        {/* Menu Hamburger Icon (Toggles Queue & Library) */}
         <button
-          onClick={() => onSelectView('discover')}
-          className="rail-btn"
-          title="Open Library & Menu"
-          aria-label="Menu"
+          onClick={() => onSelectView(activeView === 'queue' ? 'now-playing' : 'queue')}
+          className={`rail-btn ${activeView === 'queue' ? 'active' : ''}`}
+          title="Open Library & Queue"
+          aria-label="Queue"
         >
           <Menu className="w-5 h-5" />
         </button>

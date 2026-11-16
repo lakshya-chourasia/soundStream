@@ -77,6 +77,7 @@ const CURATED_GENRES = [
     id: 'official-hits',
     name: 'Top Global Official Music Videos',
     description: 'Master studio official music videos from top worldwide artists',
+    tag: '#GLOBAL-HIT',
     tracks: [
       {
         id: 'kJQP7kiw5Fk',
@@ -156,6 +157,7 @@ const CURATED_GENRES = [
     id: 'synthwave',
     name: 'Synthwave & Retrowave (Official Videos)',
     description: 'Neon horizons, analog synthesizers, and midnight expressway nostalgia',
+    tag: '#SYNTHWAVE',
     tracks: [
       {
         id: 'a6P40S5K4c4',
@@ -190,6 +192,7 @@ const CURATED_GENRES = [
     id: 'indie-rock',
     name: 'Indie & Alt Rock (Official Music Videos)',
     description: 'Iconic anthems and guitar driven official videos',
+    tag: '#ALT-ROCK',
     tracks: [
       {
         id: 'gGdGFtwCNBE',
@@ -224,6 +227,7 @@ const CURATED_GENRES = [
     id: 'pop-dance',
     name: 'Electronic & Pop Dance (Official Videos)',
     description: 'High energy dance visuals and festival anthems',
+    tag: '#DANCE',
     tracks: [
       {
         id: 'YykjpeuMNEk',
@@ -316,27 +320,42 @@ async function startServer() {
     });
   });
 
-  // API 2: Dynamic Smart Recommendations (Flexible, Shuffled Mix)
+  // API 2: Dynamic Vibe Smart Recommendations (Auto-matches Genre & Vibe)
   app.get('/api/recommendations', async (req: Request, res: Response) => {
     const trackId = (req.query.trackId as string || '').trim();
     const artist = (req.query.artist as string || '').trim().toLowerCase();
-    const limit = Math.min(20, Math.max(4, parseInt(req.query.limit as string || '8', 10)));
+    const tag = (req.query.tag as string || '').trim().toUpperCase();
+    const limit = Math.min(20, Math.max(4, parseInt(req.query.limit as string || '10', 10)));
 
     try {
-      const allTracks = CURATED_GENRES.flatMap((g) => g.tracks).filter((t) => !KNOWN_RESTRICTED_IDS.has(t.id));
+      // Find parent genre/vibe of the requested track or tag
+      const currentGenre = CURATED_GENRES.find((g) =>
+        (tag && g.tag === tag) || g.tracks.some((t) => t.id === trackId)
+      );
+
+      const allTracks = CURATED_GENRES.flatMap((g) =>
+        g.tracks.map((t) => ({ ...t, vibe: g.tag, collectionName: g.name }))
+      ).filter((t) => !KNOWN_RESTRICTED_IDS.has(t.id) && t.id !== trackId);
+
       const uniqueMap = new Map<string, any>();
       for (const t of allTracks) {
-        if (!uniqueMap.has(t.id) && t.id !== trackId) {
+        if (!uniqueMap.has(t.id)) {
           uniqueMap.set(t.id, t);
         }
       }
 
       const pool = Array.from(uniqueMap.values());
+      const sameVibeTracks: any[] = [];
       const artistMatches: any[] = [];
       const others: any[] = [];
 
       for (const t of pool) {
-        if (artist && (t.artist.toLowerCase().includes(artist) || artist.includes(t.artist.toLowerCase()))) {
+        const isSameVibe = currentGenre && (t.vibe === currentGenre.tag || (tag && t.vibe === tag));
+        const isArtistMatch = artist && (t.artist.toLowerCase().includes(artist) || artist.includes(t.artist.toLowerCase()));
+
+        if (isSameVibe) {
+          sameVibeTracks.push(t);
+        } else if (isArtistMatch) {
           artistMatches.push(t);
         } else {
           others.push(t);
@@ -353,10 +372,17 @@ async function startServer() {
         return a;
       };
 
-      const shuffledOthers = shuffle(others);
-      const combined = [...artistMatches, ...shuffledOthers].slice(0, limit);
+      // Prioritize same vibe tracks first, then same artist, then diverse pool
+      const combined = [
+        ...shuffle(sameVibeTracks),
+        ...shuffle(artistMatches),
+        ...shuffle(others),
+      ].slice(0, limit);
 
-      res.json({ recommendations: combined });
+      res.json({
+        recommendations: combined,
+        activeVibe: currentGenre?.tag || tag || '#NOW-PLAYING',
+      });
     } catch (err: any) {
       console.error('Error generating recommendations:', err);
       res.status(500).json({ error: 'Failed to generate recommendations' });
