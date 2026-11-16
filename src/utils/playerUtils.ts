@@ -250,3 +250,97 @@ export function getDynamicTrackTag(title: string, artist: string, views?: string
   return '#NOW-PLAYING';
 }
 
+/**
+ * Known singers directory: maps stage names, bands, and mononyms to the full singer / lead vocalist name
+ */
+export const SINGER_DIRECTORY: Record<string, string> = {
+  // Mononyms & Stage Names
+  'adele': 'Adele Adkins',
+  'the weeknd': 'Abel Tesfaye (The Weeknd)',
+  'abel tesfaye': 'Abel Tesfaye (The Weeknd)',
+  'avicii': 'Aloe Blacc (Avicii)',
+  'marshmello': 'Christopher Comstock (Marshmello)',
+  'post malone': 'Austin Richard Post (Post Malone)',
+  'billie eilish': 'Billie Eilish O\'Connell',
+  'harry styles': 'Harry Edward Styles',
+  'ed sheeran': 'Edward Christopher Sheeran',
+  'dua lipa': 'Dua Lipa',
+  'rihanna': 'Robyn Rihanna Fenty',
+  'beyonce': 'Beyoncé Knowles-Carter',
+  'beyoncé': 'Beyoncé Knowles-Carter',
+  'bruno mars': 'Peter Gene Hernandez (Bruno Mars)',
+  'lady gaga': 'Stefani Germanotta (Lady Gaga)',
+  'katy perry': 'Katheryn Elizabeth Hudson (Katy Perry)',
+  'daddy yankee': 'Ramón Ayala (Daddy Yankee)',
+  'luis fonsi': 'Luis Alfonso Rodríguez (Luis Fonsi)',
+  'aloe blacc': 'Aloe Blacc (Egbert Dawkins III)',
+  'philip george': 'Philip George',
+
+  // Bands -> Lead Singer & Band Name
+  'coldplay': 'Chris Martin (Coldplay)',
+  'queen': 'Freddie Mercury (Queen)',
+  'the killers': 'Brandon Flowers (The Killers)',
+  'arctic monkeys': 'Alex Turner (Arctic Monkeys)',
+  'haim': 'Danielle Haim (HAIM)',
+  'the midnight': 'Tyler Lyle (The Midnight)',
+  'the paper kites': 'Sam Bentley & Christina Lacy (The Paper Kites)',
+  'timecop1983': 'Jordy Leenaerts (Timecop1983)',
+  'home': 'Randy Goffe (HOME)',
+  'linkin park': 'Chester Bennington (Linkin Park)',
+  'twenty one pilots': 'Tyler Joseph (Twenty One Pilots)',
+  'imagine dragons': 'Dan Reynolds (Imagine Dragons)',
+  'maroon 5': 'Adam Levine (Maroon 5)',
+  'green day': 'Billie Joe Armstrong (Green Day)',
+  'u2': 'Bono (U2)',
+  'radiohead': 'Thom Yorke (Radiohead)',
+  'the rolling stones': 'Mick Jagger (The Rolling Stones)',
+  'nirvana': 'Kurt Cobain (Nirvana)',
+  'foo fighters': 'Dave Grohl (Foo Fighters)',
+  'pearl jam': 'Eddie Vedder (Pearl Jam)',
+  'guns n roses': 'Axl Rose (Guns N\' Roses)',
+  'guns n\' roses': 'Axl Rose (Guns N\' Roses)',
+};
+
+/**
+ * Resolves full name of the singer/vocalist for any artist or track
+ */
+export function getFullSingerName(artist?: string, title?: string): string {
+  if (!artist || typeof artist !== 'string') return 'Unknown Singer';
+
+  const cleanedArtist = artist.trim();
+  const lowerArtist = cleanedArtist.toLowerCase();
+
+  // Special track checks (e.g. Wake Me Up is sung by Aloe Blacc)
+  if (lowerArtist.includes('avicii') || (title && title.toLowerCase().includes('wake me up'))) {
+    return 'Aloe Blacc (Avicii)';
+  }
+
+  // Exact directory match
+  if (SINGER_DIRECTORY[lowerArtist]) {
+    return SINGER_DIRECTORY[lowerArtist];
+  }
+
+  // Check if artist already has a full singer format with parentheses (e.g. "Chris Martin (Coldplay)")
+  if (cleanedArtist.includes('(') && cleanedArtist.includes(')')) {
+    return cleanedArtist;
+  }
+
+  // Check if artist string contains a known band or singer
+  for (const [key, fullName] of Object.entries(SINGER_DIRECTORY)) {
+    if (lowerArtist === key || lowerArtist.startsWith(`${key} `) || lowerArtist.endsWith(` ${key}`)) {
+      return fullName;
+    }
+  }
+
+  // Handling "feat." or "ft."
+  if (cleanedArtist.includes(' ft. ') || cleanedArtist.includes(' feat. ')) {
+    const separator = cleanedArtist.includes(' ft. ') ? ' ft. ' : ' feat. ';
+    const parts = cleanedArtist.split(separator);
+    const mainSinger = getFullSingerName(parts[0]);
+    const featuredSinger = getFullSingerName(parts[1]);
+    return `${mainSinger} ft. ${featuredSinger}`;
+  }
+
+  return cleanedArtist;
+}
+

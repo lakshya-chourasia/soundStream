@@ -1,7 +1,7 @@
 import React from 'react';
 import { Track } from '../types/player';
 import { Play, Pause, Plus, Check, Heart, Music } from 'lucide-react';
-import { cleanTrackTitle } from '../utils/playerUtils';
+import { cleanTrackTitle, getFullSingerName } from '../utils/playerUtils';
 
 interface TrackCardProps {
   track: Track;
@@ -27,7 +27,8 @@ export const TrackCard: React.FC<TrackCardProps> = ({
   onRemoveFromQueue,
 }) => {
   const { title, artistFromTitle } = cleanTrackTitle(track.title);
-  const displayArtist = artistFromTitle || track.artist || 'YouTube Artist';
+  const rawArtist = track.artist || artistFromTitle || 'YouTube Artist';
+  const displayArtist = getFullSingerName(rawArtist, title);
 
   return (
     <div

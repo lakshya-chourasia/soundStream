@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Track, RepeatMode } from '../types/player';
-import { formatTime, cleanTrackTitle } from '../utils/playerUtils';
+import { formatTime, cleanTrackTitle, getFullSingerName } from '../utils/playerUtils';
 import {
   Play,
   Pause,
@@ -74,7 +74,8 @@ export const PlayerBottomBar: React.FC<PlayerBottomBarProps> = ({
   if (!currentTrack) return null;
 
   const { title, artistFromTitle } = cleanTrackTitle(currentTrack.title);
-  const displayArtist = artistFromTitle || currentTrack.artist || 'YouTube Artist';
+  const rawArtist = currentTrack.artist || artistFromTitle || 'YouTube Artist';
+  const displayArtist = getFullSingerName(rawArtist, title);
   const effectiveDuration = duration > 0 ? duration : currentTrack.durationSec || 0;
   const progressPercent = effectiveDuration > 0
     ? Math.min(100, (currentTime / effectiveDuration) * 100)

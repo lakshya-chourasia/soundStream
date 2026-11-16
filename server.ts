@@ -20,7 +20,7 @@ const CURATED_GENRES = [
       {
         id: 'raiQjmyZMC0',
         title: 'Someone Like You',
-        artist: 'Adele',
+        artist: 'Adele Adkins',
         duration: '4:45',
         durationSec: 285,
         views: '2.2B views',
@@ -29,7 +29,7 @@ const CURATED_GENRES = [
       {
         id: 'zmsS_6sP5c4',
         title: 'If I Could Change You',
-        artist: 'Haim',
+        artist: 'Danielle Haim (HAIM)',
         duration: '3:50',
         durationSec: 230,
         views: '45M views',
@@ -38,7 +38,7 @@ const CURATED_GENRES = [
       {
         id: 'kYFjF3v1U7c',
         title: 'Go slow',
-        artist: 'Gorgon City ft. Kaskade',
+        artist: 'Gorgon City ft. Kaskade (Ryan Raddon)',
         duration: '3:45',
         durationSec: 225,
         views: '28M views',
@@ -56,7 +56,7 @@ const CURATED_GENRES = [
       {
         id: 'yKNxeF4KMsY',
         title: 'Yellow',
-        artist: 'Coldplay',
+        artist: 'Chris Martin (Coldplay)',
         duration: '4:33',
         durationSec: 273,
         views: '1.3B views',
@@ -65,7 +65,7 @@ const CURATED_GENRES = [
       {
         id: '2Vv-BfVoq4g',
         title: 'Perfect',
-        artist: 'Ed Sheeran',
+        artist: 'Edward Christopher Sheeran',
         duration: '4:23',
         durationSec: 263,
         views: '3.6B views',
@@ -81,7 +81,7 @@ const CURATED_GENRES = [
       {
         id: 'kJQP7kiw5Fk',
         title: 'Despacito (Official Music Video)',
-        artist: 'Luis Fonsi ft. Daddy Yankee',
+        artist: 'Luis Fonsi ft. Daddy Yankee (Ramón Ayala)',
         duration: '4:42',
         durationSec: 282,
         views: '8.4B views',
@@ -90,7 +90,7 @@ const CURATED_GENRES = [
       {
         id: 'JGwWNGJdvx8',
         title: 'Shape of You (Official Music Video)',
-        artist: 'Ed Sheeran',
+        artist: 'Edward Christopher Sheeran',
         duration: '4:24',
         durationSec: 264,
         views: '6.2B views',
@@ -99,7 +99,7 @@ const CURATED_GENRES = [
       {
         id: 'fJ9rUzIMcZQ',
         title: 'Bohemian Rhapsody (Official Video Remastered)',
-        artist: 'Queen',
+        artist: 'Freddie Mercury (Queen)',
         duration: '6:00',
         durationSec: 360,
         views: '1.7B views',
@@ -108,7 +108,7 @@ const CURATED_GENRES = [
       {
         id: '4NRXx6U8ABQ',
         title: 'Blinding Lights (Official Music Video)',
-        artist: 'The Weeknd',
+        artist: 'Abel Tesfaye (The Weeknd)',
         duration: '4:22',
         durationSec: 262,
         views: '800M views',
@@ -117,7 +117,7 @@ const CURATED_GENRES = [
       {
         id: 'yKNxeF4KMsY',
         title: 'Yellow (Official Video)',
-        artist: 'Coldplay',
+        artist: 'Chris Martin (Coldplay)',
         duration: '4:33',
         durationSec: 273,
         views: '1.3B views',
@@ -126,7 +126,7 @@ const CURATED_GENRES = [
       {
         id: 'H5v3kku4y6Q',
         title: 'As It Was (Official Video)',
-        artist: 'Harry Styles',
+        artist: 'Harry Edward Styles',
         duration: '2:47',
         durationSec: 167,
         views: '850M views',
@@ -144,7 +144,7 @@ const CURATED_GENRES = [
       {
         id: 'wXhTHyIgQ_U',
         title: 'Circles (Official Music Video)',
-        artist: 'Post Malone',
+        artist: 'Austin Richard Post (Post Malone)',
         duration: '3:35',
         durationSec: 215,
         views: '640M views',
@@ -160,7 +160,7 @@ const CURATED_GENRES = [
       {
         id: 'a6P40S5K4c4',
         title: 'Days of Thunder (Official Video)',
-        artist: 'The Midnight',
+        artist: 'Tyler Lyle (The Midnight)',
         duration: '5:30',
         durationSec: 330,
         views: '12M views',
@@ -169,7 +169,7 @@ const CURATED_GENRES = [
       {
         id: '_Ci0Kgdpgsw',
         title: 'On the Run (Official Video)',
-        artist: 'Timecop1983',
+        artist: 'Jordy Leenaerts (Timecop1983)',
         duration: '5:01',
         durationSec: 301,
         views: '15M views',
@@ -178,7 +178,7 @@ const CURATED_GENRES = [
       {
         id: '8GW6sLrK40k',
         title: 'Resonance (Official Video)',
-        artist: 'HOME',
+        artist: 'Randy Goffe (HOME)',
         duration: '3:32',
         durationSec: 212,
         views: '140M views',
@@ -194,7 +194,7 @@ const CURATED_GENRES = [
       {
         id: 'gGdGFtwCNBE',
         title: 'Mr. Brightside (Official Music Video)',
-        artist: 'The Killers',
+        artist: 'Brandon Flowers (The Killers)',
         duration: '3:48',
         durationSec: 228,
         views: '560M views',
@@ -203,7 +203,7 @@ const CURATED_GENRES = [
       {
         id: 'bpOSxM0rNPM',
         title: 'Do I Wanna Know? (Official Video)',
-        artist: 'Arctic Monkeys',
+        artist: 'Alex Turner (Arctic Monkeys)',
         duration: '4:26',
         durationSec: 266,
         views: '1.6B views',
@@ -212,7 +212,7 @@ const CURATED_GENRES = [
       {
         id: '1G4isv_Fylg',
         title: 'Bloom (Official Music Video)',
-        artist: 'The Paper Kites',
+        artist: 'Sam Bentley & Christina Lacy (The Paper Kites)',
         duration: '3:30',
         durationSec: 210,
         views: '78M views',
@@ -228,7 +228,7 @@ const CURATED_GENRES = [
       {
         id: 'YykjpeuMNEk',
         title: 'Hymn For The Weekend (Official Video)',
-        artist: 'Coldplay ft. Beyoncé',
+        artist: 'Chris Martin & Beyoncé (Coldplay)',
         duration: '4:20',
         durationSec: 260,
         views: '2.1B views',
@@ -237,7 +237,7 @@ const CURATED_GENRES = [
       {
         id: 'kOkQ4T5WO9E',
         title: 'This Is What You Came For (Official Video)',
-        artist: 'Calvin Harris ft. Rihanna',
+        artist: 'Rihanna & Calvin Harris',
         duration: '4:00',
         durationSec: 240,
         views: '2.7B views',
@@ -246,7 +246,7 @@ const CURATED_GENRES = [
       {
         id: 'ALZHF5UqnU4',
         title: 'Alone (Official Music Video)',
-        artist: 'Marshmello',
+        artist: 'Christopher Comstock (Marshmello)',
         duration: '3:20',
         durationSec: 200,
         views: '2.4B views',
@@ -255,7 +255,7 @@ const CURATED_GENRES = [
       {
         id: 'IcrbM1l_BoI',
         title: 'Wake Me Up (Official Video)',
-        artist: 'Avicii',
+        artist: 'Aloe Blacc (Avicii)',
         duration: '4:32',
         durationSec: 272,
         views: '2.3B views',
@@ -264,7 +264,7 @@ const CURATED_GENRES = [
       {
         id: 'DyDfgMOUjCI',
         title: 'bad guy (Official Music Video)',
-        artist: 'Billie Eilish',
+        artist: 'Billie Eilish O\'Connell',
         duration: '3:25',
         durationSec: 205,
         views: '1.2B views',

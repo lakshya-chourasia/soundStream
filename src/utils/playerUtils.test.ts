@@ -10,6 +10,7 @@ import {
   parseLrcLyrics,
   findActiveLyricIndex,
   getDynamicTrackTag,
+  getFullSingerName,
 } from './playerUtils.js';
 
 test('formatTime correctly formats seconds into mm:ss and hh:mm:ss', () => {
@@ -157,5 +158,19 @@ test('getDynamicTrackTag accurately generates relevant dynamic hashtags', () => 
   assert.equal(getDynamicTrackTag('Resonance', 'HOME'), '#CHILLOUT');
   assert.equal(getDynamicTrackTag('Bloom', 'The Paper Kites'), '#ACOUSTIC');
   assert.equal(getDynamicTrackTag('Shape of You', 'Ed Sheeran', '6.2B views'), '#GLOBAL-HIT');
+});
+
+test('getFullSingerName correctly maps stage names, mononyms, and bands to full singer names', () => {
+  assert.equal(getFullSingerName('Adele'), 'Adele Adkins');
+  assert.equal(getFullSingerName('Coldplay'), 'Chris Martin (Coldplay)');
+  assert.equal(getFullSingerName('Queen'), 'Freddie Mercury (Queen)');
+  assert.equal(getFullSingerName('The Weeknd'), 'Abel Tesfaye (The Weeknd)');
+  assert.equal(getFullSingerName('The Killers'), 'Brandon Flowers (The Killers)');
+  assert.equal(getFullSingerName('Arctic Monkeys'), 'Alex Turner (Arctic Monkeys)');
+  assert.equal(getFullSingerName('Avicii', 'Wake Me Up'), 'Aloe Blacc (Avicii)');
+  assert.equal(getFullSingerName('Haim'), 'Danielle Haim (HAIM)');
+  assert.equal(getFullSingerName('Ed Sheeran'), 'Edward Christopher Sheeran');
+  assert.equal(getFullSingerName('Harry Styles'), 'Harry Edward Styles');
+  assert.equal(getFullSingerName('Dua Lipa'), 'Dua Lipa');
 });
 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Track, RepeatMode, VisualizerMode, ThemeConfig, StreamQuality, PlayerStyle } from '../types/player';
-import { formatTime, cleanTrackTitle, getDynamicTrackTag } from '../utils/playerUtils';
+import { formatTime, cleanTrackTitle, getDynamicTrackTag, getFullSingerName } from '../utils/playerUtils';
 import {
   Play,
   Pause,
@@ -381,7 +381,8 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
 
   // Pure realtime values based on currently playing track
   const { title, artistFromTitle } = cleanTrackTitle(currentTrack.title);
-  const displayArtist = artistFromTitle || currentTrack.artist || 'Artist';
+  const rawArtist = currentTrack.artist || artistFromTitle || 'Artist';
+  const displayArtist = getFullSingerName(rawArtist, title);
   const effectiveDuration = duration > 0 ? duration : currentTrack.durationSec || 240;
   const headlineTitle = displayArtist.toUpperCase();
 
@@ -641,7 +642,8 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
               {displayedTracks.map((track, idx) => {
                 const isCurrent = track.id === currentTrack.id;
                 const { title: t, artistFromTitle: a } = cleanTrackTitle(track.title);
-                const itemArtist = a || track.artist || 'Artist';
+                const rawItemArtist = track.artist || a || 'Artist';
+                const itemArtist = getFullSingerName(rawItemArtist, t);
 
                 return (
                   <div

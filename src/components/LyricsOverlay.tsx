@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Track, ThemeConfig, LyricsData } from '../types/player';
-import { parseLrcLyrics, findActiveLyricIndex, cleanTrackTitle, formatTime } from '../utils/playerUtils';
+import { parseLrcLyrics, findActiveLyricIndex, cleanTrackTitle, formatTime, getFullSingerName } from '../utils/playerUtils';
 import { X, Copy, Check, Music, ExternalLink, GripHorizontal } from 'lucide-react';
 
 interface LyricsOverlayProps {
@@ -36,7 +36,8 @@ export const LyricsOverlay: React.FC<LyricsOverlayProps> = ({
   const activeLineRef = useRef<HTMLDivElement | null>(null);
 
   const { title, artistFromTitle } = cleanTrackTitle(currentTrack.title);
-  const displayArtist = artistFromTitle || currentTrack.artist || 'YouTube Artist';
+  const rawArtist = currentTrack.artist || artistFromTitle || 'YouTube Artist';
+  const displayArtist = getFullSingerName(rawArtist, title);
 
   // Fetch lyrics whenever track changes
   useEffect(() => {

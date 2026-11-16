@@ -13,14 +13,14 @@ import { MobileBottomNav } from './components/MobileBottomNav';
 import { YouTubePlayer, YouTubePlayerHandle } from './components/YouTubePlayer';
 import { QuickImportModal } from './components/QuickImportModal';
 import { SleepTimerModal } from './components/SleepTimerModal';
-import { getNextTrackIndex, getPrevTrackIndex, extractYouTubeId, cleanTrackTitle, getDynamicTrackTag } from './utils/playerUtils';
+import { getNextTrackIndex, getPrevTrackIndex, extractYouTubeId, cleanTrackTitle, getDynamicTrackTag, getFullSingerName } from './utils/playerUtils';
 import { Compass, AlertCircle, X } from 'lucide-react';
 
 const INITIAL_STARTER_POOL: Track[] = [
   {
     id: '2Vv-BfVoq4g',
     title: 'Perfect',
-    artist: 'Ed Sheeran',
+    artist: 'Edward Christopher Sheeran',
     duration: '4:23',
     durationSec: 263,
     views: '3.6B views',
@@ -29,7 +29,7 @@ const INITIAL_STARTER_POOL: Track[] = [
   {
     id: '4NRXx6U8ABQ',
     title: 'Blinding Lights',
-    artist: 'The Weeknd',
+    artist: 'Abel Tesfaye (The Weeknd)',
     duration: '4:22',
     durationSec: 262,
     views: '800M views',
@@ -38,7 +38,7 @@ const INITIAL_STARTER_POOL: Track[] = [
   {
     id: 'yKNxeF4KMsY',
     title: 'Yellow',
-    artist: 'Coldplay',
+    artist: 'Chris Martin (Coldplay)',
     duration: '4:33',
     durationSec: 273,
     views: '1.3B views',
@@ -47,7 +47,7 @@ const INITIAL_STARTER_POOL: Track[] = [
   {
     id: 'gGdGFtwCNBE',
     title: 'Mr. Brightside',
-    artist: 'The Killers',
+    artist: 'Brandon Flowers (The Killers)',
     duration: '3:48',
     durationSec: 228,
     views: '560M views',
@@ -56,7 +56,7 @@ const INITIAL_STARTER_POOL: Track[] = [
   {
     id: 'H5v3kku4y6Q',
     title: 'As It Was',
-    artist: 'Harry Styles',
+    artist: 'Harry Edward Styles',
     duration: '2:47',
     durationSec: 167,
     views: '850M views',
@@ -74,7 +74,7 @@ const INITIAL_STARTER_POOL: Track[] = [
   {
     id: 'fJ9rUzIMcZQ',
     title: 'Bohemian Rhapsody',
-    artist: 'Queen',
+    artist: 'Freddie Mercury (Queen)',
     duration: '6:00',
     durationSec: 360,
     views: '1.7B views',
@@ -83,7 +83,7 @@ const INITIAL_STARTER_POOL: Track[] = [
   {
     id: 'bpOSxM0rNPM',
     title: 'Do I Wanna Know?',
-    artist: 'Arctic Monkeys',
+    artist: 'Alex Turner (Arctic Monkeys)',
     duration: '4:26',
     durationSec: 266,
     views: '1.6B views',
@@ -92,7 +92,7 @@ const INITIAL_STARTER_POOL: Track[] = [
   {
     id: 'IcrbM1l_BoI',
     title: 'Wake Me Up',
-    artist: 'Avicii',
+    artist: 'Aloe Blacc (Avicii)',
     duration: '4:32',
     durationSec: 272,
     views: '2.3B views',
@@ -621,7 +621,8 @@ export default function App() {
 
   // Dynamically compute active context as track changes — NO HARDCODED STRINGS
   const { title: cleanCurrentTitle, artistFromTitle: currentArtistFromTitle } = cleanTrackTitle(currentTrack?.title || '');
-  const currentArtist = currentArtistFromTitle || currentTrack?.artist || 'SoundStream';
+  const rawCurrentArtist = currentTrack?.artist || currentArtistFromTitle || 'SoundStream';
+  const currentArtist = getFullSingerName(rawCurrentArtist, cleanCurrentTitle);
   const activeCollection = genres.find((g) => g.id === selectedCollectionId && g.tracks?.some((t) => t.id === currentTrack?.id));
   const dynamicPlaylistTitle = activeCollection ? activeCollection.name : currentArtist.toUpperCase();
   const dynamicGenreTag = (activeCollection as any)?.tag || getDynamicTrackTag(cleanCurrentTitle, currentArtist, currentTrack?.views);

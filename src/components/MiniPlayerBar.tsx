@@ -1,7 +1,7 @@
 import React from 'react';
 import { Track } from '../types/player';
 import { Play, Pause, SkipBack, SkipForward, Maximize2, Volume2, VolumeX } from 'lucide-react';
-import { formatTime, cleanTrackTitle } from '../utils/playerUtils';
+import { formatTime, cleanTrackTitle, getFullSingerName } from '../utils/playerUtils';
 
 interface MiniPlayerBarProps {
   currentTrack: Track | null;
@@ -37,7 +37,8 @@ export const MiniPlayerBar: React.FC<MiniPlayerBarProps> = ({
   if (!currentTrack) return null;
 
   const { title, artistFromTitle } = cleanTrackTitle(currentTrack.title);
-  const displayArtist = artistFromTitle || currentTrack.artist || 'YouTube Artist';
+  const rawArtist = currentTrack.artist || artistFromTitle || 'YouTube Artist';
+  const displayArtist = getFullSingerName(rawArtist, title);
   const effectiveDuration = duration > 0 ? duration : currentTrack.durationSec || 0;
   const progressPercent = effectiveDuration > 0 ? Math.min(100, (currentTime / effectiveDuration) * 100) : 0;
 
