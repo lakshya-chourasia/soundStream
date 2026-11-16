@@ -486,7 +486,6 @@ export default function App() {
   const currentArtist = currentArtistFromTitle || currentTrack?.artist || 'SoundStream';
   const activeCollection = genres.find((g) => g.id === selectedCollectionId && g.tracks?.some((t) => t.id === currentTrack?.id));
   const dynamicPlaylistTitle = activeCollection ? activeCollection.name : currentArtist.toUpperCase();
-  const dynamicCuratorName = (activeCollection as any)?.curator || currentArtist;
   const dynamicGenreTag = (activeCollection as any)?.tag || getDynamicTrackTag(cleanCurrentTitle, currentArtist, currentTrack?.views);
 
   return (
@@ -542,10 +541,7 @@ export default function App() {
                 volume={volume}
                 repeatMode={repeatMode}
                 isShuffle={isShuffle}
-                playbackRate={playbackRate}
-                playbackQuality={playbackQuality}
                 visualizerMode={visualizerMode}
-                playerStyle={playerStyle}
                 isVideoVisible={isVideoVisible}
                 themeConfig={currentTheme}
                 videoSlot={
@@ -572,9 +568,6 @@ export default function App() {
                     onPlaybackRestricted={handlePlaybackRestricted}
                   />
                 }
-                isFavorite={currentTrack ? favorites.some((f) => f.id === currentTrack.id) : false}
-                crossfadeDuration={crossfadeDuration}
-                onChangeCrossfadeDuration={setCrossfadeDuration}
                 onTogglePlay={handleTogglePlay}
                 onSeek={(time) => {
                   playerRef.current?.seekTo(time);
@@ -582,36 +575,14 @@ export default function App() {
                 }}
                 onPrev={handlePrev}
                 onNext={handleNext}
-                onSkipBack5s={() => {
-                  const nextT = Math.max(0, currentTime - 5);
-                  playerRef.current?.seekTo(nextT);
-                  setCurrentTime(nextT);
-                }}
-                onSkipForward5s={() => {
-                  const nextT = Math.min(duration || 9999, currentTime + 5);
-                  playerRef.current?.seekTo(nextT);
-                  setCurrentTime(nextT);
-                }}
                 onToggleShuffle={() => setIsShuffle(!isShuffle)}
                 onToggleRepeat={() => {
                   setRepeatMode((prev) => (prev === 'off' ? 'all' : prev === 'all' ? 'one' : 'off'));
                 }}
                 onChangeVolume={setVolume}
-                onChangePlaybackRate={setPlaybackRate}
-                onChangePlaybackQuality={(q) => {
-                  setPlaybackQuality(q);
-                  playerRef.current?.setPlaybackQuality(q);
-                  showToast(`Quality set to ${q.toUpperCase()}`);
-                }}
-                onChangeVisualizerMode={setVisualizerMode}
                 onToggleVideo={() => setIsVideoVisible(!isVideoVisible)}
-                onToggleFavorite={() => {
-                  if (currentTrack) handleToggleFavorite(currentTrack);
-                }}
                 queue={queue.filter((t) => !restrictedVideoIds.has(t.id))}
                 onPlayTrack={handlePlayTrack}
-                playlistName={dynamicPlaylistTitle}
-                curatorName={dynamicCuratorName}
                 genreTag={dynamicGenreTag}
                 isLyricsOpen={isLyricsOpen}
                 onToggleLyrics={() => setIsLyricsOpen(!isLyricsOpen)}

@@ -125,7 +125,7 @@ export const Header: React.FC<HeaderProps> = ({
         <button
           onClick={onOpenQuickImport}
           className="add-story-btn group"
-          title="Add YouTube Track or Playlist URL"
+          title="Add YouTube Track URL"
         >
           <div className="w-5 h-5 rounded-full border border-yellow-400 flex items-center justify-center text-yellow-400 group-hover:bg-yellow-400 group-hover:text-black transition-colors">
             <Plus className="w-3.5 h-3.5 stroke-[2.5]" />

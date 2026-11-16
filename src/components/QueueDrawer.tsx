@@ -12,10 +12,6 @@ interface QueueDrawerProps {
   onRemoveFromQueue: (track: Track) => void;
   onClearQueue: () => void;
   onToggleFavorite: (track: Track) => void;
-  playlists?: any[];
-  onCreatePlaylist?: (name: string) => void;
-  onPlayPlaylist?: (playlist: any) => void;
-  onDeletePlaylist?: (id: string) => void;
 }
 
 export const QueueDrawer: React.FC<QueueDrawerProps> = ({
