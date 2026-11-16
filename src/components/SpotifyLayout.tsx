@@ -283,7 +283,8 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
           >
             <span className="w-1.5 h-5 bg-yellow-400 rounded-xs transition-transform group-hover:scale-y-110 shadow-[0_0_8px_rgba(250,204,21,0.5)]" />
             <span className="font-display font-black text-lg sm:text-xl tracking-wider text-white">
-              SOUNDSTREAM
+              <span className="inline sm:hidden">S</span>
+              <span className="hidden sm:inline">SOUNDSTREAM</span>
             </span>
           </button>
         </div>

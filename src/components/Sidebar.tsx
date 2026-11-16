@@ -47,7 +47,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <div className="flex items-center gap-0.5 text-white">
             <span className="w-1.5 h-6 bg-white rounded-xs transition-transform group-hover:scale-y-110" />
             <span className="font-display font-black text-2xl tracking-tighter leading-none ml-0.5">
-              M
+              S
             </span>
           </div>
         </button>
