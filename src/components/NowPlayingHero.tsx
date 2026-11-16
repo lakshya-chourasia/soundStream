@@ -18,8 +18,6 @@ import {
   X,
   GripHorizontal,
   BookOpen,
-  Plus,
-  Minus,
 } from 'lucide-react';
 import { AudioVisualizer } from './AudioVisualizer';
 import { LyricsOverlay } from './LyricsOverlay';
@@ -484,41 +482,8 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
               </span>
             </div>
 
-            {/* Sizing Controls (Up to limit) + Fullscreen + Close */}
+            {/* Window Controls: Fullscreen + Close */}
             <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
-              {/* Shrink / - */}
-              <button
-                onClick={() => setVideoWidth((prev) => Math.max(MIN_VIDEO_W, prev - 60))}
-                disabled={videoWidth <= MIN_VIDEO_W}
-                className="w-5 h-5 rounded bg-white/10 hover:bg-white/20 disabled:opacity-30 text-white/80 hover:text-white flex items-center justify-center text-xs font-bold transition-colors"
-                title="Shrink Video"
-              >
-                <Minus className="w-3 h-3" />
-              </button>
-
-              <span className="text-[10px] font-mono text-white/60 min-w-[36px] text-center">
-                {videoWidth}px
-              </span>
-
-              {/* Enlarge / + (Up to maximum limit) */}
-              <button
-                onClick={() => setVideoWidth((prev) => Math.min(getMaxVideoW(), prev + 60))}
-                disabled={videoWidth >= getMaxVideoW()}
-                className="w-5 h-5 rounded bg-white/10 hover:bg-white/20 disabled:opacity-30 text-white/80 hover:text-white flex items-center justify-center text-xs font-bold transition-colors"
-                title={`Enlarge Video (Limit: ${getMaxVideoW()}px)`}
-              >
-                <Plus className="w-3 h-3" />
-              </button>
-
-              {/* Preset cycle button */}
-              <button
-                onClick={() => setVideoWidth((prev) => (prev >= 720 ? 340 : prev >= 520 ? 760 : 540))}
-                className="px-1.5 py-0.5 rounded bg-white/10 hover:bg-white/20 text-white/70 hover:text-white text-[10px] font-mono uppercase"
-                title="Cycle Presets (340px / 540px / 760px Limit)"
-              >
-                {videoWidth >= 700 ? 'MAX' : videoWidth >= 500 ? 'LG' : 'SM'}
-              </button>
-
               <button
                 onClick={() => setIsVideoFullscreen(!isVideoFullscreen)}
                 className="p-1 rounded hover:bg-white/10 text-white/70 hover:text-white transition-colors"
