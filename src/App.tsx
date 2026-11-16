@@ -1,20 +1,21 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Track, RepeatMode, VisualizerMode, ActiveView, GenreCollection, Playlist, ThemePreset, StreamQuality, PlayerStyle } from './types/player';
 import { THEME_PRESETS } from './utils/themeConfig';
+import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
 import { NowPlayingHero } from './components/NowPlayingHero';
 import { SearchBar } from './components/SearchBar';
 import { TrackCard } from './components/TrackCard';
 import { QueueDrawer } from './components/QueueDrawer';
 import { CuratedVibes } from './components/CuratedVibes';
-import { MiniPlayerBar } from './components/MiniPlayerBar';
+import { PlayerBottomBar } from './components/PlayerBottomBar';
 import { MobileBottomNav } from './components/MobileBottomNav';
 import { YouTubePlayer, YouTubePlayerHandle } from './components/YouTubePlayer';
 import { QuickImportModal } from './components/QuickImportModal';
 import { SleepTimerModal } from './components/SleepTimerModal';
 import { NodesBackground } from './components/NodesBackground';
 import { getNextTrackIndex, getPrevTrackIndex, extractYouTubeId } from './utils/playerUtils';
-import { Music2, Compass, AlertCircle, Info } from 'lucide-react';
+import { Compass, AlertCircle } from 'lucide-react';
 
 const DEFAULT_INITIAL_TRACK: Track = {
   id: '8GW6sLrK40k',
@@ -62,11 +63,6 @@ export default function App() {
     localStorage.setItem('soundstream_quality', playbackQuality);
   }, [playbackQuality]);
 
-  // Persist Player Style
-  useEffect(() => {
-    localStorage.setItem('soundstream_player_style', playerStyle);
-  }, [playerStyle]);
-
   // Navigation & Modals State
   const [activeView, setActiveView] = useState<ActiveView>('now-playing');
   const [isQuickImportOpen, setIsQuickImportOpen] = useState<boolean>(false);
@@ -101,24 +97,8 @@ export default function App() {
   const [activeGenreFilter, setActiveGenreFilter] = useState<string | null>(null);
 
   // Theme State
-  const [themePreset, setThemePreset] = useState<ThemePreset>(() => {
-    const saved = localStorage.getItem('aura_theme_preset') as ThemePreset;
-    return saved && THEME_PRESETS[saved] ? saved : 'obsidian';
-  });
-
-  const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
-    const saved = localStorage.getItem('aura_theme');
-    return saved ? saved === 'dark' : true;
-  });
-
+  const [themePreset] = useState<ThemePreset>('obsidian');
   const currentTheme = THEME_PRESETS[themePreset];
-
-  // Update Theme CSS Variables
-  useEffect(() => {
-    localStorage.setItem('aura_theme_preset', themePreset);
-    document.documentElement.style.setProperty('--theme-accent', currentTheme.accent);
-    document.documentElement.style.setProperty('--theme-accent-secondary', currentTheme.accentSecondary);
-  }, [themePreset, currentTheme]);
 
   // Sleep Timer Countdown
   const [sleepTimerRemaining, setSleepTimerRemaining] = useState<number | null>(null);
@@ -130,26 +110,10 @@ export default function App() {
     }, 4000);
   };
 
-  // Sync Dark Mode with document.documentElement
-  useEffect(() => {
-    if (isDarkMode) {
-      document.documentElement.classList.add('dark');
-      localStorage.setItem('aura_theme', 'dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('aura_theme', 'light');
-    }
-  }, [isDarkMode]);
-
   // Persist Volume
   useEffect(() => {
     localStorage.setItem('aura_volume', volume.toString());
   }, [volume]);
-
-  // Persist Crossfade Duration
-  useEffect(() => {
-    localStorage.setItem('aura_crossfade', crossfadeDuration.toString());
-  }, [crossfadeDuration]);
 
   // Persist Favorites
   useEffect(() => {
@@ -185,12 +149,10 @@ export default function App() {
       .then((data) => {
         if (data.genres) {
           setGenres(data.genres);
-          // Set initial track if none selected yet
           if (!currentTrack && data.featured && data.featured.length > 0) {
             setCurrentTrack(data.featured[0]);
             setQueue(data.featured);
           }
-          // Seed search results with first genre tracks initially
           if (data.genres[0]?.tracks) {
             setSearchResults(data.genres[0].tracks);
           }
@@ -246,13 +208,12 @@ export default function App() {
     });
   }, []);
 
-  // Crossfade Track Switcher (fades out active track, loads new track at 0 volume, fades in to target volume)
+  // Crossfade Track Switcher
   const isCrossfadingRef = useRef<boolean>(false);
   const crossfadeTimerRef = useRef<any>(null);
 
   const performTrackSwitch = useCallback(
     (targetTrack: Track, autoPlay = true) => {
-      // If crossfade is 0 (off), or player is not currently playing, switch instantly
       if (crossfadeDuration <= 0 || !isPlaying || !autoPlay) {
         if (crossfadeTimerRef.current) {
           clearInterval(crossfadeTimerRef.current);
@@ -266,7 +227,6 @@ export default function App() {
         return;
       }
 
-      // If already mid-crossfade, clear pending timer
       if (crossfadeTimerRef.current) {
         clearInterval(crossfadeTimerRef.current);
       }
@@ -320,8 +280,6 @@ export default function App() {
   const handlePlayTrack = useCallback(
     (track: Track) => {
       performTrackSwitch(track, true);
-
-      // If track not already in queue, add it
       setQueue((prevQueue) => {
         if (!prevQueue.some((t) => t.id === track.id)) {
           return [...prevQueue, track];
@@ -402,11 +360,11 @@ export default function App() {
     const currentIdx = queue.findIndex((t) => t.id === currentTrack?.id);
     const prevIdx = getPrevTrackIndex(currentIdx, queue.length, currentTime);
 
-    if (prevIdx === currentIdx) {
+    if (prevIdx !== null && queue[prevIdx]) {
+      handlePlayTrack(queue[prevIdx]);
+    } else {
       playerRef.current?.seekTo(0);
       setCurrentTime(0);
-    } else if (queue[prevIdx]) {
-      handlePlayTrack(queue[prevIdx]);
     }
   }, [queue, currentTrack, currentTime, handlePlayTrack]);
 
@@ -424,6 +382,7 @@ export default function App() {
 
   const handleRemoveFromQueue = (track: Track) => {
     setQueue((prev) => prev.filter((t) => t.id !== track.id));
+    showToast(`Removed from queue.`);
   };
 
   const handleClearQueue = () => {
@@ -436,33 +395,36 @@ export default function App() {
     setFavorites((prev) => {
       const exists = prev.some((f) => f.id === track.id);
       if (exists) {
-        showToast('Removed from favorites.');
+        showToast(`Removed from favorites: ${track.title}`);
         return prev.filter((f) => f.id !== track.id);
       } else {
-        showToast('Saved to favorites!');
-        return [...prev, track];
+        showToast(`Added to favorites: ${track.title}`);
+        return [track, ...prev];
       }
     });
   };
 
-  // Custom Playlists Operations
+  // Playlist Operations
   const handleCreatePlaylist = (name: string) => {
     const newPl: Playlist = {
       id: `pl-${Date.now()}`,
       name,
-      createdAt: Date.now(),
       tracks: currentTrack ? [currentTrack] : [],
+      createdAt: Date.now(),
     };
-    setPlaylists((prev) => [...prev, newPl]);
-    showToast(`Created playlist "${name}"`);
+    setPlaylists((prev) => [newPl, ...prev]);
+    showToast(`Created playlist: "${name}"`);
   };
 
   const handlePlayPlaylist = (playlist: Playlist) => {
-    if (playlist.tracks.length === 0) return;
+    if (playlist.tracks.length === 0) {
+      showToast('This playlist has no songs yet.');
+      return;
+    }
     setQueue(playlist.tracks);
     handlePlayTrack(playlist.tracks[0]);
     setActiveView('now-playing');
-    showToast(`Playing playlist "${playlist.name}"`);
+    showToast(`Playing playlist: "${playlist.name}"`);
   };
 
   const handleDeletePlaylist = (id: string) => {
@@ -470,32 +432,31 @@ export default function App() {
     showToast('Playlist deleted.');
   };
 
-  // Global Keyboard Shortcuts
+  // Keyboard Shortcuts (Space to play/pause, Arrow keys for seek & track skips)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't trigger when typing in input or form
-      const tag = (e.target as HTMLElement)?.tagName?.toLowerCase();
-      if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return;
 
       if (e.code === 'Space') {
         e.preventDefault();
         handleTogglePlay();
-      } else if (e.code === 'ArrowLeft') {
+      } else if (e.code === 'ArrowRight' && e.shiftKey) {
         e.preventDefault();
-        const nextTime = Math.max(0, currentTime - 5);
-        playerRef.current?.seekTo(nextTime);
-        setCurrentTime(nextTime);
+        handleNext();
+      } else if (e.code === 'ArrowLeft' && e.shiftKey) {
+        e.preventDefault();
+        handlePrev();
       } else if (e.code === 'ArrowRight') {
         e.preventDefault();
         const nextTime = Math.min(duration || 9999, currentTime + 5);
         playerRef.current?.seekTo(nextTime);
         setCurrentTime(nextTime);
-      } else if (e.key === 'n' || e.key === 'N') {
-        handleNext();
-      } else if (e.key === 'p' || e.key === 'P') {
-        handlePrev();
-      } else if (e.key === 'm' || e.key === 'M') {
-        setVolume((v) => (v === 0 ? 80 : 0));
+      } else if (e.code === 'ArrowLeft') {
+        e.preventDefault();
+        const prevTime = Math.max(0, currentTime - 5);
+        playerRef.current?.seekTo(prevTime);
+        setCurrentTime(prevTime);
       }
     };
 
@@ -504,278 +465,234 @@ export default function App() {
   }, [currentTime, duration, handleNext, handlePrev, handleTogglePlay]);
 
   return (
-    <div
-      className="h-screen text-[#f4f5f8] flex flex-col font-sans relative overflow-hidden selection:bg-[#ec4899]/30 selection:text-[#38bdf8] bg-[#06070a]"
-    >
-      {/* Prismatic Aurora Borealis & Deep Space Nebula Ambient Atmosphere */}
-      <div
-        className="absolute inset-0 aurora-nebula-bg pointer-events-none z-0"
-        aria-hidden="true"
-      />
-
-      {/* Cosmic Stardust Layer */}
-      <div
-        className="absolute inset-0 stardust-layer pointer-events-none z-0"
-        aria-hidden="true"
-      />
-
-      {/* Interactive Constellation / Musical Nodes Canvas with Audio Reactivity */}
+    <div className="h-screen w-screen text-[#f4f5f8] flex flex-col font-sans relative overflow-hidden bg-[#06070a] select-none">
+      {/* Prismatic Aurora Borealis & Nebula Ambient Atmosphere */}
+      <div className="absolute inset-0 aurora-nebula-bg pointer-events-none z-0" aria-hidden="true" />
+      <div className="absolute inset-0 stardust-layer pointer-events-none z-0" aria-hidden="true" />
       <NodesBackground isPlaying={isPlaying} volume={volume} connectionDistance={150} />
+      <div className="absolute inset-0 bg-gradient-to-b from-[#06070a]/40 via-transparent to-[#06070a]/70 pointer-events-none z-0" aria-hidden="true" />
 
-      {/* Subtle Vignette Shading for audiophile focus & crisp UI legibility */}
-      <div 
-        className="absolute inset-0 bg-gradient-to-b from-[#06070a]/40 via-transparent to-[#06070a]/60 pointer-events-none z-0"
-        aria-hidden="true"
-      />
+      {/* Main Desktop Sidebar + Dynamic Center Stage App Shell */}
+      <div className="flex-1 flex overflow-hidden relative z-10 min-h-0">
+        {/* Desktop Sidebar Navigation */}
+        <Sidebar
+          activeView={activeView}
+          onSelectView={setActiveView}
+          queueCount={queue.length}
+          favoritesCount={favorites.length}
+          playlists={playlists}
+          onOpenQuickImport={() => setIsQuickImportOpen(true)}
+          sleepTimerRemaining={sleepTimerRemaining}
+          onOpenSleepTimer={() => setIsSleepTimerOpen(true)}
+          playbackQuality={playbackQuality}
+          isPlaying={isPlaying}
+        />
 
-      {/* Top Navigation Bar */}
-      <Header
-        activeView={activeView}
-        onSelectView={setActiveView}
-        queueCount={queue.length}
-        onOpenQuickImport={() => setIsQuickImportOpen(true)}
-        sleepTimerRemaining={sleepTimerRemaining}
-        onOpenSleepTimer={() => setIsSleepTimerOpen(true)}
-      />
+        {/* Dynamic Center Stage Area */}
+        <div className="flex-1 flex flex-col overflow-hidden min-h-0 relative">
+          {/* Top Header */}
+          <Header
+            activeView={activeView}
+            onSelectView={setActiveView}
+            queueCount={queue.length}
+            onOpenQuickImport={() => setIsQuickImportOpen(true)}
+            sleepTimerRemaining={sleepTimerRemaining}
+            onOpenSleepTimer={() => setIsSleepTimerOpen(true)}
+            onSearch={handleSearch}
+          />
 
-      {/* Toast Notification */}
-      {toastMessage && (
-        <div
-          className="fixed top-18 right-6 z-50 glass-panel text-[#f4f5f8] text-xs font-bold px-4 py-2.5 rounded-xl border border-white/20 shadow-2xl flex items-center gap-2.5 animate-in fade-in slide-in-from-top-2"
-        >
-          <span className="w-2 h-2 rounded-full bg-gradient-to-r from-cyan-400 to-pink-500 shadow-[0_0_8px_#ec4899] shrink-0" />
-          <span>{toastMessage}</span>
-        </div>
-      )}
-
-      {/* Main Content Area: Locked viewport container */}
-      <main className="flex-1 max-w-6xl w-full mx-auto px-2 sm:px-6 py-1 overflow-hidden flex flex-col relative z-10 min-h-0">
-        {/* VIEW 1: NOW PLAYING (Zero scrolling, fully responsive, mobile bottom nav clearance) */}
-        <div className={activeView === 'now-playing' ? 'h-full flex-1 flex flex-col justify-between overflow-hidden pb-16 md:pb-1' : 'fixed -left-[99999px] top-0 opacity-0 pointer-events-none h-0 w-0 overflow-hidden'}>
-          <div className="h-full flex-1 flex flex-col justify-between items-center min-h-0">
-            <NowPlayingHero
-              currentTrack={currentTrack}
-              isPlaying={isPlaying}
-              isBuffering={isBuffering}
-              currentTime={currentTime}
-              duration={duration}
-              volume={volume}
-              repeatMode={repeatMode}
-              isShuffle={isShuffle}
-              playbackRate={playbackRate}
-              playbackQuality={playbackQuality}
-              visualizerMode={visualizerMode}
-              playerStyle={playerStyle}
-              onTogglePlayerStyle={() => {
-                setPlayerStyle((prev) => {
-                  const next = prev === 'wavy' ? 'vinyl' : 'wavy';
-                  showToast(`Player style: ${next === 'wavy' ? 'Wavy Flow' : 'Vinyl Turntable'}`);
-                  return next;
-                });
-              }}
-              isVideoVisible={isVideoVisible}
-              themeConfig={currentTheme}
-              videoSlot={
-              <YouTubePlayer
-                ref={playerRef}
+          {/* Center Stage Scrollable Canvas */}
+          <main className="flex-1 overflow-y-auto px-3 sm:px-8 py-3 pb-36 md:pb-28 min-h-0">
+            {/* VIEW 1: NOW PLAYING */}
+            <div className={activeView === 'now-playing' ? 'h-full flex-1 flex flex-col justify-center items-center' : 'fixed -left-[99999px] top-0 opacity-0 pointer-events-none h-0 w-0 overflow-hidden'}>
+              <NowPlayingHero
                 currentTrack={currentTrack}
                 isPlaying={isPlaying}
+                isBuffering={isBuffering}
+                currentTime={currentTime}
+                duration={duration}
                 volume={volume}
+                repeatMode={repeatMode}
+                isShuffle={isShuffle}
                 playbackRate={playbackRate}
                 playbackQuality={playbackQuality}
+                visualizerMode={visualizerMode}
+                playerStyle={playerStyle}
+                onTogglePlayerStyle={() => {
+                  setPlayerStyle((prev) => (prev === 'wavy' ? 'vinyl' : 'wavy'));
+                }}
                 isVideoVisible={isVideoVisible}
-                onTimeUpdate={(cur, dur) => {
-                  setCurrentTime(cur);
-                  if (dur > 0) setDuration(dur);
+                themeConfig={currentTheme}
+                videoSlot={
+                  <YouTubePlayer
+                    ref={playerRef}
+                    currentTrack={currentTrack}
+                    isPlaying={isPlaying}
+                    volume={volume}
+                    playbackRate={playbackRate}
+                    playbackQuality={playbackQuality}
+                    isVideoVisible={isVideoVisible}
+                    onTimeUpdate={(cur, dur) => {
+                      setCurrentTime(cur);
+                      if (dur > 0) setDuration(dur);
+                    }}
+                    onStateChange={(playing, buffering) => {
+                      setIsPlaying(playing);
+                      setIsBuffering(buffering);
+                    }}
+                    onTrackEnded={handleNext}
+                    onError={(err) => {
+                      showToast(err);
+                    }}
+                  />
+                }
+                isFavorite={currentTrack ? favorites.some((f) => f.id === currentTrack.id) : false}
+                crossfadeDuration={crossfadeDuration}
+                onChangeCrossfadeDuration={setCrossfadeDuration}
+                onTogglePlay={handleTogglePlay}
+                onSeek={(time) => {
+                  playerRef.current?.seekTo(time);
+                  setCurrentTime(time);
                 }}
-                onStateChange={(playing, buffering) => {
-                  setIsPlaying(playing);
-                  setIsBuffering(buffering);
+                onPrev={handlePrev}
+                onNext={handleNext}
+                onSkipBack5s={() => {
+                  const nextT = Math.max(0, currentTime - 5);
+                  playerRef.current?.seekTo(nextT);
+                  setCurrentTime(nextT);
                 }}
-                onTrackEnded={handleNext}
-                onError={(err) => {
-                  showToast(err);
+                onSkipForward5s={() => {
+                  const nextT = Math.min(duration || 9999, currentTime + 5);
+                  playerRef.current?.seekTo(nextT);
+                  setCurrentTime(nextT);
+                }}
+                onToggleShuffle={() => setIsShuffle(!isShuffle)}
+                onToggleRepeat={() => {
+                  setRepeatMode((prev) => (prev === 'off' ? 'all' : prev === 'all' ? 'one' : 'off'));
+                }}
+                onChangeVolume={setVolume}
+                onChangePlaybackRate={setPlaybackRate}
+                onChangePlaybackQuality={(q) => {
+                  setPlaybackQuality(q);
+                  playerRef.current?.setPlaybackQuality(q);
+                  showToast(`Quality set to ${q.toUpperCase()}`);
+                }}
+                onChangeVisualizerMode={setVisualizerMode}
+                onToggleVideo={() => setIsVideoVisible(!isVideoVisible)}
+                onToggleFavorite={() => {
+                  if (currentTrack) handleToggleFavorite(currentTrack);
                 }}
               />
-            }
-            isFavorite={currentTrack ? favorites.some((f) => f.id === currentTrack.id) : false}
-            crossfadeDuration={crossfadeDuration}
-            onChangeCrossfadeDuration={setCrossfadeDuration}
-            onTogglePlay={handleTogglePlay}
-            onSeek={(time) => {
-              playerRef.current?.seekTo(time);
-              setCurrentTime(time);
-            }}
-            onPrev={handlePrev}
-            onNext={handleNext}
-            onSkipBack5s={() => {
-              const nextT = Math.max(0, currentTime - 5);
-              playerRef.current?.seekTo(nextT);
-              setCurrentTime(nextT);
-            }}
-            onSkipForward5s={() => {
-              const nextT = Math.min(duration || 9999, currentTime + 5);
-              playerRef.current?.seekTo(nextT);
-              setCurrentTime(nextT);
-            }}
-            onToggleShuffle={() => setIsShuffle(!isShuffle)}
-            onToggleRepeat={() => {
-              setRepeatMode((prev) => (prev === 'off' ? 'all' : prev === 'all' ? 'one' : 'off'));
-            }}
-            onChangeVolume={setVolume}
-            onChangePlaybackRate={setPlaybackRate}
-            onChangePlaybackQuality={(q) => {
-              setPlaybackQuality(q);
-              playerRef.current?.setPlaybackQuality(q);
-              showToast(`Quality set to ${q.toUpperCase()}`);
-            }}
-            onChangeVisualizerMode={setVisualizerMode}
-            onToggleVideo={() => setIsVideoVisible(!isVideoVisible)}
-            onToggleFavorite={() => {
-              if (currentTrack) handleToggleFavorite(currentTrack);
-            }}
-          />
-
-          {/* Quick Up Next Preview Strip (Ultra-compact, non-overflowing) */}
-          {queue.length > 1 && (
-            <div className="max-w-xl w-full mx-auto pt-1 mt-1 border-t border-white/10 shrink-0 hidden md:block">
-              <div className="flex items-center justify-between text-[10px] mb-1">
-                <span className="font-mono font-bold tracking-wider uppercase text-cyan-300">UP NEXT IN QUEUE</span>
-                <button
-                  onClick={() => setActiveView('queue')}
-                  className="text-pink-400 hover:text-pink-300 font-black text-[10px] uppercase tracking-wider transition-colors"
-                >
-                  VIEW ALL ({queue.length})
-                </button>
-              </div>
-              <div className="space-y-1">
-                {queue
-                  .filter((t) => t.id !== currentTrack?.id)
-                  .slice(0, 1)
-                  .map((track) => (
-                    <TrackCard
-                      key={`hero-next-${track.id}`}
-                      track={track}
-                      isCurrent={false}
-                      isPlaying={false}
-                      onPlay={handlePlayTrack}
-                      onAddToQueue={() => {}}
-                      onRemoveFromQueue={handleRemoveFromQueue}
-                      onToggleFavorite={handleToggleFavorite}
-                      isFavorite={favorites.some((f) => f.id === track.id)}
-                    />
-                  ))}
-              </div>
-            </div>
-          )}
-          </div>
-        </div>
-
-        {/* VIEW 2: SEARCH & BROWSE */}
-        <div className={activeView === 'discover' ? 'h-full flex-1 flex flex-col space-y-4 pb-36 md:pb-24 overflow-hidden min-h-0' : 'hidden'}>
-          <div className="shrink-0">
-            <SearchBar
-              onSearch={handleSearch}
-              onDirectPlay={handleDirectPlay}
-              isLoading={isSearching}
-              activeGenre={activeGenreFilter}
-              onSelectGenre={handleSelectGenreFilter}
-            />
-          </div>
-
-          <div className="flex-1 flex flex-col min-h-0 space-y-3">
-            <div className="flex items-center justify-between pb-2 border-b border-white/10 shrink-0">
-              <h3 className="text-base font-black tracking-tight text-white uppercase flex items-center gap-2">
-                <Compass className="w-4 h-4 text-cyan-400" />
-                <span>
-                  {searchQuery
-                    ? `SEARCH RESULTS: "${searchQuery}"`
-                    : activeGenreFilter
-                    ? `COLLECTION: ${activeGenreFilter.toUpperCase()}`
-                    : 'CATALOG DISCOVERY'}
-                </span>
-              </h3>
-              <span className="text-xs font-mono font-bold tracking-wider text-pink-400/80 tabular-nums uppercase">
-                {searchResults.length} TRACKS
-              </span>
             </div>
 
-            {isSearching ? (
-              <div className="py-20 text-center text-slate-500 space-y-3">
-                <div className="w-8 h-8 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin mx-auto shadow-[0_0_12px_rgba(56,189,248,0.5)]" />
-                <p className="text-xs font-mono uppercase tracking-wider text-cyan-400 font-bold">Querying YouTube Audio Stream...</p>
+            {/* VIEW 2: SEARCH & DISCOVER */}
+            <div className={activeView === 'discover' ? 'max-w-5xl mx-auto space-y-4 pb-6 min-h-0' : 'hidden'}>
+              <div className="shrink-0">
+                <SearchBar
+                  onSearch={handleSearch}
+                  onDirectPlay={handleDirectPlay}
+                  isLoading={isSearching}
+                  activeGenre={activeGenreFilter}
+                  onSelectGenre={handleSelectGenreFilter}
+                />
               </div>
-            ) : searchResults.length === 0 ? (
-              <div className="py-20 text-center text-slate-500">
-                <AlertCircle className="w-8 h-8 opacity-40 mx-auto mb-2 text-cyan-400" />
-                <p className="text-sm font-bold uppercase tracking-wider text-slate-300">No tracks located</p>
-                <p className="text-xs text-slate-500 mt-1 font-mono">Check artist query or link.</p>
-              </div>
-            ) : (
-              <div className="flex-1 overflow-y-auto pr-1 pb-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 pb-6">
-                  {searchResults.map((track) => (
-                    <TrackCard
-                      key={`search-${track.id}`}
-                      track={track}
-                      isCurrent={currentTrack?.id === track.id}
-                      isPlaying={isPlaying && currentTrack?.id === track.id}
-                      isQueued={queue.some((q) => q.id === track.id)}
-                      onPlay={handlePlayTrack}
-                      onAddToQueue={handleAddToQueue}
-                      onToggleFavorite={handleToggleFavorite}
-                      isFavorite={favorites.some((f) => f.id === track.id)}
-                    />
-                  ))}
+
+              <div className="space-y-3">
+                <div className="flex items-center justify-between pb-2 border-b border-white/10 shrink-0">
+                  <h3 className="text-base font-black tracking-tight text-white uppercase flex items-center gap-2">
+                    <Compass className="w-4 h-4 text-cyan-400" />
+                    <span>
+                      {searchQuery
+                        ? `SEARCH RESULTS: "${searchQuery}"`
+                        : activeGenreFilter
+                        ? `COLLECTION: ${activeGenreFilter.toUpperCase()}`
+                        : 'CATALOG DISCOVERY'}
+                    </span>
+                  </h3>
+                  <span className="text-xs font-mono font-bold tracking-wider text-pink-400/80 tabular-nums uppercase">
+                    {searchResults.length} TRACKS
+                  </span>
                 </div>
+
+                {isSearching ? (
+                  <div className="py-20 text-center text-slate-500 space-y-3">
+                    <div className="w-8 h-8 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin mx-auto shadow-[0_0_12px_rgba(56,189,248,0.5)]" />
+                    <p className="text-xs font-mono uppercase tracking-wider text-cyan-400 font-bold">Querying YouTube Audio Stream...</p>
+                  </div>
+                ) : searchResults.length === 0 ? (
+                  <div className="py-20 text-center text-slate-500">
+                    <AlertCircle className="w-8 h-8 opacity-40 mx-auto mb-2 text-cyan-400" />
+                    <p className="text-sm font-bold uppercase tracking-wider text-slate-300">No tracks located</p>
+                    <p className="text-xs text-slate-500 mt-1 font-mono">Check artist query or link.</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 pb-6">
+                    {searchResults.map((track) => (
+                      <TrackCard
+                        key={`search-${track.id}`}
+                        track={track}
+                        isCurrent={currentTrack?.id === track.id}
+                        isPlaying={isPlaying && currentTrack?.id === track.id}
+                        isQueued={queue.some((q) => q.id === track.id)}
+                        onPlay={handlePlayTrack}
+                        onAddToQueue={handleAddToQueue}
+                        onToggleFavorite={handleToggleFavorite}
+                        isFavorite={favorites.some((f) => f.id === track.id)}
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-        </div>
+            </div>
 
-        {/* VIEW 3: CURATED VIBES */}
-        <div className={activeView === 'genres' ? 'h-full flex-1 overflow-y-auto pb-36 md:pb-28 pr-1' : 'hidden'}>
-          <CuratedVibes
-            genres={genres}
-            currentTrack={currentTrack}
-            isPlaying={isPlaying}
-            favorites={favorites}
-            onPlayTrack={handlePlayTrack}
-            onPlayGenre={handlePlayGenre}
-            onAddToQueue={handleAddToQueue}
-            onToggleFavorite={handleToggleFavorite}
-          />
-        </div>
+            {/* VIEW 3: CURATED VIBES */}
+            <div className={activeView === 'genres' ? 'max-w-5xl mx-auto pb-6' : 'hidden'}>
+              <CuratedVibes
+                genres={genres}
+                currentTrack={currentTrack}
+                isPlaying={isPlaying}
+                favorites={favorites}
+                onPlayTrack={handlePlayTrack}
+                onPlayGenre={handlePlayGenre}
+                onAddToQueue={handleAddToQueue}
+                onToggleFavorite={handleToggleFavorite}
+              />
+            </div>
 
-        {/* VIEW 4: QUEUE & PLAYLISTS */}
-        <div className={activeView === 'queue' ? 'h-full flex-1 overflow-y-auto pb-36 md:pb-28 pr-1' : 'hidden'}>
-          <QueueDrawer
-            queue={queue}
-            currentTrack={currentTrack}
-            isPlaying={isPlaying}
-            favorites={favorites}
-            playlists={playlists}
-            onPlayTrack={handlePlayTrack}
-            onRemoveFromQueue={handleRemoveFromQueue}
-            onClearQueue={handleClearQueue}
-            onToggleFavorite={handleToggleFavorite}
-            onCreatePlaylist={handleCreatePlaylist}
-            onPlayPlaylist={handlePlayPlaylist}
-            onDeletePlaylist={handleDeletePlaylist}
-          />
+            {/* VIEW 4: QUEUE & LIBRARY */}
+            <div className={activeView === 'queue' ? 'max-w-4xl mx-auto pb-6' : 'hidden'}>
+              <QueueDrawer
+                queue={queue}
+                currentTrack={currentTrack}
+                isPlaying={isPlaying}
+                favorites={favorites}
+                playlists={playlists}
+                onPlayTrack={handlePlayTrack}
+                onRemoveFromQueue={handleRemoveFromQueue}
+                onClearQueue={handleClearQueue}
+                onToggleFavorite={handleToggleFavorite}
+                onCreatePlaylist={handleCreatePlaylist}
+                onPlayPlaylist={handlePlayPlaylist}
+                onDeletePlaylist={handleDeletePlaylist}
+              />
+            </div>
+          </main>
         </div>
-      </main>
+      </div>
 
-      {/* Persistent Bottom MiniPlayerBar when navigating outside of Now Playing */}
-      {activeView !== 'now-playing' && (
-        <MiniPlayerBar
+      {/* Persistent Bottom Player Bar (Industry-Standard Spotify/Apple Music Style) */}
+      <div className={activeView === 'now-playing' ? 'hidden md:block' : 'block'}>
+        <PlayerBottomBar
           currentTrack={currentTrack}
           isPlaying={isPlaying}
           isBuffering={isBuffering}
           currentTime={currentTime}
           duration={duration}
           volume={volume}
-          accentColor={currentTheme.accent}
+          repeatMode={repeatMode}
+          isShuffle={isShuffle}
+          isFavorite={currentTrack ? favorites.some((f) => f.id === currentTrack.id) : false}
+          isVideoVisible={isVideoVisible}
           onTogglePlay={handleTogglePlay}
           onPrev={handlePrev}
           onNext={handleNext}
@@ -783,9 +700,27 @@ export default function App() {
             playerRef.current?.seekTo(time);
             setCurrentTime(time);
           }}
+          onToggleShuffle={() => setIsShuffle(!isShuffle)}
+          onToggleRepeat={() => {
+            setRepeatMode((prev) => (prev === 'off' ? 'all' : prev === 'all' ? 'one' : 'off'));
+          }}
           onChangeVolume={setVolume}
-          onExpand={() => setActiveView('now-playing')}
+          onToggleFavorite={() => {
+            if (currentTrack) handleToggleFavorite(currentTrack);
+          }}
+          onToggleVideo={() => setIsVideoVisible(!isVideoVisible)}
+          onToggleLyrics={() => setActiveView('now-playing')}
+          onExpandNowPlaying={() => setActiveView('now-playing')}
+          onToggleQueue={() => setActiveView(activeView === 'queue' ? 'now-playing' : 'queue')}
         />
+      </div>
+
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className="fixed top-18 right-6 z-50 glass-panel text-[#f4f5f8] text-xs font-bold px-4 py-2.5 rounded-2xl border border-white/20 shadow-2xl flex items-center gap-2.5 animate-in fade-in slide-in-from-top-2">
+          <span className="w-2 h-2 rounded-full bg-gradient-to-r from-cyan-400 to-pink-500 shadow-[0_0_8px_#ec4899] shrink-0" />
+          <span>{toastMessage}</span>
+        </div>
       )}
 
       {/* Quick Import Modal */}
