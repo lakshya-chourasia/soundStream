@@ -45,6 +45,15 @@ const CURATED_GENRES = [
         thumbnail: 'https://is1-ssl.mzstatic.com/image/thumb/Music113/v4/fb/c9/72/fbc972b5-3b37-058a-6818-63604315bf22/19UMGIM36996.rgb.jpg/1200x1200bb.jpg',
       },
       {
+        id: 'f-X8f_d1n3Y',
+        title: 'Losing my mind',
+        artist: 'Philip George',
+        duration: '3:15',
+        durationSec: 195,
+        views: '18M views',
+        thumbnail: 'https://is1-ssl.mzstatic.com/image/thumb/Music118/v4/06/6e/d9/066ed9f2-5eec-324e-90cc-7c0e8dd89c79/05037128232506.rgb.jpg/1200x1200bb.jpg',
+      },
+      {
         id: 'XXYlFuWEuKI',
         title: 'Save Your Tears',
         artist: 'Abel Tesfaye (The Weeknd)',
@@ -707,16 +716,82 @@ async function startServer() {
     }, 2000);
   }
 
+  // Spotify Web API token cache
+  let spotifyToken: string | null = null;
+  let spotifyTokenExpiry = 0;
+
+  async function getSpotifyToken(): Promise<string | null> {
+    const clientId = process.env.SPOTIFY_CLIENT_ID;
+    const clientSecret = process.env.SPOTIFY_CLIENT_SECRET;
+    if (!clientId || !clientSecret) return null;
+    if (spotifyToken && Date.now() < spotifyTokenExpiry) return spotifyToken;
+    try {
+      const res = await fetch('https://accounts.spotify.com/api/token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          Authorization: `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`,
+        },
+        body: 'grant_type=client_credentials',
+      });
+      if (res.ok) {
+        const data = await res.json();
+        spotifyToken = data.access_token;
+        spotifyTokenExpiry = Date.now() + ((data.expires_in || 3600) - 60) * 1000;
+        return spotifyToken;
+      }
+    } catch {}
+    return null;
+  }
+
+  async function searchSpotifyArtwork(title: string, artist: string): Promise<string | null> {
+    const token = await getSpotifyToken();
+    if (!token) return null;
+    try {
+      const q = `${title} ${artist}`.trim();
+      const res = await fetch(`https://api.spotify.com/v1/search?q=${encodeURIComponent(q)}&type=track&limit=1`, {
+        headers: { Authorization: `Bearer ${token}` },
+        signal: AbortSignal.timeout(3500),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const item = data.tracks?.items?.[0];
+        const img = item?.album?.images?.[0]?.url;
+        if (img) return img;
+      }
+    } catch {}
+    return null;
+  }
+
   async function resolveArtwork(trackTitle: string, artistName: string, videoId?: string): Promise<string | null> {
     const cleanTrack = (trackTitle || '')
       .replace(/\s*[\(\[]\s*(?:Official\s*(?:Music\s*)?)?(?:Video|Audio|Lyric\s*Video|HD|4K|Visualizer|Lyrics?)\s*[\)\]]/gi, '')
       .replace(/\s*\|.*$/, '')
       .trim();
-    const cleanArtist = (artistName || '')
+
+    let cleanArtist = (artistName || '')
       .replace(/ - Topic$/i, '')
       .replace(/VEVO$/i, '')
       .replace(/Official$/i, '')
       .trim();
+
+    const monikerMatch = cleanArtist.match(/\(([^)]+)\)/);
+    if (monikerMatch && monikerMatch[1].trim()) {
+      const moniker = monikerMatch[1].trim();
+      const isExcluded = /(?:records?|entertainment|label|sony|warner|universal|music|ent|prod|topic|official|remaster|deluxe|live|audio|video|explicit|version)/i.test(moniker);
+      if (!isExcluded) {
+        cleanArtist = moniker;
+      } else {
+        cleanArtist = cleanArtist.replace(/\s*[\(\[].*?[\)\]]/g, '').trim();
+      }
+    } else {
+      const lower = cleanArtist.toLowerCase();
+      if (lower.includes('edward christopher sheeran')) cleanArtist = 'Ed Sheeran';
+      else if (lower.includes('harry edward styles')) cleanArtist = 'Harry Styles';
+      else if (lower.includes('adele adkins')) cleanArtist = 'Adele';
+      else if (lower.includes('austin richard post')) cleanArtist = 'Post Malone';
+      else cleanArtist = cleanArtist.replace(/\s*[\(\[].*?[\)\]]/g, '').trim();
+    }
 
     const cacheKey = `${cleanTrack}::${cleanArtist}`.toLowerCase();
     if (artworkCache.has(cacheKey)) {
@@ -726,7 +801,15 @@ async function startServer() {
     const query = `${cleanTrack} ${cleanArtist}`.trim();
     if (!query) return null;
 
-    // Source 1: Apple Music / iTunes Store Search (Lossless 1200x1200bb)
+    // Source 1: Spotify Web API Official Album Artwork
+    const spotifyArt = await searchSpotifyArtwork(cleanTrack, cleanArtist);
+    if (spotifyArt) {
+      artworkCache.set(cacheKey, spotifyArt);
+      persistArtworkToDisk();
+      return spotifyArt;
+    }
+
+    // Source 2: Apple Music / iTunes Store Search (Lossless 1200x1200bb)
     try {
       const itunesUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&entity=song&limit=1`;
       const itunesRes = await fetch(itunesUrl, { signal: AbortSignal.timeout(3500) });
@@ -741,7 +824,7 @@ async function startServer() {
       }
     } catch {}
 
-    // Source 2: Deezer API Search (Official studio master cover_xl 1000x1000)
+    // Source 3: Deezer API Search (Official studio master cover_xl 1000x1000)
     try {
       const deezerUrl = `https://api.deezer.com/search?q=${encodeURIComponent(query)}&limit=1`;
       const deezerRes = await fetch(deezerUrl, { signal: AbortSignal.timeout(3500) });
@@ -757,7 +840,7 @@ async function startServer() {
       }
     } catch {}
 
-    // Source 3: High-Resolution YouTube Poster fallback
+    // Source 4: High-Resolution YouTube Poster fallback
     if (videoId) {
       const maxresUrl = `https://i.ytimg.com/vi/${videoId}/maxresdefault.jpg`;
       artworkCache.set(cacheKey, maxresUrl);

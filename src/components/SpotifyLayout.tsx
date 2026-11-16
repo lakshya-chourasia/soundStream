@@ -39,6 +39,7 @@ import {
   PictureInPicture,
 } from 'lucide-react';
 import { ArtworkImage } from './ArtworkImage';
+import { extractColorFromImage, RGBColor } from '../utils/colorUtils';
 
 interface SpotifyLayoutProps {
   currentTrack: Track | null;
@@ -125,6 +126,10 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
   const activeRightLineRef = useRef<HTMLParagraphElement | null>(null);
   const aboutArtistRef = useRef<HTMLDivElement | null>(null);
 
+  // ── Dynamic Poster Ambient Color Extraction ──
+  const [currentPoster, setCurrentPoster] = useState<string>('');
+  const [posterColor, setPosterColor] = useState<RGBColor>({ r: 85, g: 30, b: 55 });
+
   // ── Search Input State ──
   const [localSearchInput, setLocalSearchInput] = useState<string>(searchQuery || '');
   const searchDebounceRef = useRef<any>(null);
@@ -167,6 +172,15 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
       });
     }
   }, [activeLyricIndex]);
+
+  // Dynamically extract dominant ambient color from active poster
+  useEffect(() => {
+    const candidateUrl = currentPoster || displayTrack?.thumbnail || '';
+    const seed = `${displayTitle} ${displayArtist}`;
+    extractColorFromImage(candidateUrl, seed).then((col) => {
+      setPosterColor(col);
+    });
+  }, [currentPoster, displayTrack?.id, displayTrack?.thumbnail, displayTitle, displayArtist]);
 
   // Synchronize local search input with prop
   useEffect(() => {
@@ -509,11 +523,12 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
         <main className="flex-1 bg-[#121212] rounded-xl overflow-y-auto flex flex-col relative border border-white/5">
           {displayTrack ? (
             <>
-              {/* Dynamic Gradient Top Banner (Matching Screenshot 1) */}
+              {/* Dynamic Gradient Top Banner (Adaptive to album poster) */}
               <div
-                className="relative p-6 sm:p-8 flex flex-col sm:flex-row items-start sm:items-end gap-6 shrink-0 transition-colors duration-700"
+                className="relative p-6 sm:p-8 flex flex-col sm:flex-row items-start sm:items-end gap-6 shrink-0 transition-all duration-700"
                 style={{
-                  background: 'linear-gradient(180deg, #531f18 0%, #2b110e 60%, #121212 100%)',
+                  background: `linear-gradient(180deg, rgba(${posterColor.r}, ${posterColor.g}, ${posterColor.b}, 0.85) 0%, rgba(${Math.floor(posterColor.r * 0.35)}, ${Math.floor(posterColor.g * 0.35)}, ${Math.floor(posterColor.b * 0.35)}, 0.95) 55%, #121212 100%)`,
+                  transition: 'background 0.8s cubic-bezier(0.4, 0, 0.2, 1)',
                 }}
               >
                 {/* Large Square Album Artwork with Click-to-Cinema (Screenshot 2) */}
@@ -531,6 +546,7 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
                     initialSrc={displayTrack.thumbnail}
                     alt={displayTitle}
                     priority
+                    onArtworkLoaded={(url) => setCurrentPoster(url)}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
                   />
                   {/* Hover Overlay: Expand Poster */}
@@ -559,15 +575,13 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
                     {displayTitle}
                   </h1>
 
-                  {/* Singer / Raabta / Year / Duration / Views */}
+                  {/* Singer / Single / Duration / Views */}
                   <div className="flex flex-wrap items-center gap-1.5 text-xs text-white/70 font-medium mt-3.5">
                     <span className="font-bold text-white">{displayArtist}</span>
                     <span className="text-white/40">•</span>
-                    <span>Raabta</span>
+                    <span>Single</span>
                     <span className="text-white/40">•</span>
-                    <span>2017</span>
-                    <span className="text-white/40">•</span>
-                    <span className="font-mono">{displayTrack.duration || '4:34'}</span>
+                    <span className="font-mono">{displayTrack.duration || '3:30'}</span>
                     {displayTrack.views && (
                       <>
                         <span className="text-white/40">•</span>
@@ -837,8 +851,14 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
               </div>
             </div>
 
-            {/* Screenshot 1: Dedicated Dark Wine (#500c28) Lyrics Card */}
-            <div className="bg-[#500c28] rounded-2xl p-4 sm:p-5 flex flex-col flex-1 min-h-[250px] max-h-[380px] border border-white/5 shadow-inner">
+            {/* Dedicated Dynamic Poster-Adaptive Lyrics Card */}
+            <div
+              className="rounded-2xl p-4 sm:p-5 flex flex-col flex-1 min-h-[250px] max-h-[380px] border border-white/10 shadow-inner transition-all duration-700"
+              style={{
+                background: `linear-gradient(145deg, rgba(${posterColor.r}, ${posterColor.g}, ${posterColor.b}, 0.45) 0%, rgba(${Math.floor(posterColor.r * 0.25)}, ${Math.floor(posterColor.g * 0.25)}, ${Math.floor(posterColor.b * 0.25)}, 0.75) 100%)`,
+                transition: 'background 0.8s cubic-bezier(0.4, 0, 0.2, 1)',
+              }}
+            >
               <h3 className="text-white font-bold text-base tracking-wide mb-3 shrink-0">Lyrics</h3>
               <div className="overflow-y-auto space-y-3.5 pr-1 no-scrollbar scroll-smooth flex-1">
                 {lyricsData.isLoading ? (
@@ -917,9 +937,17 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
               className={`p-1 text-white/60 hover:text-white transition-colors shrink-0 ${
                 isCurrentFavorite ? 'text-yellow-400 fill-current' : ''
               }`}
-              title="Like"
+              title={isCurrentFavorite ? 'Saved to library' : 'Save to library'}
             >
               <Heart className={`w-4 h-4 ${isCurrentFavorite ? 'fill-current' : ''}`} />
+            </button>
+
+            <button
+              onClick={() => onAddToQueue(currentTrack)}
+              className="p-1 text-white/60 hover:text-white transition-colors shrink-0"
+              title="Add to queue"
+            >
+              <Plus className="w-4 h-4" />
             </button>
           </div>
 
@@ -988,14 +1016,14 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
               <div className="relative flex-1 flex items-center h-4">
                 {/* 4px Dark Gray Track */}
                 <div className="w-full h-1 bg-[#4d4d4d] rounded-full overflow-hidden relative pointer-events-none">
-                  {/* Played Progress Bar (White normally, turns Spotify Green on hover) */}
+                  {/* Played Progress Bar (White normally, turns Yellow on hover) */}
                   <div
-                    className="h-full bg-white group-hover/scrubber:bg-[#1db954] rounded-full transition-colors"
+                    className="h-full bg-white group-hover/scrubber:bg-[#facc15] rounded-full transition-colors"
                     style={{ width: `${progressPercent}%` }}
                   />
                 </div>
 
-                {/* Spotify Thumb: Small White Dot visible on hover */}
+                {/* Thumb: Small White Dot visible on hover */}
                 <div
                   className="absolute top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full shadow-[0_2px_4px_rgba(0,0,0,0.5)] opacity-0 group-hover/scrubber:opacity-100 transition-opacity pointer-events-none"
                   style={{ left: `calc(${progressPercent}% - 6px)` }}
@@ -1020,8 +1048,8 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
             </div>
           </div>
 
-          {/* Right: Lyrics, Video, Panel, Volume, Fullscreen Cinema Mode */}
-          <div className="w-1/4 min-w-[180px] max-w-[300px] flex items-center justify-end gap-2.5">
+          {/* Right: Film, Mic2, ListMusic, Laptop2, Right Panel, Volume, Fullscreen Cinema Mode */}
+          <div className="w-1/4 min-w-[180px] max-w-[300px] flex items-center justify-end gap-1.5">
             {/* Toggle Video */}
             <button
               onClick={onToggleVideo}
@@ -1031,6 +1059,39 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
               title="Toggle Video Player"
             >
               <Film className="w-4 h-4" />
+            </button>
+
+            {/* Lyrics */}
+            <button
+              onClick={() => {
+                if (!isRightPanelOpen) setIsRightPanelOpen(true);
+              }}
+              className="p-1.5 rounded text-white/60 hover:text-white transition-colors"
+              title="Lyrics"
+            >
+              <Mic2 className="w-4 h-4" />
+            </button>
+
+            {/* Queue */}
+            <button
+              onClick={() => {
+                setLibraryTab('queue');
+                if (!isRightPanelOpen) setIsRightPanelOpen(true);
+              }}
+              className={`p-1.5 rounded transition-colors ${
+                libraryTab === 'queue' ? 'text-yellow-400' : 'text-white/60 hover:text-white'
+              }`}
+              title="Queue"
+            >
+              <ListMusic className="w-4 h-4" />
+            </button>
+
+            {/* Connect Device */}
+            <button
+              className="p-1.5 rounded text-white/60 hover:text-white transition-colors"
+              title="SoundStream Hi-Fi Engine (Connected)"
+            >
+              <Laptop2 className="w-4 h-4" />
             </button>
 
             {/* Toggle Right Panel */}
@@ -1044,8 +1105,8 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
               {isRightPanelOpen ? <PanelRightClose className="w-4 h-4" /> : <PanelRightOpen className="w-4 h-4" />}
             </button>
 
-            {/* Volume Control Bar: Authentic Spotify Volume Line */}
-            <div className="flex items-center gap-1.5 ml-1 group/volume cursor-pointer select-none">
+            {/* Volume Control Bar */}
+            <div className="flex items-center gap-1.5 ml-0.5 group/volume cursor-pointer select-none">
               <button
                 onClick={() => onChangeVolume(volume === 0 ? 80 : 0)}
                 className="p-1 text-[#a7a7a7] hover:text-white transition-colors"
@@ -1054,17 +1115,14 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
                 <VolumeIcon className="w-4 h-4" />
               </button>
 
-              <div className="relative w-24 flex items-center h-4">
-                {/* 4px Dark Gray Track */}
+              <div className="relative w-20 flex items-center h-4">
                 <div className="w-full h-1 bg-[#4d4d4d] rounded-full overflow-hidden pointer-events-none">
-                  {/* Volume Level (White normally, turns Spotify Green on hover) */}
                   <div
-                    className="h-full bg-white group-hover/volume:bg-[#1db954] rounded-full transition-colors"
+                    className="h-full bg-white group-hover/volume:bg-[#facc15] rounded-full transition-colors"
                     style={{ width: `${volume}%` }}
                   />
                 </div>
 
-                {/* Spotify Volume Thumb visible on hover */}
                 <div
                   className="absolute top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full shadow-[0_2px_4px_rgba(0,0,0,0.5)] opacity-0 group-hover/volume:opacity-100 transition-opacity pointer-events-none"
                   style={{ left: `calc(${volume}% - 6px)` }}
@@ -1082,10 +1140,10 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
               </div>
             </div>
 
-            {/* Screenshot 2 Fullscreen Cinema Poster Button */}
+            {/* Cinema Mode Toggle (Open) */}
             <button
               onClick={() => setIsCinemaMode(true)}
-              className="p-1.5 text-white/60 hover:text-white transition-colors ml-1"
+              className="p-1.5 text-white/60 hover:text-white transition-colors ml-0.5"
               title="Full Screen Artwork Poster"
             >
               <Maximize2 className="w-4 h-4" />
@@ -1101,7 +1159,8 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
         <div
           className="fixed inset-0 z-50 flex flex-col justify-between overflow-y-auto select-none animate-in fade-in duration-300 no-scrollbar"
           style={{
-            background: 'radial-gradient(ellipse at 50% 20%, #680d39 0%, #480827 45%, #250314 85%, #14020a 100%)',
+            background: `radial-gradient(ellipse at 50% 25%, rgba(${posterColor.r}, ${posterColor.g}, ${posterColor.b}, 0.85) 0%, rgba(${Math.floor(posterColor.r * 0.38)}, ${Math.floor(posterColor.g * 0.38)}, ${Math.floor(posterColor.b * 0.38)}, 0.92) 50%, #0a0a0a 100%)`,
+            transition: 'background 0.8s cubic-bezier(0.4, 0, 0.2, 1)',
           }}
         >
           {/* Top Bar: Song Title on Left + The 6 Screenshot 2 Icons on Right */}
@@ -1279,15 +1338,15 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
                   <div className="space-y-2.5">
                     <div>
                       <p className="font-bold text-sm text-white">{getFullSingerName(currentTrack.artist || '', currentTrack.title)}</p>
-                      <p className="text-xs text-white/50">Main Artist, Performer</p>
+                      <p className="text-xs text-white/50">Main Artist, Lead Vocals</p>
                     </div>
                     <div>
-                      <p className="font-bold text-sm text-white">JAM8, Pritam</p>
+                      <p className="font-bold text-sm text-white">{cleanTrackTitle(currentTrack.title).artistFromTitle || getFullSingerName(currentTrack.artist || '', currentTrack.title)}</p>
                       <p className="text-xs text-white/50">Composer, Producer</p>
                     </div>
                     <div>
-                      <p className="font-bold text-sm text-white">Amitabh Bhattacharya</p>
-                      <p className="text-xs text-white/50">Writer, Lyricist</p>
+                      <p className="font-bold text-sm text-white">SoundStream Master Audio</p>
+                      <p className="text-xs text-white/50">Lossless Production & Engineering</p>
                     </div>
                   </div>
                 </div>
@@ -1301,7 +1360,7 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
 
           {/* Screenshot 2: Docked Bottom Playback Bar in Maximize View */}
           <div className="sticky bottom-0 z-40 h-20 bg-black/95 backdrop-blur-xl border-t border-[#282828] px-4 flex items-center justify-between shrink-0 select-none">
-            {/* Left: Mini Art + Track + Plus */}
+            {/* Left: Mini Art + Track + Heart + Plus */}
             <div className="flex items-center gap-3 w-1/4 min-w-[180px] max-w-[300px]">
               <div className="relative w-14 h-14 rounded overflow-hidden bg-[#282828] shrink-0 border border-white/10">
                 <ArtworkImage
@@ -1321,14 +1380,25 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
                   {getFullSingerName(currentTrack.artist || '', currentTrack.title)}
                 </p>
               </div>
+
+              {/* Heart (Like) */}
               <button
                 onClick={() => onToggleFavorite(currentTrack)}
                 className={`p-1 text-white/60 hover:text-white transition-colors shrink-0 ${
-                  isCurrentFavorite ? 'text-yellow-400' : ''
+                  isCurrentFavorite ? 'text-yellow-400 fill-current' : ''
                 }`}
                 title={isCurrentFavorite ? 'Saved to library' : 'Save to library'}
               >
-                {isCurrentFavorite ? <Check className="w-4 h-4 text-yellow-400" /> : <Plus className="w-4 h-4" />}
+                <Heart className={`w-4 h-4 ${isCurrentFavorite ? 'fill-current' : ''}`} />
+              </button>
+
+              {/* Plus (Add to queue) */}
+              <button
+                onClick={() => onAddToQueue(currentTrack)}
+                className="p-1 text-white/60 hover:text-white transition-colors shrink-0"
+                title="Add to queue"
+              >
+                <Plus className="w-4 h-4" />
               </button>
             </div>
 
@@ -1390,7 +1460,7 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
                 <div className="relative flex-1 flex items-center h-4">
                   <div className="w-full h-1 bg-[#4d4d4d] rounded-full overflow-hidden relative pointer-events-none">
                     <div
-                      className="h-full bg-white group-hover/scrubber:bg-[#1db954] rounded-full transition-colors"
+                      className="h-full bg-white group-hover/scrubber:bg-[#facc15] rounded-full transition-colors"
                       style={{ width: `${progressPercent}%` }}
                     />
                   </div>
@@ -1415,33 +1485,65 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
               </div>
             </div>
 
-            {/* Right: Mic, Queue, Connect, Volume, Mini-Player, Minimize */}
-            <div className="w-1/4 min-w-[180px] max-w-[300px] flex items-center justify-end gap-2.5">
+            {/* Right: Film, Mic2, ListMusic, Laptop2, Right Panel, Volume, Minimize */}
+            <div className="w-1/4 min-w-[180px] max-w-[300px] flex items-center justify-end gap-1.5">
+              {/* 1. Toggle Video View Mode */}
+              <button
+                onClick={() => setMaximizeViewMode(maximizeViewMode === 'video' ? 'poster' : 'video')}
+                className={`p-1.5 rounded transition-colors ${
+                  maximizeViewMode === 'video' ? 'text-yellow-400' : 'text-white/60 hover:text-white'
+                }`}
+                title="Music Video View"
+              >
+                <Film className="w-4 h-4" />
+              </button>
+
+              {/* 2. Toggle Lyrics View Mode */}
               <button
                 onClick={() => setMaximizeViewMode(maximizeViewMode === 'lyrics' ? 'poster' : 'lyrics')}
                 className={`p-1.5 rounded transition-colors ${
                   maximizeViewMode === 'lyrics' ? 'text-yellow-400' : 'text-white/60 hover:text-white'
                 }`}
-                title="Lyrics"
+                title="Live Lyrics View"
               >
                 <Mic2 className="w-4 h-4" />
               </button>
+
+              {/* 3. Queue */}
               <button
-                onClick={() => setIsRightPanelOpen(!isRightPanelOpen)}
-                className="p-1.5 rounded text-white/60 hover:text-white transition-colors"
+                onClick={() => {
+                  setLibraryTab('queue');
+                  aboutArtistRef.current?.scrollIntoView({ behavior: 'smooth' });
+                }}
+                className={`p-1.5 rounded transition-colors ${
+                  libraryTab === 'queue' ? 'text-yellow-400' : 'text-white/60 hover:text-white'
+                }`}
                 title="Queue"
               >
                 <ListMusic className="w-4 h-4" />
               </button>
+
+              {/* 4. Connect Device */}
               <button
                 className="p-1.5 rounded text-white/60 hover:text-white transition-colors"
-                title="Connect to a device"
+                title="SoundStream Hi-Fi Engine (Connected)"
               >
                 <Laptop2 className="w-4 h-4" />
               </button>
 
-              {/* Volume */}
-              <div className="flex items-center gap-1.5 ml-1 group/volume cursor-pointer select-none">
+              {/* 5. Toggle Right Panel / Details */}
+              <button
+                onClick={() => {
+                  aboutArtistRef.current?.scrollIntoView({ behavior: 'smooth' });
+                }}
+                className="p-1.5 rounded text-white/60 hover:text-white transition-colors"
+                title="About the Artist & Details"
+              >
+                <PanelRightOpen className="w-4 h-4" />
+              </button>
+
+              {/* 6. Volume Control Bar */}
+              <div className="flex items-center gap-1.5 ml-0.5 group/volume cursor-pointer select-none">
                 <button
                   onClick={() => onChangeVolume(volume === 0 ? 80 : 0)}
                   className="p-1 text-[#a7a7a7] hover:text-white transition-colors"
@@ -1452,7 +1554,7 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
                 <div className="relative w-20 flex items-center h-4">
                   <div className="w-full h-1 bg-[#4d4d4d] rounded-full overflow-hidden pointer-events-none">
                     <div
-                      className="h-full bg-white group-hover/volume:bg-[#1db954] rounded-full transition-colors"
+                      className="h-full bg-white group-hover/volume:bg-[#facc15] rounded-full transition-colors"
                       style={{ width: `${volume}%` }}
                     />
                   </div>
@@ -1472,11 +1574,11 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
                 </div>
               </div>
 
-              {/* Exit Cinema Mode */}
+              {/* 7. Exit Cinema Mode */}
               <button
                 onClick={() => setIsCinemaMode(false)}
-                className="p-1.5 text-white/60 hover:text-white transition-colors ml-1"
-                title="Exit Fullscreen"
+                className="p-1.5 text-white/60 hover:text-white transition-colors ml-0.5"
+                title="Exit Fullscreen (Esc)"
               >
                 <Minimize2 className="w-4 h-4" />
               </button>

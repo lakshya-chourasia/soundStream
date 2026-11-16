@@ -21,6 +21,9 @@ test('cleanArtistForSearch cleans VEVO, - Topic, and bracket artifacts', () => {
   assert.equal(cleanArtistForSearch('The Weeknd - Topic'), 'The Weeknd');
   assert.equal(cleanArtistForSearch('ColdplayVEVO'), 'Coldplay');
   assert.equal(cleanArtistForSearch('Dua Lipa (Warner Records)'), 'Dua Lipa');
+  assert.equal(cleanArtistForSearch('Christopher Comstock (Marshmello)'), 'Marshmello');
+  assert.equal(cleanArtistForSearch('Abel Tesfaye (The Weeknd)'), 'The Weeknd');
+  assert.equal(cleanArtistForSearch('Danielle Haim (HAIM)'), 'HAIM');
 });
 
 test('resolution upscaling replaces 100x100bb with 600x600bb', () => {

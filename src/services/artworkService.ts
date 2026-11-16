@@ -15,7 +15,7 @@
 export const DEFAULT_ARTWORK_FALLBACK =
   'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=600&auto=format&fit=crop&q=80';
 
-const LOCAL_STORAGE_KEY = 'soundstream_itunes_artwork_v2';
+const LOCAL_STORAGE_KEY = 'soundstream_artwork_v4';
 const INDEXED_DB_NAME = 'soundstream_artwork_db';
 const INDEXED_DB_STORE = 'artworks';
 const INDEXED_DB_VERSION = 1;
@@ -238,6 +238,25 @@ export function cleanTitleForSearch(rawTitle: string): string {
 
 export function cleanArtistForSearch(rawArtist: string): string {
   if (!rawArtist) return '';
+
+  // 1. Check for stage/band moniker inside parentheses (e.g. "Christopher Comstock (Marshmello)" -> "Marshmello")
+  const monikerMatch = rawArtist.match(/\(([^)]+)\)/);
+  if (monikerMatch && monikerMatch[1].trim()) {
+    const moniker = monikerMatch[1].trim();
+    // Exclude record labels, publisher tags, and technical annotations
+    const isExcluded = /(?:records?|entertainment|label|sony|warner|universal|music|ent|prod|topic|official|remaster|deluxe|live|audio|video|explicit|version)/i.test(moniker);
+    if (!isExcluded) {
+      return moniker;
+    }
+  }
+
+  // 2. Known singer real-name aliases for streaming catalog lookups
+  const lower = rawArtist.trim().toLowerCase();
+  if (lower.includes('edward christopher sheeran')) return 'Ed Sheeran';
+  if (lower.includes('harry edward styles')) return 'Harry Styles';
+  if (lower.includes('adele adkins')) return 'Adele';
+  if (lower.includes('austin richard post')) return 'Post Malone';
+
   return rawArtist
     .replace(/ - Topic$/i, '')
     .replace(/VEVO$/i, '')

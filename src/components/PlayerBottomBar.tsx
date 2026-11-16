@@ -100,7 +100,7 @@ export const PlayerBottomBar: React.FC<PlayerBottomBarProps> = ({
       {/* Progress bar — Spotify dark gray track, white fill, green on hover */}
       <div className="seek-group relative h-1 bg-[#4d4d4d] group cursor-pointer">
         <div
-          className="absolute inset-y-0 left-0 bg-white group-hover:bg-[#1db954] transition-colors pointer-events-none rounded-full"
+          className="absolute inset-y-0 left-0 bg-white group-hover:bg-[#facc15] transition-colors pointer-events-none rounded-full"
           style={{ width: `${progressPercent}%` }}
         />
         <input
@@ -282,7 +282,7 @@ export const PlayerBottomBar: React.FC<PlayerBottomBarProps> = ({
             <div className="seek-group relative flex items-center w-24">
               <div className="w-full h-1 rounded-full bg-[#4d4d4d] overflow-hidden">
                 <div
-                  className="h-full bg-white group-hover:bg-[#1db954] transition-colors"
+                  className="h-full bg-white group-hover:bg-[#facc15] transition-colors"
                   style={{ width: `${isMuted ? 0 : volume}%` }}
                 />
               </div>

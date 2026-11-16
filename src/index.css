@@ -136,7 +136,7 @@ button, input, textarea, select {
 }
 
 .ref-slider:hover::-moz-range-progress {
-  background: #1db954;
+  background: #facc15;
 }
 
 .ref-slider::-moz-range-thumb {
