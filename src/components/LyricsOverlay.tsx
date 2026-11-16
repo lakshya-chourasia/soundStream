@@ -1,14 +1,18 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Track, ThemeConfig, LyricsData } from '../types/player';
 import { parseLrcLyrics, findActiveLyricIndex, cleanTrackTitle, formatTime } from '../utils/playerUtils';
-import { X, Copy, Check, Music, ExternalLink } from 'lucide-react';
+import { X, Copy, Check, Music, ExternalLink, GripHorizontal } from 'lucide-react';
 
 interface LyricsOverlayProps {
   currentTrack: Track;
   currentTime: number;
   onSeek: (time: number) => void;
-  themeConfig: ThemeConfig;
+  themeConfig?: ThemeConfig;
   onClose: () => void;
+  onMouseDownHeader?: (e: React.MouseEvent) => void;
+  onTouchStartHeader?: (e: React.TouchEvent) => void;
+  onMouseDownResize?: (e: React.MouseEvent) => void;
+  onTouchStartResize?: (e: React.TouchEvent) => void;
 }
 
 export const LyricsOverlay: React.FC<LyricsOverlayProps> = ({
@@ -16,6 +20,10 @@ export const LyricsOverlay: React.FC<LyricsOverlayProps> = ({
   currentTime,
   onSeek,
   onClose,
+  onMouseDownHeader,
+  onTouchStartHeader,
+  onMouseDownResize,
+  onTouchStartResize,
 }) => {
   const [lyricsData, setLyricsData] = useState<LyricsData | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -142,34 +150,40 @@ export const LyricsOverlay: React.FC<LyricsOverlayProps> = ({
   const hasSynced = !!(lyricsData?.parsedLines && lyricsData.parsedLines.length > 0);
 
   return (
-    <div className="relative w-full h-full rounded-2xl bg-black/60 backdrop-blur-2xl border border-white/15 overflow-hidden flex flex-col transition-all">
-      {/* Top Header Bar */}
-      <div className="relative z-10 px-5 py-3 border-b border-white/10 flex items-center justify-between gap-3 bg-black/60 backdrop-blur-xl">
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-yellow-400 shadow-[0_0_8px_#facc15] shrink-0 animate-pulse" />
-            <h3 className="text-[11px] font-bold uppercase tracking-widest text-white/60 font-mono truncate">
-              {hasSynced ? 'SYNCHRONIZED TRANSCRIPT' : lyricsData?.instrumental ? 'INSTRUMENTAL SESSION' : 'LYRICS TELEMETRY'}
+    <div className="relative w-full h-full rounded-2xl bg-black/85 backdrop-blur-2xl border border-white/20 overflow-hidden flex flex-col shadow-2xl transition-all select-none">
+      {/* Top Header Bar (Draggable handle) */}
+      <div
+        onMouseDown={onMouseDownHeader}
+        onTouchStart={onTouchStartHeader}
+        className="relative z-10 px-4 py-2.5 border-b border-white/10 flex items-center justify-between gap-3 bg-black/90 backdrop-blur-xl cursor-grab active:cursor-grabbing select-none"
+        title="Drag to reposition lyrics"
+      >
+        <div className="flex items-center gap-2 min-w-0 flex-1">
+          <GripHorizontal className="w-4 h-4 text-white/50 shrink-0" />
+          <span className="w-2 h-2 rounded-full bg-yellow-400 shadow-[0_0_8px_#facc15] shrink-0 animate-pulse" />
+          <div className="min-w-0">
+            <h3 className="text-[10px] font-bold uppercase tracking-widest text-white/70 font-mono truncate">
+              {hasSynced ? 'SYNCHRONIZED LYRICS' : lyricsData?.instrumental ? 'INSTRUMENTAL' : 'LYRICS'}
             </h3>
+            <p className="text-xs font-black text-white truncate leading-tight">
+              {title} <span className="text-white/40 font-normal text-[10px]">/ {displayArtist}</span>
+            </p>
           </div>
-          <p className="text-sm font-black text-white truncate mt-0.5">
-            {title} <span className="text-white/50 font-normal text-xs">/ {displayArtist}</span>
-          </p>
         </div>
 
         {/* Action Controls */}
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
           {hasSynced && (
             <button
               onClick={() => setAutoScroll(!autoScroll)}
-              className={`px-3 py-1 rounded-full text-[10px] font-mono font-bold tracking-wider uppercase transition-all ${
+              className={`px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold tracking-wider uppercase transition-all ${
                 autoScroll
                   ? 'bg-yellow-400 text-black font-black shadow-[0_0_8px_rgba(250,204,21,0.4)]'
                   : 'bg-white/10 text-white/70 hover:text-white'
               }`}
               title={autoScroll ? 'Disable auto-scrolling' : 'Enable auto-scrolling'}
             >
-              {autoScroll ? 'AUTO SCROLL' : 'MANUAL'}
+              {autoScroll ? 'AUTO' : 'MANUAL'}
             </button>
           )}
 
@@ -180,17 +194,17 @@ export const LyricsOverlay: React.FC<LyricsOverlayProps> = ({
               title="Copy lyrics to clipboard"
               aria-label="Copy lyrics"
             >
-              {isCopied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+              {isCopied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
             </button>
           )}
 
           <button
             onClick={onClose}
-            className="p-1.5 rounded-full text-white/50 hover:text-white hover:bg-white/10 transition-colors"
-            title="Close lyrics view"
-            aria-label="Close lyrics view"
+            className="p-1.5 rounded-full text-white/50 hover:text-rose-400 hover:bg-white/10 transition-colors"
+            title="Close lyrics"
+            aria-label="Close lyrics"
           >
-            <X className="w-4 h-4" />
+            <X className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>
@@ -281,6 +295,20 @@ export const LyricsOverlay: React.FC<LyricsOverlayProps> = ({
 
       {/* Subtle bottom fade gradient */}
       <div className="absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-black/80 to-transparent pointer-events-none" />
+
+      {/* Corner Resize Handle */}
+      {onMouseDownResize && (
+        <div
+          onMouseDown={onMouseDownResize}
+          onTouchStart={onTouchStartResize}
+          className="absolute bottom-1 right-1 w-5 h-5 cursor-se-resize flex items-center justify-center text-white/30 hover:text-yellow-400 z-20"
+          title="Drag to resize lyrics window"
+        >
+          <svg className="w-2.5 h-2.5 fill-current" viewBox="0 0 6 6">
+            <path d="M6 6H4v-2h2v2zM6 2H4V0h2v2zM2 6H0v-2h2v2z" />
+          </svg>
+        </div>
+      )}
     </div>
   );
 };

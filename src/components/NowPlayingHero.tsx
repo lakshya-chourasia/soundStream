@@ -18,6 +18,8 @@ import {
   X,
   GripHorizontal,
   BookOpen,
+  Plus,
+  Minus,
 } from 'lucide-react';
 import { AudioVisualizer } from './AudioVisualizer';
 import { LyricsOverlay } from './LyricsOverlay';
@@ -88,7 +90,6 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
   onToggleRepeat,
   onChangeVolume,
   onToggleVideo,
-  onToggleFavorite,
   queue = [],
   onPlayTrack,
   genreTag,
@@ -102,19 +103,50 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
   const [isMuted, setIsMuted] = useState(false);
   const [prevVolume, setPrevVolume] = useState(volume);
 
-  // Movable Video Player State & Handlers
+  // ── Movable Video Player: Dynamic Sizing & Dragging ──
+  const MIN_VIDEO_W = 280;
+  const getMaxVideoW = () => Math.min(800, typeof window !== 'undefined' ? window.innerWidth - 30 : 800);
+
+  const [videoWidth, setVideoWidth] = useState<number>(440);
   const [videoPos, setVideoPos] = useState<{ x: number; y: number }>(() => ({
-    x: typeof window !== 'undefined' ? Math.max(20, window.innerWidth - 440) : 700,
+    x: typeof window !== 'undefined' ? Math.max(20, window.innerWidth - 480) : 700,
     y: 76,
   }));
   const [isDraggingVideo, setIsDraggingVideo] = useState(false);
-  const dragStartRef = useRef<{ startX: number; startY: number; posX: number; posY: number }>({
+  const [isResizingVideo, setIsResizingVideo] = useState(false);
+
+  const videoDragStartRef = useRef<{ startX: number; startY: number; posX: number; posY: number }>({
     startX: 0,
     startY: 0,
     posX: 0,
     posY: 0,
   });
-  const [videoSize, setVideoSize] = useState<'compact' | 'standard' | 'large'>('standard');
+  const videoResizeStartRef = useRef<{ startX: number; startW: number }>({
+    startX: 0,
+    startW: 440,
+  });
+
+  // ── Movable Synchronized Lyrics: Positioning & Dragging ──
+  const [lyricsPos, setLyricsPos] = useState<{ x: number; y: number }>(() => ({
+    x: typeof window !== 'undefined' ? Math.max(20, Math.min(80, window.innerWidth - 460)) : 80,
+    y: 110,
+  }));
+  const [lyricsSize, setLyricsSize] = useState<{ w: number; h: number }>({ w: 420, h: 480 });
+  const [isDraggingLyrics, setIsDraggingLyrics] = useState(false);
+  const [isResizingLyrics, setIsResizingLyrics] = useState(false);
+
+  const lyricsDragStartRef = useRef<{ startX: number; startY: number; posX: number; posY: number }>({
+    startX: 0,
+    startY: 0,
+    posX: 0,
+    posY: 0,
+  });
+  const lyricsResizeStartRef = useRef<{ startX: number; startY: number; startW: number; startH: number }>({
+    startX: 0,
+    startY: 0,
+    startW: 420,
+    startH: 480,
+  });
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
@@ -126,12 +158,12 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
     return () => window.removeEventListener('keydown', handleKey);
   }, [isVideoFullscreen]);
 
-  // Smooth dragging with boundary clamping
+  // ── Video Drag & Resize Handlers ──
   const handleMouseDownVideoDrag = (e: React.MouseEvent) => {
     if (isVideoFullscreen) return;
     e.preventDefault();
     setIsDraggingVideo(true);
-    dragStartRef.current = {
+    videoDragStartRef.current = {
       startX: e.clientX,
       startY: e.clientY,
       posX: videoPos.x,
@@ -143,7 +175,7 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
     if (isVideoFullscreen || e.touches.length === 0) return;
     setIsDraggingVideo(true);
     const touch = e.touches[0];
-    dragStartRef.current = {
+    videoDragStartRef.current = {
       startX: touch.clientX,
       startY: touch.clientY,
       posX: videoPos.x,
@@ -151,40 +183,179 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
     };
   };
 
-  useEffect(() => {
-    if (!isDraggingVideo) return;
+  const handleMouseDownVideoResize = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsResizingVideo(true);
+    videoResizeStartRef.current = {
+      startX: e.clientX,
+      startW: videoWidth,
+    };
+  };
 
-    const targetW = videoSize === 'compact' ? 320 : videoSize === 'large' ? 520 : 420;
-    const targetH = Math.round((targetW * 9) / 16) + 38;
+  const handleTouchStartVideoResize = (e: React.TouchEvent) => {
+    e.stopPropagation();
+    if (e.touches.length === 0) return;
+    setIsResizingVideo(true);
+    videoResizeStartRef.current = {
+      startX: e.touches[0].clientX,
+      startW: videoWidth,
+    };
+  };
+
+  // ── Lyrics Drag & Resize Handlers ──
+  const handleMouseDownLyricsDrag = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsDraggingLyrics(true);
+    lyricsDragStartRef.current = {
+      startX: e.clientX,
+      startY: e.clientY,
+      posX: lyricsPos.x,
+      posY: lyricsPos.y,
+    };
+  };
+
+  const handleTouchStartLyricsDrag = (e: React.TouchEvent) => {
+    if (e.touches.length === 0) return;
+    setIsDraggingLyrics(true);
+    lyricsDragStartRef.current = {
+      startX: e.touches[0].clientX,
+      startY: e.touches[0].clientY,
+      posX: lyricsPos.x,
+      posY: lyricsPos.y,
+    };
+  };
+
+  const handleMouseDownLyricsResize = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsResizingLyrics(true);
+    lyricsResizeStartRef.current = {
+      startX: e.clientX,
+      startY: e.clientY,
+      startW: lyricsSize.w,
+      startH: lyricsSize.h,
+    };
+  };
+
+  const handleTouchStartLyricsResize = (e: React.TouchEvent) => {
+    e.stopPropagation();
+    if (e.touches.length === 0) return;
+    setIsResizingLyrics(true);
+    lyricsResizeStartRef.current = {
+      startX: e.touches[0].clientX,
+      startY: e.touches[0].clientY,
+      startW: lyricsSize.w,
+      startH: lyricsSize.h,
+    };
+  };
+
+  // ── Global Drag & Resize Mouse/Touch Listeners ──
+  useEffect(() => {
+    if (!isDraggingVideo && !isResizingVideo && !isDraggingLyrics && !isResizingLyrics) return;
 
     const handleMouseMove = (e: MouseEvent) => {
-      const deltaX = e.clientX - dragStartRef.current.startX;
-      const deltaY = e.clientY - dragStartRef.current.startY;
-      const maxX = Math.max(10, window.innerWidth - targetW - 10);
-      const maxY = Math.max(10, window.innerHeight - targetH - 10);
+      // 1. Dragging Video
+      if (isDraggingVideo) {
+        const deltaX = e.clientX - videoDragStartRef.current.startX;
+        const deltaY = e.clientY - videoDragStartRef.current.startY;
+        const videoH = Math.round((videoWidth * 9) / 16) + 38;
+        const maxX = Math.max(10, window.innerWidth - videoWidth - 10);
+        const maxY = Math.max(10, window.innerHeight - videoH - 10);
 
-      setVideoPos({
-        x: Math.max(10, Math.min(maxX, dragStartRef.current.posX + deltaX)),
-        y: Math.max(10, Math.min(maxY, dragStartRef.current.posY + deltaY)),
-      });
+        setVideoPos({
+          x: Math.max(10, Math.min(maxX, videoDragStartRef.current.posX + deltaX)),
+          y: Math.max(10, Math.min(maxY, videoDragStartRef.current.posY + deltaY)),
+        });
+      }
+
+      // 2. Resizing Video
+      if (isResizingVideo) {
+        const deltaX = e.clientX - videoResizeStartRef.current.startX;
+        const maxLimit = getMaxVideoW();
+        const nextW = Math.max(MIN_VIDEO_W, Math.min(maxLimit, videoResizeStartRef.current.startW + deltaX));
+        setVideoWidth(nextW);
+
+        // Adjust position if resizing causes overflow
+        setVideoPos((prev) => ({
+          ...prev,
+          x: Math.min(prev.x, Math.max(10, window.innerWidth - nextW - 10)),
+        }));
+      }
+
+      // 3. Dragging Lyrics
+      if (isDraggingLyrics) {
+        const deltaX = e.clientX - lyricsDragStartRef.current.startX;
+        const deltaY = e.clientY - lyricsDragStartRef.current.startY;
+        const maxX = Math.max(10, window.innerWidth - lyricsSize.w - 10);
+        const maxY = Math.max(10, window.innerHeight - lyricsSize.h - 10);
+
+        setLyricsPos({
+          x: Math.max(10, Math.min(maxX, lyricsDragStartRef.current.posX + deltaX)),
+          y: Math.max(10, Math.min(maxY, lyricsDragStartRef.current.posY + deltaY)),
+        });
+      }
+
+      // 4. Resizing Lyrics
+      if (isResizingLyrics) {
+        const deltaX = e.clientX - lyricsResizeStartRef.current.startX;
+        const deltaY = e.clientY - lyricsResizeStartRef.current.startY;
+        const nextW = Math.max(280, Math.min(680, lyricsResizeStartRef.current.startW + deltaX));
+        const nextH = Math.max(260, Math.min(760, lyricsResizeStartRef.current.startH + deltaY));
+        setLyricsSize({ w: nextW, h: nextH });
+      }
     };
 
     const handleTouchMove = (e: TouchEvent) => {
       if (e.touches.length === 0) return;
       const touch = e.touches[0];
-      const deltaX = touch.clientX - dragStartRef.current.startX;
-      const deltaY = touch.clientY - dragStartRef.current.startY;
-      const maxX = Math.max(10, window.innerWidth - targetW - 10);
-      const maxY = Math.max(10, window.innerHeight - targetH - 10);
 
-      setVideoPos({
-        x: Math.max(10, Math.min(maxX, dragStartRef.current.posX + deltaX)),
-        y: Math.max(10, Math.min(maxY, dragStartRef.current.posY + deltaY)),
-      });
+      if (isDraggingVideo) {
+        const deltaX = touch.clientX - videoDragStartRef.current.startX;
+        const deltaY = touch.clientY - videoDragStartRef.current.startY;
+        const videoH = Math.round((videoWidth * 9) / 16) + 38;
+        const maxX = Math.max(10, window.innerWidth - videoWidth - 10);
+        const maxY = Math.max(10, window.innerHeight - videoH - 10);
+
+        setVideoPos({
+          x: Math.max(10, Math.min(maxX, videoDragStartRef.current.posX + deltaX)),
+          y: Math.max(10, Math.min(maxY, videoDragStartRef.current.posY + deltaY)),
+        });
+      }
+
+      if (isResizingVideo) {
+        const deltaX = touch.clientX - videoResizeStartRef.current.startX;
+        const maxLimit = getMaxVideoW();
+        const nextW = Math.max(MIN_VIDEO_W, Math.min(maxLimit, videoResizeStartRef.current.startW + deltaX));
+        setVideoWidth(nextW);
+      }
+
+      if (isDraggingLyrics) {
+        const deltaX = touch.clientX - lyricsDragStartRef.current.startX;
+        const deltaY = touch.clientY - lyricsDragStartRef.current.startY;
+        const maxX = Math.max(10, window.innerWidth - lyricsSize.w - 10);
+        const maxY = Math.max(10, window.innerHeight - lyricsSize.h - 10);
+
+        setLyricsPos({
+          x: Math.max(10, Math.min(maxX, lyricsDragStartRef.current.posX + deltaX)),
+          y: Math.max(10, Math.min(maxY, lyricsDragStartRef.current.posY + deltaY)),
+        });
+      }
+
+      if (isResizingLyrics) {
+        const deltaX = touch.clientX - lyricsResizeStartRef.current.startX;
+        const deltaY = touch.clientY - lyricsResizeStartRef.current.startY;
+        const nextW = Math.max(280, Math.min(680, lyricsResizeStartRef.current.startW + deltaX));
+        const nextH = Math.max(260, Math.min(760, lyricsResizeStartRef.current.startH + deltaY));
+        setLyricsSize({ w: nextW, h: nextH });
+      }
     };
 
     const handleMouseUp = () => {
       setIsDraggingVideo(false);
+      setIsResizingVideo(false);
+      setIsDraggingLyrics(false);
+      setIsResizingLyrics(false);
     };
 
     window.addEventListener('mousemove', handleMouseMove);
@@ -198,7 +369,7 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
       window.removeEventListener('touchmove', handleTouchMove);
       window.removeEventListener('touchend', handleMouseUp);
     };
-  }, [isDraggingVideo, videoSize]);
+  }, [isDraggingVideo, isResizingVideo, isDraggingLyrics, isResizingLyrics, videoWidth, lyricsSize]);
 
   if (!currentTrack) {
     return (
@@ -242,12 +413,7 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
     queue.reduce((acc, t) => acc + (t.durationSec || 210), 0) / 60
   );
 
-  const videoWidthClass =
-    videoSize === 'compact'
-      ? 'w-80'
-      : videoSize === 'large'
-        ? 'w-[500px]'
-        : 'w-96 md:w-[420px]';
+  const isInteracting = isDraggingVideo || isResizingVideo || isDraggingLyrics || isResizingLyrics;
 
   return (
     <div className="relative w-full h-full select-none overflow-hidden">
@@ -274,28 +440,35 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
         </div>
       )}
 
-      {/* ── 3. MOVABLE VIDEO PLAYER ── */}
-      {/* Fullscreen backdrop transparent overlay while dragging so iframe never swallows mouse movement */}
-      {isDraggingVideo && (
-        <div className="fixed inset-0 z-[99999] cursor-grabbing select-none" />
+      {/* ── 3. FULLSCREEN DRAG/RESIZE TRANSPARENT BACKDROP OVERLAY ── */}
+      {isInteracting && (
+        <div
+          className="fixed inset-0 z-[99999] select-none"
+          style={{ cursor: isResizingVideo || isResizingLyrics ? 'se-resize' : 'grabbing' }}
+        />
       )}
 
+      {/* ── 4. MOVABLE & RESIZABLE VIDEO PLAYER (Scales up to maximum limit) ── */}
       <div
         className={`transition-shadow ${
           !isVideoVisible
             ? 'fixed -bottom-[9999px] -right-[9999px] w-64 h-36 opacity-0 pointer-events-none'
             : isVideoFullscreen
               ? 'fixed inset-0 z-50 bg-black/95 flex flex-col items-center justify-center p-4'
-              : `fixed ${videoWidthClass} rounded-2xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.85)] border border-white/20 z-50 bg-black`
+              : `fixed rounded-2xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.85)] border border-white/20 z-50 bg-black`
         }`}
         style={
           isVideoVisible && !isVideoFullscreen
-            ? { left: `${videoPos.x}px`, top: `${videoPos.y}px` }
+            ? {
+                left: `${videoPos.x}px`,
+                top: `${videoPos.y}px`,
+                width: `${videoWidth}px`,
+              }
             : undefined
         }
         aria-hidden={!isVideoVisible}
       >
-        {/* Draggable Header Handle Bar (when visible in windowed mode) */}
+        {/* Draggable Header Handle Bar */}
         {isVideoVisible && !isVideoFullscreen && (
           <div
             onMouseDown={handleMouseDownVideoDrag}
@@ -311,17 +484,41 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
               </span>
             </div>
 
+            {/* Sizing Controls (Up to limit) + Fullscreen + Close */}
             <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
-              {/* Size cycle */}
+              {/* Shrink / - */}
               <button
-                onClick={() => {
-                  setVideoSize((prev) => (prev === 'compact' ? 'standard' : prev === 'standard' ? 'large' : 'compact'));
-                }}
-                className="px-1.5 py-0.5 rounded bg-white/10 hover:bg-white/20 text-white/70 hover:text-white text-[10px] font-mono uppercase"
-                title="Resize Video (Compact / Standard / Large)"
+                onClick={() => setVideoWidth((prev) => Math.max(MIN_VIDEO_W, prev - 60))}
+                disabled={videoWidth <= MIN_VIDEO_W}
+                className="w-5 h-5 rounded bg-white/10 hover:bg-white/20 disabled:opacity-30 text-white/80 hover:text-white flex items-center justify-center text-xs font-bold transition-colors"
+                title="Shrink Video"
               >
-                {videoSize === 'compact' ? '1x' : videoSize === 'standard' ? '1.5x' : '2x'}
+                <Minus className="w-3 h-3" />
               </button>
+
+              <span className="text-[10px] font-mono text-white/60 min-w-[36px] text-center">
+                {videoWidth}px
+              </span>
+
+              {/* Enlarge / + (Up to maximum limit) */}
+              <button
+                onClick={() => setVideoWidth((prev) => Math.min(getMaxVideoW(), prev + 60))}
+                disabled={videoWidth >= getMaxVideoW()}
+                className="w-5 h-5 rounded bg-white/10 hover:bg-white/20 disabled:opacity-30 text-white/80 hover:text-white flex items-center justify-center text-xs font-bold transition-colors"
+                title={`Enlarge Video (Limit: ${getMaxVideoW()}px)`}
+              >
+                <Plus className="w-3 h-3" />
+              </button>
+
+              {/* Preset cycle button */}
+              <button
+                onClick={() => setVideoWidth((prev) => (prev >= 720 ? 340 : prev >= 520 ? 760 : 540))}
+                className="px-1.5 py-0.5 rounded bg-white/10 hover:bg-white/20 text-white/70 hover:text-white text-[10px] font-mono uppercase"
+                title="Cycle Presets (340px / 540px / 760px Limit)"
+              >
+                {videoWidth >= 700 ? 'MAX' : videoWidth >= 500 ? 'LG' : 'SM'}
+              </button>
+
               <button
                 onClick={() => setIsVideoFullscreen(!isVideoFullscreen)}
                 className="p-1 rounded hover:bg-white/10 text-white/70 hover:text-white transition-colors"
@@ -375,14 +572,53 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
             </div>
           )}
         </div>
+
+        {/* Corner Resize Handle at Bottom-Right */}
+        {isVideoVisible && !isVideoFullscreen && (
+          <div
+            onMouseDown={handleMouseDownVideoResize}
+            onTouchStart={handleTouchStartVideoResize}
+            className="absolute bottom-1 right-1 w-5 h-5 cursor-se-resize flex items-center justify-center text-white/40 hover:text-yellow-400 z-50 bg-black/70 rounded-tl-md backdrop-blur-md transition-colors"
+            title={`Drag to resize video (Limit: ${getMaxVideoW()}px)`}
+          >
+            <svg className="w-2.5 h-2.5 fill-current" viewBox="0 0 6 6">
+              <path d="M6 6H4v-2h2v2zM6 2H4V0h2v2zM2 6H0v-2h2v2z" />
+            </svg>
+          </div>
+        )}
       </div>
 
-      {/* ── 4. MAIN TWO-COLUMN CINEMATIC CONTENT ── */}
+      {/* ── 5. MOVABLE & RESIZABLE SYNCHRONIZED LYRICS CARD ── */}
+      {isLyricsOpen && (
+        <div
+          className="fixed z-40 rounded-2xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.9)] border border-white/20 transition-shadow animate-in"
+          style={{
+            left: `${lyricsPos.x}px`,
+            top: `${lyricsPos.y}px`,
+            width: `${lyricsSize.w}px`,
+            height: `${lyricsSize.h}px`,
+          }}
+        >
+          <LyricsOverlay
+            currentTrack={currentTrack}
+            currentTime={currentTime}
+            onSeek={onSeek}
+            themeConfig={themeConfig}
+            onClose={() => onToggleLyrics?.()}
+            onMouseDownHeader={handleMouseDownLyricsDrag}
+            onTouchStartHeader={handleTouchStartLyricsDrag}
+            onMouseDownResize={handleMouseDownLyricsResize}
+            onTouchStartResize={handleTouchStartLyricsResize}
+          />
+        </div>
+      )}
+
+      {/* ── 6. MAIN TWO-COLUMN CINEMATIC CONTENT ── */}
       <div className="relative z-10 w-full h-full flex flex-col justify-between px-6 sm:px-12 lg:px-16 pt-4 pb-8">
         <div className="flex-1 flex flex-col lg:flex-row items-stretch justify-between gap-8 lg:gap-16 min-h-0">
 
           {/* ══════════════════════════════════════════════════
-              LEFT COLUMN: NOW PLAYING & TRACKLIST / SYNCHRONIZED LYRICS
+              LEFT COLUMN: NOW PLAYING & TRACKLIST
              ══════════════════════════════════════════════════ */}
           <div className="w-full lg:w-[420px] xl:w-[460px] flex flex-col justify-between shrink-0 min-h-0 pt-2 lg:pt-8">
             {/* Header info (Realtime Updates) */}
@@ -395,95 +631,65 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
               </h1>
             </div>
 
-            {/* Synchronized Lyrics View OR Tracklist */}
-            {isLyricsOpen ? (
-              <div className="flex-1 flex flex-col min-h-0 bg-black/60 backdrop-blur-2xl rounded-2xl border border-white/15 p-4 my-3 overflow-hidden shadow-2xl animate-in">
-                <div className="flex items-center justify-between pb-2 mb-2 border-b border-white/10 shrink-0">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse" />
-                    <span className="font-mono text-xs font-bold tracking-widest uppercase text-yellow-400">
-                      SYNCHRONIZED LYRICS
-                    </span>
-                  </div>
-                  <button
-                    onClick={onToggleLyrics}
-                    className="p-1 rounded-full text-white/50 hover:text-white hover:bg-white/10 transition-colors"
-                    title="Return to Tracklist"
+            {/* Track list (matches reference track items) */}
+            <div className="flex-1 overflow-y-auto no-scrollbar space-y-1.5 my-4 pr-2 min-h-0">
+              {queue.slice(0, 7).map((track, idx) => {
+                const isCurrent = track.id === currentTrack.id;
+                const { title: t, artistFromTitle: a } = cleanTrackTitle(track.title);
+                const itemArtist = a || track.artist || 'Artist';
+
+                return (
+                  <div
+                    key={`${track.id}-${idx}`}
+                    onClick={() => onPlayTrack?.(track)}
+                    className={`ref-track-row group ${isCurrent ? 'ref-track-row active' : ''}`}
                   >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-                <div className="flex-1 min-h-0 overflow-hidden">
-                  <LyricsOverlay
-                    currentTrack={currentTrack}
-                    currentTime={currentTime}
-                    onSeek={onSeek}
-                    themeConfig={themeConfig}
-                    onClose={() => onToggleLyrics?.()}
-                  />
-                </div>
-              </div>
-            ) : (
-              /* Track list (matches reference track items) */
-              <div className="flex-1 overflow-y-auto no-scrollbar space-y-1.5 my-4 pr-2 min-h-0">
-                {queue.slice(0, 7).map((track, idx) => {
-                  const isCurrent = track.id === currentTrack.id;
-                  const { title: t, artistFromTitle: a } = cleanTrackTitle(track.title);
-                  const itemArtist = a || track.artist || 'Artist';
-
-                  return (
-                    <div
-                      key={`${track.id}-${idx}`}
-                      onClick={() => onPlayTrack?.(track)}
-                      className={`ref-track-row group ${isCurrent ? 'ref-track-row active' : ''}`}
-                    >
-                      {/* Play / Pause / Equalizer indicator */}
-                      <div className="w-6 shrink-0 flex items-center justify-center text-white/80 group-hover:text-white">
-                        {isCurrent ? (
-                          isPlaying ? (
-                            <div className="flex items-end gap-0.5 h-3.5">
-                              <span className="w-0.5 bg-yellow-400 rounded-full animate-bar-1" />
-                              <span className="w-0.5 bg-yellow-400 rounded-full animate-bar-2" />
-                              <span className="w-0.5 bg-yellow-400 rounded-full animate-bar-3" />
-                            </div>
-                          ) : (
-                            <Pause className="w-4 h-4 fill-current" />
-                          )
+                    {/* Play / Pause / Equalizer indicator */}
+                    <div className="w-6 shrink-0 flex items-center justify-center text-white/80 group-hover:text-white">
+                      {isCurrent ? (
+                        isPlaying ? (
+                          <div className="flex items-end gap-0.5 h-3.5">
+                            <span className="w-0.5 bg-yellow-400 rounded-full animate-bar-1" />
+                            <span className="w-0.5 bg-yellow-400 rounded-full animate-bar-2" />
+                            <span className="w-0.5 bg-yellow-400 rounded-full animate-bar-3" />
+                          </div>
                         ) : (
-                          <Play className="w-4 h-4 fill-current opacity-70 group-hover:opacity-100 transition-opacity" />
-                        )}
-                      </div>
-
-                      {/* Small square thumbnail */}
-                      <div className="w-10 h-10 rounded-md overflow-hidden bg-black/40 shrink-0 border border-white/10 shadow-sm">
-                        <img
-                          src={track.thumbnail}
-                          alt={t}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        />
-                      </div>
-
-                      {/* Title & Artist */}
-                      <div className="flex-1 min-w-0">
-                        <p className={`text-sm font-semibold truncate leading-tight ${isCurrent ? 'text-white' : 'text-white/90'}`}>
-                          {t}
-                        </p>
-                        <p className="text-xs text-white/50 truncate font-normal mt-0.5">
-                          {itemArtist}
-                        </p>
-                      </div>
-
-                      {/* Options indicator on current track only */}
-                      {isCurrent && (
-                        <div className="p-1 text-white/40">
-                          <MoreHorizontal className="w-4 h-4" />
-                        </div>
+                          <Pause className="w-4 h-4 fill-current" />
+                        )
+                      ) : (
+                        <Play className="w-4 h-4 fill-current opacity-70 group-hover:opacity-100 transition-opacity" />
                       )}
                     </div>
-                  );
-                })}
-              </div>
-            )}
+
+                    {/* Small square thumbnail */}
+                    <div className="w-10 h-10 rounded-md overflow-hidden bg-black/40 shrink-0 border border-white/10 shadow-sm">
+                      <img
+                        src={track.thumbnail}
+                        alt={t}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                    </div>
+
+                    {/* Title & Artist */}
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-sm font-semibold truncate leading-tight ${isCurrent ? 'text-white' : 'text-white/90'}`}>
+                        {t}
+                      </p>
+                      <p className="text-xs text-white/50 truncate font-normal mt-0.5">
+                        {itemArtist}
+                      </p>
+                    </div>
+
+                    {/* Options indicator on current track only */}
+                    {isCurrent && (
+                      <div className="p-1 text-white/40">
+                        <MoreHorizontal className="w-4 h-4" />
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
 
             {/* Bottom Meta Stats (Dynamic in real time) */}
             <div className="flex items-center justify-between pt-4 border-t border-white/10 text-xs text-white/50 font-normal">
@@ -536,7 +742,7 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
                     className={`w-8 h-8 rounded-full bg-black/60 backdrop-blur-md border border-white/20 flex items-center justify-center transition-all hover:scale-105 ${
                       isLyricsOpen ? 'text-yellow-400 border-yellow-400/50' : 'text-white/80 hover:text-white'
                     }`}
-                    title="Synchronized Lyrics"
+                    title="Movable Synchronized Lyrics"
                     aria-label="Toggle Synchronized Lyrics"
                   >
                     <BookOpen className="w-3.5 h-3.5" />
