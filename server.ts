@@ -8,7 +8,7 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Curated collections with 100% verified YouTube video IDs
+// Curated collections with 100% verified YouTube video IDs and ultra-high-resolution 1200x1200 studio master artwork
 const CURATED_GENRES = [
   {
     id: 'love-2k20',
@@ -24,7 +24,7 @@ const CURATED_GENRES = [
         duration: '4:45',
         durationSec: 285,
         views: '2.2B views',
-        thumbnail: 'https://i.ytimg.com/vi/hLQl3WQQoQ0/hqdefault.jpg',
+        thumbnail: 'https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/eb/ca/25/ebca2596-cd1e-b295-91a3-771c868d0a79/191404113868.png/1200x1200bb.jpg',
       },
       {
         id: 'zmsS_6sP5c4',
@@ -33,7 +33,7 @@ const CURATED_GENRES = [
         duration: '3:50',
         durationSec: 230,
         views: '45M views',
-        thumbnail: 'https://i.ytimg.com/vi/zmsS_6sP5c4/hqdefault.jpg',
+        thumbnail: 'https://is1-ssl.mzstatic.com/image/thumb/Music114/v4/f1/0c/21/f10c2105-fed1-b727-fb61-b0c96cc73eea/886444152648.jpg/1200x1200bb.jpg',
       },
       {
         id: 'kYFjF3v1U7c',
@@ -42,7 +42,7 @@ const CURATED_GENRES = [
         duration: '3:45',
         durationSec: 225,
         views: '28M views',
-        thumbnail: 'https://i.ytimg.com/vi/kYFjF3v1U7c/hqdefault.jpg',
+        thumbnail: 'https://is1-ssl.mzstatic.com/image/thumb/Music113/v4/fb/c9/72/fbc972b5-3b37-058a-6818-63604315bf22/19UMGIM36996.rgb.jpg/1200x1200bb.jpg',
       },
       {
         id: 'f-X8f_d1n3Y',
@@ -51,7 +51,7 @@ const CURATED_GENRES = [
         duration: '3:15',
         durationSec: 195,
         views: '18M views',
-        thumbnail: 'https://i.ytimg.com/vi/f-X8f_d1n3Y/hqdefault.jpg',
+        thumbnail: 'https://is1-ssl.mzstatic.com/image/thumb/Music118/v4/71/e8/48/71e848f0-4b1a-4c78-2ce6-c29c0259eb72/05037128006145.rgb.jpg/1200x1200bb.jpg',
       },
       {
         id: 'yKNxeF4KMsY',
@@ -60,7 +60,7 @@ const CURATED_GENRES = [
         duration: '4:33',
         durationSec: 273,
         views: '1.3B views',
-        thumbnail: 'https://i.ytimg.com/vi/yKNxeF4KMsY/hqdefault.jpg',
+        thumbnail: 'https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/f5/93/8c/f5938c49-964c-31d1-4b33-78b634f71fb7/190295978075.jpg/1200x1200bb.jpg',
       },
       {
         id: '2Vv-BfVoq4g',
@@ -69,7 +69,7 @@ const CURATED_GENRES = [
         duration: '4:23',
         durationSec: 263,
         views: '3.6B views',
-        thumbnail: 'https://i.ytimg.com/vi/2Vv-BfVoq4g/hqdefault.jpg',
+        thumbnail: 'https://is1-ssl.mzstatic.com/image/thumb/Music115/v4/15/e6/e8/15e6e8a4-4190-6a8b-86c3-ab4a51b88288/190295851286.jpg/1200x1200bb.jpg',
       },
     ],
   },
@@ -85,7 +85,7 @@ const CURATED_GENRES = [
         duration: '4:42',
         durationSec: 282,
         views: '8.4B views',
-        thumbnail: 'https://i.ytimg.com/vi/kJQP7kiw5Fk/hqdefault.jpg',
+        thumbnail: 'https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/e2/ef/f0/e2eff0bc-c51d-7de5-9280-6891ddcee71b/18UMGIM85289.rgb.jpg/1200x1200bb.jpg',
       },
       {
         id: 'JGwWNGJdvx8',
@@ -94,7 +94,7 @@ const CURATED_GENRES = [
         duration: '4:24',
         durationSec: 264,
         views: '6.2B views',
-        thumbnail: 'https://i.ytimg.com/vi/JGwWNGJdvx8/hqdefault.jpg',
+        thumbnail: 'https://is1-ssl.mzstatic.com/image/thumb/Music115/v4/15/e6/e8/15e6e8a4-4190-6a8b-86c3-ab4a51b88288/190295851286.jpg/1200x1200bb.jpg',
       },
       {
         id: 'fJ9rUzIMcZQ',
@@ -103,7 +103,7 @@ const CURATED_GENRES = [
         duration: '6:00',
         durationSec: 360,
         views: '1.7B views',
-        thumbnail: 'https://i.ytimg.com/vi/fJ9rUzIMcZQ/hqdefault.jpg',
+        thumbnail: 'https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/8b/0a/ea/8b0aea60-6f4a-195b-5958-cdf459c2333b/602527644271.jpg/1200x1200bb.jpg',
       },
       {
         id: '4NRXx6U8ABQ',
@@ -112,7 +112,7 @@ const CURATED_GENRES = [
         duration: '4:22',
         durationSec: 262,
         views: '800M views',
-        thumbnail: 'https://i.ytimg.com/vi/4NRXx6U8ABQ/hqdefault.jpg',
+        thumbnail: 'https://is1-ssl.mzstatic.com/image/thumb/Music115/v4/61/e7/3f/61e73f94-018d-5f50-50ec-8521952bc72e/20UM1IM11629.rgb.jpg/1200x1200bb.jpg',
       },
       {
         id: 'yKNxeF4KMsY',
@@ -121,7 +121,7 @@ const CURATED_GENRES = [
         duration: '4:33',
         durationSec: 273,
         views: '1.3B views',
-        thumbnail: 'https://i.ytimg.com/vi/yKNxeF4KMsY/hqdefault.jpg',
+        thumbnail: 'https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/f5/93/8c/f5938c49-964c-31d1-4b33-78b634f71fb7/190295978075.jpg/1200x1200bb.jpg',
       },
     ],
   },
@@ -137,7 +137,7 @@ const CURATED_GENRES = [
         duration: '5:30',
         durationSec: 330,
         views: '12M views',
-        thumbnail: 'https://i.ytimg.com/vi/a6P40S5K4c4/hqdefault.jpg',
+        thumbnail: 'https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/5a/0f/a4/5a0fa413-e1b8-7cb6-7ecc-7c22e656d33d/194271526137_cover.jpg/1200x1200bb.jpg',
       },
       {
         id: '_Ci0Kgdpgsw',
@@ -146,7 +146,7 @@ const CURATED_GENRES = [
         duration: '5:01',
         durationSec: 301,
         views: '15M views',
-        thumbnail: 'https://i.ytimg.com/vi/_Ci0Kgdpgsw/hqdefault.jpg',
+        thumbnail: 'https://is1-ssl.mzstatic.com/image/thumb/Music125/v4/5a/44/68/5a4468ef-ce33-9aea-1062-a6e9600b1321/859726345762_cover.jpg/1200x1200bb.jpg',
       },
       {
         id: '8GW6sLrK40k',
@@ -155,7 +155,7 @@ const CURATED_GENRES = [
         duration: '3:32',
         durationSec: 212,
         views: '140M views',
-        thumbnail: 'https://i.ytimg.com/vi/8GW6sLrK40k/hqdefault.jpg',
+        thumbnail: 'https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/4f/13/65/4f1365b0-e97c-c469-c438-2f7d8f204355/872133025584_cover.jpg/1200x1200bb.jpg',
       },
     ],
   },
@@ -171,7 +171,7 @@ const CURATED_GENRES = [
         duration: '3:48',
         durationSec: 228,
         views: '560M views',
-        thumbnail: 'https://i.ytimg.com/vi/gGdGFtwCNBE/hqdefault.jpg',
+        thumbnail: 'https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/11/64/9c/11649c80-2066-dba8-77a9-df7eecae26c1/17UM1IM06937.rgb.jpg/1200x1200bb.jpg',
       },
       {
         id: 'bpOSxM0rNPM',
@@ -180,7 +180,7 @@ const CURATED_GENRES = [
         duration: '4:26',
         durationSec: 266,
         views: '1.6B views',
-        thumbnail: 'https://i.ytimg.com/vi/bpOSxM0rNPM/hqdefault.jpg',
+        thumbnail: 'https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/69/9c/b5/699cb5d6-115c-ff73-9d26-e57ea4350d72/887828031795.png/1200x1200bb.jpg',
       },
       {
         id: '1G4isv_Fylg',
@@ -189,7 +189,7 @@ const CURATED_GENRES = [
         duration: '3:30',
         durationSec: 210,
         views: '78M views',
-        thumbnail: 'https://i.ytimg.com/vi/1G4isv_Fylg/hqdefault.jpg',
+        thumbnail: 'https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/0b/a9/d7/0ba9d7c7-2e68-dc9b-cde4-d142e8ce86b1/067003806756.png/1200x1200bb.jpg',
       },
     ],
   },
@@ -205,7 +205,7 @@ const CURATED_GENRES = [
         duration: '4:20',
         durationSec: 260,
         views: '2.1B views',
-        thumbnail: 'https://i.ytimg.com/vi/YykjpeuMNEk/hqdefault.jpg',
+        thumbnail: 'https://is1-ssl.mzstatic.com/image/thumb/Music115/v4/c8/0a/6d/c80a6df9-e55a-fb83-0311-f4776984ac67/mzm.lasidxkv.jpg/1200x1200bb.jpg',
       },
       {
         id: 'kOkQ4T5WO9E',
@@ -214,7 +214,7 @@ const CURATED_GENRES = [
         duration: '4:00',
         durationSec: 240,
         views: '2.7B views',
-        thumbnail: 'https://i.ytimg.com/vi/kOkQ4T5WO9E/hqdefault.jpg',
+        thumbnail: 'https://is1-ssl.mzstatic.com/image/thumb/Music125/v4/59/57/a6/5957a66e-fb10-4065-5739-7c54236339e4/886445857290.jpg/1200x1200bb.jpg',
       },
       {
         id: 'ALZHF5UqnU4',
@@ -223,7 +223,7 @@ const CURATED_GENRES = [
         duration: '3:20',
         durationSec: 200,
         views: '2.4B views',
-        thumbnail: 'https://i.ytimg.com/vi/ALZHF5UqnU4/hqdefault.jpg',
+        thumbnail: 'https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/7e/be/33/7ebe3370-959a-94f7-77e2-c9e7fea9a4ed/859716988917_cover.jpg/1200x1200bb.jpg',
       },
     ],
   },
@@ -581,6 +581,44 @@ async function startServer() {
       console.error('Lyrics endpoint error:', err.message);
       return res.status(500).json({ error: 'Failed to fetch lyrics' });
     }
+  });
+
+  // API 6: Fetch ultra-high-resolution 1200x1200bb studio master artwork for any track
+  const artworkCache = new Map<string, string>();
+  app.get('/api/highres-artwork', async (req: Request, res: Response) => {
+    const rawTrack = (req.query.track as string || '').trim();
+    const rawArtist = (req.query.artist as string || '').trim();
+    const cacheKey = `${rawTrack}::${rawArtist}`.toLowerCase();
+
+    if (artworkCache.has(cacheKey)) {
+      return res.json({ artworkUrl: artworkCache.get(cacheKey) });
+    }
+
+    try {
+      const cleanTrack = rawTrack
+        .replace(/\s*[\(\[]\s*(?:Official\s*(?:Music\s*)?)?(?:Video|Audio|Lyric\s*Video|HD|4K|Visualizer|Lyrics?)\s*[\)\]]/gi, '')
+        .replace(/\s*\|.*$/, '')
+        .trim();
+      const cleanArtist = rawArtist
+        .replace(/ - Topic$/i, '')
+        .replace(/VEVO$/i, '')
+        .replace(/Official$/i, '')
+        .trim();
+
+      const query = `${cleanTrack} ${cleanArtist}`.trim();
+      const itunesUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&entity=song&limit=1`;
+      const itunesRes = await fetch(itunesUrl);
+      if (itunesRes.ok) {
+        const data = await itunesRes.json();
+        if (data.results && data.results.length > 0 && data.results[0].artworkUrl100) {
+          const highRes = data.results[0].artworkUrl100.replace(/\/\d+x\d+bb\./, '/1200x1200bb.');
+          artworkCache.set(cacheKey, highRes);
+          return res.json({ artworkUrl: highRes });
+        }
+      }
+    } catch {}
+
+    res.json({ artworkUrl: null });
   });
 
   // Download Native Mobile Android APK

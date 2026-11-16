@@ -62,7 +62,7 @@ export const Header: React.FC<HeaderProps> = ({
           {isMoodDropdownOpen && (
             <div className="absolute top-full left-0 mt-2 w-56 p-1.5 rounded-xl bg-black/90 backdrop-blur-2xl border border-white/15 shadow-2xl z-50 animate-in">
               <div className="px-3 py-2 text-[10px] font-mono font-bold tracking-widest text-white/40 uppercase border-b border-white/10">
-                Curated Moods & Playlists
+                Curated Moods & Channels
               </div>
               <div className="py-1 max-h-60 overflow-y-auto no-scrollbar">
                 {curatedGenres.map((genre) => (

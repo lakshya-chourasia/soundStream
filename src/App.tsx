@@ -233,6 +233,28 @@ export default function App() {
     }
   }, [currentTrack]);
 
+  // Upgrade track thumbnail to ultra-high-resolution 1200x1200bb studio master artwork
+  useEffect(() => {
+    if (!currentTrack) return;
+    if (currentTrack.thumbnail && currentTrack.thumbnail.includes('1200x1200bb')) return;
+
+    const { title, artistFromTitle } = cleanTrackTitle(currentTrack.title);
+    const artist = artistFromTitle || currentTrack.artist || '';
+
+    fetch(`/api/highres-artwork?track=${encodeURIComponent(title)}&artist=${encodeURIComponent(artist)}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.artworkUrl) {
+          const highRes = data.artworkUrl;
+          setCurrentTrack((prev) => (prev && prev.id === currentTrack.id ? { ...prev, thumbnail: highRes } : prev));
+          setQueue((prevQueue) =>
+            prevQueue.map((t) => (t.id === currentTrack.id ? { ...t, thumbnail: highRes } : t))
+          );
+        }
+      })
+      .catch(() => {});
+  }, [currentTrack?.id]);
+
   // Handle and filter playback-restricted videos automatically
   const handlePlaybackRestricted = useCallback(
     (restrictedTrack: Track, errorCode: number) => {
@@ -673,7 +695,7 @@ export default function App() {
                 <div className="max-w-5xl mx-auto space-y-6">
                   <div className="flex items-center justify-between">
                     <h2 className="font-display font-black text-3xl sm:text-4xl uppercase tracking-tight text-white">
-                      CURATED PLAYLISTS
+                      CURATED SOUNDSCAPES
                     </h2>
                     <button
                       onClick={() => setActiveView('now-playing')}
@@ -718,14 +740,10 @@ export default function App() {
                     currentTrack={currentTrack}
                     isPlaying={isPlaying}
                     favorites={favorites}
-                    playlists={playlists}
                     onPlayTrack={handlePlayTrack}
                     onRemoveFromQueue={handleRemoveFromQueue}
                     onClearQueue={handleClearQueue}
                     onToggleFavorite={handleToggleFavorite}
-                    onCreatePlaylist={handleCreatePlaylist}
-                    onPlayPlaylist={handlePlayPlaylist}
-                    onDeletePlaylist={handleDeletePlaylist}
                   />
                 </div>
               </div>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Track, RepeatMode, VisualizerMode, ThemeConfig, StreamQuality, PlayerStyle } from '../types/player';
 import { formatTime, cleanTrackTitle, getDynamicTrackTag } from '../utils/playerUtils';
 import {
@@ -11,14 +11,13 @@ import {
   Repeat1,
   Volume2,
   VolumeX,
-  Volume1,
   Maximize2,
   Minimize2,
   MoreHorizontal,
-  Sliders,
-  ChevronRight,
   Radio,
   X,
+  GripHorizontal,
+  BookOpen,
 } from 'lucide-react';
 import { AudioVisualizer } from './AudioVisualizer';
 import { LyricsOverlay } from './LyricsOverlay';
@@ -57,7 +56,6 @@ interface NowPlayingHeroProps {
   onToggleFavorite: () => void;
   crossfadeDuration: number;
   onChangeCrossfadeDuration: (duration: number) => void;
-  // Queue & Playlist props
   queue?: Track[];
   onPlayTrack?: (track: Track) => void;
   playlistName?: string;
@@ -80,7 +78,6 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
   isShuffle,
   visualizerMode,
   isVideoVisible,
-  isFavorite,
   themeConfig,
   videoSlot,
   onTogglePlay,
@@ -94,8 +91,6 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
   onToggleFavorite,
   queue = [],
   onPlayTrack,
-  playlistName,
-  curatorName,
   genreTag,
   isLyricsOpen = false,
   onToggleLyrics,
@@ -107,6 +102,20 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
   const [isMuted, setIsMuted] = useState(false);
   const [prevVolume, setPrevVolume] = useState(volume);
 
+  // Movable Video Player State & Handlers
+  const [videoPos, setVideoPos] = useState<{ x: number; y: number }>(() => ({
+    x: typeof window !== 'undefined' ? Math.max(20, window.innerWidth - 440) : 700,
+    y: 76,
+  }));
+  const [isDraggingVideo, setIsDraggingVideo] = useState(false);
+  const dragStartRef = useRef<{ startX: number; startY: number; posX: number; posY: number }>({
+    startX: 0,
+    startY: 0,
+    posX: 0,
+    posY: 0,
+  });
+  const [videoSize, setVideoSize] = useState<'compact' | 'standard' | 'large'>('standard');
+
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isVideoFullscreen) {
@@ -116,6 +125,80 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
   }, [isVideoFullscreen]);
+
+  // Smooth dragging with boundary clamping
+  const handleMouseDownVideoDrag = (e: React.MouseEvent) => {
+    if (isVideoFullscreen) return;
+    e.preventDefault();
+    setIsDraggingVideo(true);
+    dragStartRef.current = {
+      startX: e.clientX,
+      startY: e.clientY,
+      posX: videoPos.x,
+      posY: videoPos.y,
+    };
+  };
+
+  const handleTouchStartVideoDrag = (e: React.TouchEvent) => {
+    if (isVideoFullscreen || e.touches.length === 0) return;
+    setIsDraggingVideo(true);
+    const touch = e.touches[0];
+    dragStartRef.current = {
+      startX: touch.clientX,
+      startY: touch.clientY,
+      posX: videoPos.x,
+      posY: videoPos.y,
+    };
+  };
+
+  useEffect(() => {
+    if (!isDraggingVideo) return;
+
+    const targetW = videoSize === 'compact' ? 320 : videoSize === 'large' ? 520 : 420;
+    const targetH = Math.round((targetW * 9) / 16) + 38;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const deltaX = e.clientX - dragStartRef.current.startX;
+      const deltaY = e.clientY - dragStartRef.current.startY;
+      const maxX = Math.max(10, window.innerWidth - targetW - 10);
+      const maxY = Math.max(10, window.innerHeight - targetH - 10);
+
+      setVideoPos({
+        x: Math.max(10, Math.min(maxX, dragStartRef.current.posX + deltaX)),
+        y: Math.max(10, Math.min(maxY, dragStartRef.current.posY + deltaY)),
+      });
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (e.touches.length === 0) return;
+      const touch = e.touches[0];
+      const deltaX = touch.clientX - dragStartRef.current.startX;
+      const deltaY = touch.clientY - dragStartRef.current.startY;
+      const maxX = Math.max(10, window.innerWidth - targetW - 10);
+      const maxY = Math.max(10, window.innerHeight - targetH - 10);
+
+      setVideoPos({
+        x: Math.max(10, Math.min(maxX, dragStartRef.current.posX + deltaX)),
+        y: Math.max(10, Math.min(maxY, dragStartRef.current.posY + deltaY)),
+      });
+    };
+
+    const handleMouseUp = () => {
+      setIsDraggingVideo(false);
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    window.addEventListener('touchmove', handleTouchMove);
+    window.addEventListener('touchend', handleMouseUp);
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+      window.removeEventListener('touchmove', handleTouchMove);
+      window.removeEventListener('touchend', handleMouseUp);
+    };
+  }, [isDraggingVideo, videoSize]);
 
   if (!currentTrack) {
     return (
@@ -131,20 +214,16 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
     );
   }
 
+  // Pure realtime values based on currently playing track
   const { title, artistFromTitle } = cleanTrackTitle(currentTrack.title);
   const displayArtist = artistFromTitle || currentTrack.artist || 'Artist';
   const effectiveDuration = duration > 0 ? duration : currentTrack.durationSec || 240;
-  const progressPercent = effectiveDuration > 0 ? Math.min(100, (currentTime / effectiveDuration) * 100) : 0;
+  const headlineTitle = displayArtist.toUpperCase();
 
-  // Fully dynamic attributes — updates automatically on EVERY song change
-  const isCustomPlaylist = playlistName && !playlistName.includes('LOVE 2K20') && !playlistName.includes('Current Queue') && !playlistName.includes('Session');
-  const headlineTitle = isCustomPlaylist ? playlistName : displayArtist.toUpperCase();
-  const headlineCategory = isCustomPlaylist ? 'CURATED PLAYLIST' : 'ARTIST SPOTLIGHT';
-  const dynamicCurator = curatorName && !curatorName.includes('Pharrell Williams') ? curatorName : displayArtist;
   const dynamicTag = genreTag && !genreTag.includes('#RELATIONSHIPS')
     ? genreTag
     : getDynamicTrackTag(title, displayArtist, currentTrack.views);
-  const dynamicPlaylistLabel = isCustomPlaylist ? playlistName : `${displayArtist} Session`;
+
   const currentYear = new Date().getFullYear();
   const dynamicCopyright = `© ${currentYear} ${displayArtist} · Streamed via SoundStream Hi-Fi Engine · ${currentTrack.views ? `${currentTrack.views} · ` : ''}24-bit / 48kHz Master`;
 
@@ -163,9 +242,16 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
     queue.reduce((acc, t) => acc + (t.durationSec || 210), 0) / 60
   );
 
+  const videoWidthClass =
+    videoSize === 'compact'
+      ? 'w-80'
+      : videoSize === 'large'
+        ? 'w-[500px]'
+        : 'w-96 md:w-[420px]';
+
   return (
     <div className="relative w-full h-full select-none overflow-hidden">
-      {/* ── 1. CINEMATIC FULL-BLEED BACKGROUND ── */}
+      {/* ── 1. CINEMATIC FULL-BLEED BACKGROUND (Updates in Real Time) ── */}
       <div
         className="cinematic-backdrop"
         style={{
@@ -188,41 +274,103 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
         </div>
       )}
 
-      {/* ── 3. VIDEO CONTAINER (Offscreen or Floating/Fullscreen) ── */}
+      {/* ── 3. MOVABLE VIDEO PLAYER ── */}
+      {/* Fullscreen backdrop transparent overlay while dragging so iframe never swallows mouse movement */}
+      {isDraggingVideo && (
+        <div className="fixed inset-0 z-[99999] cursor-grabbing select-none" />
+      )}
+
       <div
-        className={`transition-all duration-300 ${
+        className={`transition-shadow ${
           !isVideoVisible
             ? 'fixed -bottom-[9999px] -right-[9999px] w-64 h-36 opacity-0 pointer-events-none'
             : isVideoFullscreen
               ? 'fixed inset-0 z-50 bg-black/95 flex flex-col items-center justify-center p-4'
-              : 'absolute top-6 right-6 md:right-12 w-80 md:w-96 aspect-video rounded-2xl overflow-hidden shadow-2xl border border-white/20 z-40 bg-black'
+              : `fixed ${videoWidthClass} rounded-2xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.85)] border border-white/20 z-50 bg-black`
         }`}
+        style={
+          isVideoVisible && !isVideoFullscreen
+            ? { left: `${videoPos.x}px`, top: `${videoPos.y}px` }
+            : undefined
+        }
         aria-hidden={!isVideoVisible}
       >
-        <div className="relative w-full h-full" onClick={onTogglePlay} onDoubleClick={() => setIsVideoFullscreen(!isVideoFullscreen)}>
+        {/* Draggable Header Handle Bar (when visible in windowed mode) */}
+        {isVideoVisible && !isVideoFullscreen && (
+          <div
+            onMouseDown={handleMouseDownVideoDrag}
+            onTouchStart={handleTouchStartVideoDrag}
+            className="w-full h-9 px-3 bg-black/90 backdrop-blur-xl border-b border-white/15 flex items-center justify-between cursor-grab active:cursor-grabbing select-none z-50 text-white/80 hover:text-white"
+            title="Drag to reposition video player"
+          >
+            <div className="flex items-center gap-2">
+              <GripHorizontal className="w-4 h-4 text-white/50" />
+              <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+              <span className="font-mono text-[10px] font-bold tracking-widest uppercase text-white/90">
+                LIVE VIDEO
+              </span>
+            </div>
+
+            <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+              {/* Size cycle */}
+              <button
+                onClick={() => {
+                  setVideoSize((prev) => (prev === 'compact' ? 'standard' : prev === 'standard' ? 'large' : 'compact'));
+                }}
+                className="px-1.5 py-0.5 rounded bg-white/10 hover:bg-white/20 text-white/70 hover:text-white text-[10px] font-mono uppercase"
+                title="Resize Video (Compact / Standard / Large)"
+              >
+                {videoSize === 'compact' ? '1x' : videoSize === 'standard' ? '1.5x' : '2x'}
+              </button>
+              <button
+                onClick={() => setIsVideoFullscreen(!isVideoFullscreen)}
+                className="p-1 rounded hover:bg-white/10 text-white/70 hover:text-white transition-colors"
+                title="Fullscreen"
+              >
+                <Maximize2 className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={() => {
+                  onToggleVideo();
+                }}
+                className="p-1 rounded hover:bg-rose-500/20 text-white/70 hover:text-rose-400 transition-colors"
+                title="Close Video"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Video Frame */}
+        <div
+          className={`relative w-full ${isVideoFullscreen ? 'w-full h-full max-w-5xl aspect-video' : 'aspect-video'}`}
+          onClick={onTogglePlay}
+          onDoubleClick={() => setIsVideoFullscreen(!isVideoFullscreen)}
+        >
           {videoSlot}
-          {isVideoVisible && (
-            <div className="absolute top-3 right-3 flex items-center gap-2 z-50 pointer-events-auto">
+          {isVideoVisible && isVideoFullscreen && (
+            <div className="absolute top-4 right-4 flex items-center gap-2 z-50 pointer-events-auto">
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  setIsVideoFullscreen(!isVideoFullscreen);
+                  setIsVideoFullscreen(false);
                 }}
-                className="p-1.5 rounded-lg bg-black/70 backdrop-blur-md border border-white/20 text-white hover:bg-white/20 transition-all"
-                title={isVideoFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
+                className="p-2 rounded-xl bg-black/80 backdrop-blur-md border border-white/20 text-white hover:bg-white/20 transition-all"
+                title="Exit Fullscreen"
               >
-                {isVideoFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
+                <Minimize2 className="w-4 h-4" />
               </button>
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  if (isVideoFullscreen) setIsVideoFullscreen(false);
+                  setIsVideoFullscreen(false);
                   onToggleVideo();
                 }}
-                className="p-1.5 rounded-lg bg-black/70 backdrop-blur-md border border-white/20 text-white hover:bg-white/20 transition-all"
+                className="p-2 rounded-xl bg-black/80 backdrop-blur-md border border-white/20 text-white hover:bg-rose-500/20 transition-all"
                 title="Close Video"
               >
-                <X className="w-3.5 h-3.5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
           )}
@@ -234,91 +382,115 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
         <div className="flex-1 flex flex-col lg:flex-row items-stretch justify-between gap-8 lg:gap-16 min-h-0">
 
           {/* ══════════════════════════════════════════════════
-              LEFT COLUMN: CURATED PLAYLIST (from Reference)
+              LEFT COLUMN: NOW PLAYING & TRACKLIST / SYNCHRONIZED LYRICS
              ══════════════════════════════════════════════════ */}
           <div className="w-full lg:w-[420px] xl:w-[460px] flex flex-col justify-between shrink-0 min-h-0 pt-2 lg:pt-8">
-            {/* Header info */}
+            {/* Header info (Realtime Updates) */}
             <div>
               <p className="font-display tracking-[0.25em] text-xs font-bold uppercase text-white/60 mb-1">
-                {headlineCategory}
+                NOW PLAYING
               </p>
               <h1 className="font-display font-black text-6xl sm:text-7xl lg:text-8xl tracking-tight uppercase text-white leading-none drop-shadow-md truncate">
                 {headlineTitle}
               </h1>
             </div>
 
-            {/* Track list (matches reference track items) */}
-            <div className="flex-1 overflow-y-auto no-scrollbar space-y-1.5 my-4 pr-2 min-h-0">
-              {queue.slice(0, 7).map((track, idx) => {
-                const isCurrent = track.id === currentTrack.id;
-                const { title: t, artistFromTitle: a } = cleanTrackTitle(track.title);
-                const itemArtist = a || track.artist || 'Artist';
-
-                return (
-                  <div
-                    key={`${track.id}-${idx}`}
-                    onClick={() => onPlayTrack?.(track)}
-                    className={`ref-track-row group ${isCurrent ? 'ref-track-row active' : ''}`}
+            {/* Synchronized Lyrics View OR Tracklist */}
+            {isLyricsOpen ? (
+              <div className="flex-1 flex flex-col min-h-0 bg-black/60 backdrop-blur-2xl rounded-2xl border border-white/15 p-4 my-3 overflow-hidden shadow-2xl animate-in">
+                <div className="flex items-center justify-between pb-2 mb-2 border-b border-white/10 shrink-0">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse" />
+                    <span className="font-mono text-xs font-bold tracking-widest uppercase text-yellow-400">
+                      SYNCHRONIZED LYRICS
+                    </span>
+                  </div>
+                  <button
+                    onClick={onToggleLyrics}
+                    className="p-1 rounded-full text-white/50 hover:text-white hover:bg-white/10 transition-colors"
+                    title="Return to Tracklist"
                   >
-                    {/* Play / Pause / Equalizer indicator */}
-                    <div className="w-6 shrink-0 flex items-center justify-center text-white/80 group-hover:text-white">
-                      {isCurrent ? (
-                        isPlaying ? (
-                          <div className="flex items-end gap-0.5 h-3.5">
-                            <span className="w-0.5 bg-yellow-400 rounded-full animate-bar-1" />
-                            <span className="w-0.5 bg-yellow-400 rounded-full animate-bar-2" />
-                            <span className="w-0.5 bg-yellow-400 rounded-full animate-bar-3" />
-                          </div>
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+                <div className="flex-1 min-h-0 overflow-hidden">
+                  <LyricsOverlay
+                    currentTrack={currentTrack}
+                    currentTime={currentTime}
+                    onSeek={onSeek}
+                    themeConfig={themeConfig}
+                    onClose={() => onToggleLyrics?.()}
+                  />
+                </div>
+              </div>
+            ) : (
+              /* Track list (matches reference track items) */
+              <div className="flex-1 overflow-y-auto no-scrollbar space-y-1.5 my-4 pr-2 min-h-0">
+                {queue.slice(0, 7).map((track, idx) => {
+                  const isCurrent = track.id === currentTrack.id;
+                  const { title: t, artistFromTitle: a } = cleanTrackTitle(track.title);
+                  const itemArtist = a || track.artist || 'Artist';
+
+                  return (
+                    <div
+                      key={`${track.id}-${idx}`}
+                      onClick={() => onPlayTrack?.(track)}
+                      className={`ref-track-row group ${isCurrent ? 'ref-track-row active' : ''}`}
+                    >
+                      {/* Play / Pause / Equalizer indicator */}
+                      <div className="w-6 shrink-0 flex items-center justify-center text-white/80 group-hover:text-white">
+                        {isCurrent ? (
+                          isPlaying ? (
+                            <div className="flex items-end gap-0.5 h-3.5">
+                              <span className="w-0.5 bg-yellow-400 rounded-full animate-bar-1" />
+                              <span className="w-0.5 bg-yellow-400 rounded-full animate-bar-2" />
+                              <span className="w-0.5 bg-yellow-400 rounded-full animate-bar-3" />
+                            </div>
+                          ) : (
+                            <Pause className="w-4 h-4 fill-current" />
+                          )
                         ) : (
-                          <Pause className="w-4 h-4 fill-current" />
-                        )
-                      ) : (
-                        <Play className="w-4 h-4 fill-current opacity-70 group-hover:opacity-100 transition-opacity" />
+                          <Play className="w-4 h-4 fill-current opacity-70 group-hover:opacity-100 transition-opacity" />
+                        )}
+                      </div>
+
+                      {/* Small square thumbnail */}
+                      <div className="w-10 h-10 rounded-md overflow-hidden bg-black/40 shrink-0 border border-white/10 shadow-sm">
+                        <img
+                          src={track.thumbnail}
+                          alt={t}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
+                      </div>
+
+                      {/* Title & Artist */}
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-sm font-semibold truncate leading-tight ${isCurrent ? 'text-white' : 'text-white/90'}`}>
+                          {t}
+                        </p>
+                        <p className="text-xs text-white/50 truncate font-normal mt-0.5">
+                          {itemArtist}
+                        </p>
+                      </div>
+
+                      {/* Options indicator on current track only */}
+                      {isCurrent && (
+                        <div className="p-1 text-white/40">
+                          <MoreHorizontal className="w-4 h-4" />
+                        </div>
                       )}
                     </div>
+                  );
+                })}
+              </div>
+            )}
 
-                    {/* Small square thumbnail */}
-                    <div className="w-10 h-10 rounded-md overflow-hidden bg-black/40 shrink-0 border border-white/10 shadow-sm">
-                      <img
-                        src={track.thumbnail}
-                        alt={t}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
-                    </div>
-
-                    {/* Title & Artist */}
-                    <div className="flex-1 min-w-0">
-                      <p className={`text-sm font-semibold truncate leading-tight ${isCurrent ? 'text-white' : 'text-white/90'}`}>
-                        {t}
-                      </p>
-                      <p className="text-xs text-white/50 truncate font-normal mt-0.5">
-                        {itemArtist}
-                      </p>
-                    </div>
-
-                    {/* Three dots options */}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onToggleFavorite();
-                      }}
-                      className="p-1 rounded-full text-white/40 hover:text-white transition-colors"
-                      title="Options"
-                      aria-label="Options"
-                    >
-                      <MoreHorizontal className="w-4 h-4" />
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Bottom Meta Stats */}
+            {/* Bottom Meta Stats (Dynamic in real time) */}
             <div className="flex items-center justify-between pt-4 border-t border-white/10 text-xs text-white/50 font-normal">
               <span>
                 {queue.length} songs · {totalMin} min
               </span>
-              <span>by {dynamicCurator}</span>
+              <span>Audio Stream · {displayArtist}</span>
             </div>
           </div>
 
@@ -327,17 +499,8 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
              ══════════════════════════════════════════════════ */}
           <div className="w-full lg:w-[480px] xl:w-[520px] flex flex-col justify-between shrink-0 pt-2 lg:pt-8">
 
-            {/* Top Right: PLAYLIST Label + Floating Album Art */}
+            {/* Top Right: Floating Album Art (Playlist label removed) */}
             <div className="flex flex-col items-end">
-              <div className="text-right mb-3">
-                <p className="text-[10px] font-bold tracking-[0.25em] uppercase text-white/40">
-                  PLAYLIST
-                </p>
-                <p className="text-xs font-medium text-white/70 italic">
-                  {dynamicPlaylistLabel}
-                </p>
-              </div>
-
               {/* Floating Album Art (High resolution portrait like Adele B&W in ref) */}
               <div className="relative group w-48 sm:w-56 md:w-64 aspect-square rounded-xl overflow-hidden shadow-2xl border border-white/15 bg-black/60">
                 <img
@@ -346,12 +509,14 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                 />
 
-                {/* Sub-artwork utility buttons (Expand video & Audio visualizer) */}
+                {/* Sub-artwork utility buttons (Expand video & Audio visualizer & Lyrics) */}
                 <div className="absolute inset-x-0 bottom-3 flex items-center justify-center gap-3 z-20">
                   <button
                     onClick={onToggleVideo}
-                    className="w-8 h-8 rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-white/80 hover:text-white flex items-center justify-center transition-all hover:scale-105"
-                    title={isVideoVisible ? 'Hide Video' : 'Watch Official Video'}
+                    className={`w-8 h-8 rounded-full bg-black/60 backdrop-blur-md border border-white/20 flex items-center justify-center transition-all hover:scale-105 ${
+                      isVideoVisible ? 'text-yellow-400 border-yellow-400/50' : 'text-white/80 hover:text-white'
+                    }`}
+                    title={isVideoVisible ? 'Hide Video' : 'Open Movable Video'}
                     aria-label="Toggle Video"
                   >
                     <Maximize2 className="w-3.5 h-3.5" />
@@ -366,57 +531,36 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
                   >
                     <Radio className="w-3.5 h-3.5" />
                   </button>
+                  <button
+                    onClick={onToggleLyrics}
+                    className={`w-8 h-8 rounded-full bg-black/60 backdrop-blur-md border border-white/20 flex items-center justify-center transition-all hover:scale-105 ${
+                      isLyricsOpen ? 'text-yellow-400 border-yellow-400/50' : 'text-white/80 hover:text-white'
+                    }`}
+                    title="Synchronized Lyrics"
+                    aria-label="Toggle Synchronized Lyrics"
+                  >
+                    <BookOpen className="w-3.5 h-3.5" />
+                  </button>
                 </div>
               </div>
             </div>
 
-            {/* Center Right: Song Title + Yellow Genre Tag */}
+            {/* Center Right: Song Title + Yellow Genre Tag (Unclickable) */}
             <div className="text-right my-auto py-4">
               <h2 className="font-display font-black text-4xl sm:text-5xl lg:text-6xl uppercase tracking-wide text-white leading-none drop-shadow-lg">
                 {title}
               </h2>
 
-              {/* Dynamic Genre Tag Badge */}
+              {/* Dynamic Genre Tag Badge (Unclickable as explicitly requested) */}
               <div className="mt-3 flex justify-end">
-                <button
-                  onClick={onToggleLyrics}
-                  className="ref-genre-tag"
-                  title="Synchronized lyrics & genre tags"
-                >
+                <div className="ref-genre-tag select-none cursor-default">
                   <span>{dynamicTag}</span>
-                  <ChevronRight className="w-3 h-3 stroke-[3]" />
-                </button>
+                </div>
               </div>
             </div>
 
             {/* Bottom Right: Scrubber + Controls + Volume + Copyright */}
             <div className="w-full flex flex-col gap-4 mt-auto">
-
-              {/* Synchronized Lyrics Overlay if toggled */}
-              {isLyricsOpen && (
-                <div className="w-full h-36 rounded-2xl bg-black/75 backdrop-blur-2xl border border-white/15 p-3 overflow-hidden animate-in">
-                  <div className="flex items-center justify-between pb-1 mb-1 border-b border-white/10">
-                    <span className="text-[10px] font-bold tracking-widest uppercase text-yellow-400">
-                      Synchronized Lyrics
-                    </span>
-                    <button
-                      onClick={onToggleLyrics}
-                      className="text-white/50 hover:text-white"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                  <div className="h-24 overflow-hidden">
-                    <LyricsOverlay
-                      currentTrack={currentTrack}
-                      currentTime={currentTime}
-                      onSeek={onSeek}
-                      themeConfig={themeConfig}
-                      onClose={() => onToggleLyrics?.()}
-                    />
-                  </div>
-                </div>
-              )}
 
               {/* Progress Slider (with white thumb at 2:30/4:45 like reference) */}
               <div className="w-full">
