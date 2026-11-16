@@ -8,113 +8,8 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Live Hindi Audio Radio Channels (Real-Time Icecast / SHOUTcast / Live Audio Streams)
-const LIVE_HINDI_AUDIO_CHANNELS = [
-  {
-    id: 'live-mirchi-fm',
-    title: 'Radio Mirchi 98.3 FM Live',
-    artist: 'Radio Mirchi (Official Live Stream)',
-    duration: 'LIVE',
-    durationSec: 0,
-    views: 'Live Broadcast',
-    thumbnail: 'https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?w=500&auto=format&fit=crop&q=60',
-    streamUrl: 'https://vm65162.streamerr.co/listen/mirchi/radio.mp3',
-    isOfficial: true,
-    isLiveRadio: true,
-  },
-  {
-    id: 'live-mirchi-top20',
-    title: 'Mirchi Top 20 Live Stream',
-    artist: 'Radio Mirchi Countdown',
-    duration: 'LIVE',
-    durationSec: 0,
-    views: 'Live Broadcast',
-    thumbnail: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=500&auto=format&fit=crop&q=60',
-    streamUrl: 'https://drive.uber.radio/uber/bollywoodnow/icecast.audio',
-    isOfficial: true,
-    isLiveRadio: true,
-  },
-  {
-    id: 'live-hits-bollywood',
-    title: 'Hits Of Bollywood Radio Live',
-    artist: 'Bollywood Hits 24/7',
-    duration: 'LIVE',
-    durationSec: 0,
-    views: 'Live Broadcast',
-    thumbnail: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=500&auto=format&fit=crop&q=60',
-    streamUrl: 'http://stream.zeno.fm/8ty8szwpwfeuv',
-    isOfficial: true,
-    isLiveRadio: true,
-  },
-  {
-    id: 'live-retro-90s',
-    title: 'Retro Bollywood 90s Live Radio',
-    artist: '90s Superhit Classics',
-    duration: 'LIVE',
-    durationSec: 0,
-    views: 'Live Broadcast',
-    thumbnail: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500&auto=format&fit=crop&q=60',
-    streamUrl: 'https://stream-143.zeno.fm/fdgs82xkzhhvv',
-    isOfficial: true,
-    isLiveRadio: true,
-  },
-  {
-    id: 'live-bombay-beats',
-    title: 'Bombay Beats India Live',
-    artist: '1.FM Bombay Beats',
-    duration: 'LIVE',
-    durationSec: 0,
-    views: 'Live Broadcast',
-    thumbnail: 'https://images.unsplash.com/photo-1465847899084-d164df4dedc6?w=500&auto=format&fit=crop&q=60',
-    streamUrl: 'http://strm112.1.fm/bombaybeats_mobile_mp3',
-    isOfficial: true,
-    isLiveRadio: true,
-  },
-  {
-    id: 'live-fnf-hindi',
-    title: 'FNF FM Hindi Live',
-    artist: 'Non-Stop Desi Bollywood',
-    duration: 'LIVE',
-    durationSec: 0,
-    views: 'Live Broadcast',
-    thumbnail: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=500&auto=format&fit=crop&q=60',
-    streamUrl: 'http://192.99.8.192:5032/;stream',
-    isOfficial: true,
-    isLiveRadio: true,
-  },
-  {
-    id: 'live-lata-mangeshkar',
-    title: 'Hits Of Lata Mangeshkar Radio Live',
-    artist: 'Evergreen Melodies Live',
-    duration: 'LIVE',
-    durationSec: 0,
-    views: 'Live Broadcast',
-    thumbnail: 'https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=500&auto=format&fit=crop&q=60',
-    streamUrl: 'http://stream.zeno.fm/g95zm67prfhvv',
-    isOfficial: true,
-    isLiveRadio: true,
-  },
-  {
-    id: 'live-bollywood-2010s',
-    title: 'Bollywood 2010s Decade Radio',
-    artist: 'Modern Bollywood Chartbusters',
-    duration: 'LIVE',
-    durationSec: 0,
-    views: 'Live Broadcast',
-    thumbnail: 'https://images.unsplash.com/photo-1518609878373-06d740f60d8b?w=500&auto=format&fit=crop&q=60',
-    streamUrl: 'https://drive.uber.radio/uber/bollywood2010s/icecast.audio',
-    isOfficial: true,
-    isLiveRadio: true,
-  },
-];
-
+// Curated collections with 100% verified YouTube video IDs
 const CURATED_GENRES = [
-  {
-    id: 'hindi-live-radio',
-    name: 'Live Hindi Radio Channels',
-    description: '24/7 Live streaming audio channels from Radio Mirchi, Bombay Beats, and Bollywood live feeds',
-    tracks: LIVE_HINDI_AUDIO_CHANNELS,
-  },
   {
     id: 'official-hits',
     name: 'Top Global Official Music Videos',
@@ -291,13 +186,6 @@ async function startServer() {
     res.json({
       genres: CURATED_GENRES,
       featured: CURATED_GENRES[0].tracks,
-    });
-  });
-
-  // API 1B: Popular Hindi Live Audio Radio Stations
-  app.get('/api/radio', (_req: Request, res: Response) => {
-    res.json({
-      stations: LIVE_HINDI_AUDIO_CHANNELS,
     });
   });
 

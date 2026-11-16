@@ -1,20 +1,16 @@
 import React from 'react';
-import { Disc, Search, Sparkles, ListMusic, Radio } from 'lucide-react';
+import { Disc, Search, Sparkles, ListMusic } from 'lucide-react';
 import { ActiveView } from '../types/player';
 
 interface MobileBottomNavProps {
   activeView: ActiveView;
   onSelectView: (view: ActiveView) => void;
-  onPlayHindiRadio: () => void;
-  isRadioPlaying: boolean;
   queueCount: number;
 }
 
 export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
   activeView,
   onSelectView,
-  onPlayHindiRadio,
-  isRadioPlaying,
   queueCount,
 }) => {
   return (
@@ -61,27 +57,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
           <span className="text-[10px] tracking-tight mt-1 font-mono uppercase">Search</span>
         </button>
 
-        {/* 3. Live Radio Quick Launch Center Tab */}
-        <button
-          onClick={onPlayHindiRadio}
-          className="flex flex-col items-center justify-center flex-1 h-full py-1 group"
-          aria-label="Tune Live Hindi Radio"
-        >
-          <div
-            className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${
-              isRadioPlaying
-                ? 'bg-gradient-to-tr from-amber-500 via-pink-500 to-cyan-400 text-white shadow-[0_0_16px_rgba(245,158,11,0.6)] animate-pulse'
-                : 'glass-panel text-amber-300 border-amber-400/40 hover:scale-105 active:scale-95'
-            }`}
-          >
-            <Radio className="w-4 h-4 text-white" />
-          </div>
-          <span className="text-[9px] tracking-tight mt-0.5 font-mono uppercase font-black text-amber-300">
-            {isRadioPlaying ? 'LIVE ON' : 'RADIO'}
-          </span>
-        </button>
-
-        {/* 4. Curated Vibes */}
+        {/* 3. Curated Vibes */}
         <button
           onClick={() => onSelectView('genres')}
           className={`flex flex-col items-center justify-center flex-1 h-full py-1 rounded-xl transition-all ${

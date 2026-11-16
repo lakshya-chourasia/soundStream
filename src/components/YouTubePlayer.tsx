@@ -51,7 +51,6 @@ export const YouTubePlayer = forwardRef<YouTubePlayerHandle, YouTubePlayerProps>
   ) => {
     const playerRef = useRef<any>(null);
     const containerRef = useRef<HTMLDivElement | null>(null);
-    const audioRef = useRef<HTMLAudioElement | null>(null);
     const [isApiReady, setIsApiReady] = useState<boolean>(() => !!(typeof window !== 'undefined' && window.YT && window.YT.Player));
     const [isPlayerReady, setIsPlayerReady] = useState<boolean>(false);
     const lastLoadedIdRef = useRef<string | null>(null);
@@ -61,10 +60,6 @@ export const YouTubePlayer = forwardRef<YouTubePlayerHandle, YouTubePlayerProps>
     useImperativeHandle(ref, () => ({
       play: () => {
         try {
-          if (currentTrack?.streamUrl && audioRef.current) {
-            audioRef.current.play().catch((err) => console.warn('Audio play error:', err));
-            return;
-          }
           if (playerRef.current?.playVideo) {
             playerRef.current.playVideo();
           }
@@ -74,10 +69,6 @@ export const YouTubePlayer = forwardRef<YouTubePlayerHandle, YouTubePlayerProps>
       },
       pause: () => {
         try {
-          if (currentTrack?.streamUrl && audioRef.current) {
-            audioRef.current.pause();
-            return;
-          }
           if (playerRef.current?.pauseVideo) {
             playerRef.current.pauseVideo();
           }
@@ -87,10 +78,6 @@ export const YouTubePlayer = forwardRef<YouTubePlayerHandle, YouTubePlayerProps>
       },
       seekTo: (seconds: number) => {
         try {
-          if (currentTrack?.streamUrl && audioRef.current) {
-            // Live streams cannot be scrubbed
-            return;
-          }
           if (playerRef.current?.seekTo) {
             playerRef.current.seekTo(seconds, true);
           }
@@ -100,9 +87,6 @@ export const YouTubePlayer = forwardRef<YouTubePlayerHandle, YouTubePlayerProps>
       },
       setVolume: (vol: number) => {
         try {
-          if (audioRef.current) {
-            audioRef.current.volume = Math.max(0, Math.min(1, vol / 100));
-          }
           if (playerRef.current?.setVolume) {
             playerRef.current.setVolume(vol);
           }
@@ -110,9 +94,6 @@ export const YouTubePlayer = forwardRef<YouTubePlayerHandle, YouTubePlayerProps>
       },
       setPlaybackRate: (rate: number) => {
         try {
-          if (audioRef.current) {
-            audioRef.current.playbackRate = rate;
-          }
           if (playerRef.current?.setPlaybackRate) {
             playerRef.current.setPlaybackRate(rate);
           }
@@ -127,9 +108,6 @@ export const YouTubePlayer = forwardRef<YouTubePlayerHandle, YouTubePlayerProps>
       },
       getCurrentTime: () => {
         try {
-          if (currentTrack?.streamUrl && audioRef.current) {
-            return audioRef.current.currentTime || 0;
-          }
           return playerRef.current?.getCurrentTime ? playerRef.current.getCurrentTime() : 0;
         } catch {
           return 0;
@@ -137,9 +115,6 @@ export const YouTubePlayer = forwardRef<YouTubePlayerHandle, YouTubePlayerProps>
       },
       getDuration: () => {
         try {
-          if (currentTrack?.streamUrl && audioRef.current) {
-            return 0; // Live stream duration is dynamic / live
-          }
           return playerRef.current?.getDuration ? playerRef.current.getDuration() : 0;
         } catch {
           return 0;
@@ -147,32 +122,7 @@ export const YouTubePlayer = forwardRef<YouTubePlayerHandle, YouTubePlayerProps>
       },
       loadTrack: (trackOrId: string | Track, autoPlay = true) => {
         const id = typeof trackOrId === 'string' ? trackOrId : trackOrId.id;
-        const streamUrl = typeof trackOrId === 'object' ? trackOrId.streamUrl : undefined;
         lastLoadedIdRef.current = id;
-
-        // If it is a live audio channel
-        if (streamUrl && audioRef.current) {
-          try {
-            if (playerRef.current?.pauseVideo) {
-              playerRef.current.pauseVideo();
-            }
-            audioRef.current.src = streamUrl;
-            audioRef.current.volume = Math.max(0, Math.min(1, volume / 100));
-            if (autoPlay) {
-              audioRef.current.play().catch((e) => console.warn('Audio play error:', e));
-            }
-          } catch (e) {
-            console.warn('Audio element load error:', e);
-          }
-          return;
-        }
-
-        // Otherwise pause audio element and load YouTube video
-        if (audioRef.current) {
-          audioRef.current.pause();
-          audioRef.current.src = '';
-        }
-
         try {
           if (!playerRef.current) return;
           if (autoPlay && playerRef.current.loadVideoById) {
@@ -399,48 +349,11 @@ export const YouTubePlayer = forwardRef<YouTubePlayerHandle, YouTubePlayerProps>
       };
     }, [isPlayerReady]);
 
-    // Audio element event listeners for live radio streams
-    useEffect(() => {
-      const audio = audioRef.current;
-      if (!audio) return;
-
-      const handleAudioPlay = () => onStateChange(true, false);
-      const handleAudioPause = () => onStateChange(false, false);
-      const handleAudioWaiting = () => onStateChange(true, true);
-      const handleAudioPlaying = () => onStateChange(true, false);
-      const handleAudioError = () => {
-        onError('Radio channel is currently unavailable. Reconnecting or choose another station...');
-        onStateChange(false, false);
-      };
-      const handleTimeUpdate = () => {
-        onTimeUpdate(audio.currentTime || 0, 0);
-      };
-
-      audio.addEventListener('play', handleAudioPlay);
-      audio.addEventListener('pause', handleAudioPause);
-      audio.addEventListener('waiting', handleAudioWaiting);
-      audio.addEventListener('playing', handleAudioPlaying);
-      audio.addEventListener('error', handleAudioError);
-      audio.addEventListener('timeupdate', handleTimeUpdate);
-
-      return () => {
-        audio.removeEventListener('play', handleAudioPlay);
-        audio.removeEventListener('pause', handleAudioPause);
-        audio.removeEventListener('waiting', handleAudioWaiting);
-        audio.removeEventListener('playing', handleAudioPlaying);
-        audio.removeEventListener('error', handleAudioError);
-        audio.removeEventListener('timeupdate', handleTimeUpdate);
-      };
-    }, [onStateChange, onError, onTimeUpdate]);
-
     return (
       <div
         className="w-full h-full relative overflow-hidden select-none bg-black flex items-center justify-center pointer-events-none"
         aria-hidden={!isVideoVisible}
       >
-        {/* Native Audio Tag for Live Audio Channels (Mirchi, Red FM, Bombay Beats) */}
-        <audio ref={audioRef} preload="none" className="hidden" />
-
         <div
           ref={containerRef}
           className="w-full h-full flex items-center justify-center pointer-events-none [&>iframe]:w-full [&>iframe]:h-full [&>iframe]:object-contain"

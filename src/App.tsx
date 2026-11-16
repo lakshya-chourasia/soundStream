@@ -431,36 +431,6 @@ export default function App() {
     showToast('Queue cleared.');
   };
 
-  // Hindi Live Radio Audio Channels Trigger
-  const [isRadioPlaying, setIsRadioPlaying] = useState<boolean>(false);
-
-  const handlePlayHindiRadio = useCallback(async () => {
-    try {
-      showToast('Tuning into live Hindi audio radio...');
-      const res = await fetch('/api/radio');
-      if (!res.ok) throw new Error('Radio fetch failed');
-      const data = await res.json();
-      const stations: Track[] = data.stations || [];
-      if (stations.length === 0) {
-        showToast('No active Hindi radio channels found.');
-        return;
-      }
-      // Pick a live station (Radio Mirchi FM, Mirchi Top 20, Hits of Bollywood, etc.)
-      const randomStation = stations[Math.floor(Math.random() * stations.length)];
-      setQueue((prev) => {
-        const remainingStations = stations.filter((s) => s.id !== randomStation.id);
-        return [randomStation, ...remainingStations, ...prev.filter((t) => !stations.some((s) => s.id === t.id))];
-      });
-      handlePlayTrack(randomStation);
-      setIsRadioPlaying(true);
-      setActiveView('now-playing');
-      showToast(`Tuned into Live Radio: ${randomStation.title}`);
-    } catch (err: any) {
-      console.error(err);
-      showToast('Could not load Hindi radio channels.');
-    }
-  }, [handlePlayTrack]);
-
   // Favorites Operations
   const handleToggleFavorite = (track: Track) => {
     setFavorites((prev) => {
@@ -566,8 +536,6 @@ export default function App() {
         onOpenQuickImport={() => setIsQuickImportOpen(true)}
         sleepTimerRemaining={sleepTimerRemaining}
         onOpenSleepTimer={() => setIsSleepTimerOpen(true)}
-        onPlayHindiRadio={handlePlayHindiRadio}
-        isRadioPlaying={isRadioPlaying}
       />
 
       {/* Toast Notification */}
@@ -666,7 +634,6 @@ export default function App() {
             onToggleFavorite={() => {
               if (currentTrack) handleToggleFavorite(currentTrack);
             }}
-            onPlayHindiRadio={handlePlayHindiRadio}
           />
 
           {/* Quick Up Next Preview Strip (Ultra-compact, non-overflowing) */}
@@ -849,8 +816,6 @@ export default function App() {
       <MobileBottomNav
         activeView={activeView}
         onSelectView={setActiveView}
-        onPlayHindiRadio={handlePlayHindiRadio}
-        isRadioPlaying={Boolean(currentTrack?.isLiveRadio && isPlaying)}
         queueCount={queue.length}
       />
     </div>

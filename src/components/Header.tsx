@@ -1,6 +1,6 @@
 import React from 'react';
 import { ActiveView, ThemePreset } from '../types/player';
-import { Plus, Timer, Radio } from 'lucide-react';
+import { Plus, Timer } from 'lucide-react';
 
 interface HeaderProps {
   activeView: ActiveView;
@@ -11,8 +11,6 @@ interface HeaderProps {
   isDarkMode?: boolean;
   onToggleTheme?: () => void;
   onOpenSleepTimer: () => void;
-  onPlayHindiRadio?: () => void;
-  isRadioPlaying?: boolean;
   themePreset?: ThemePreset;
   onChangeThemePreset?: (preset: ThemePreset) => void;
 }
@@ -24,8 +22,6 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenQuickImport,
   sleepTimerRemaining,
   onOpenSleepTimer,
-  onPlayHindiRadio,
-  isRadioPlaying = false,
 }) => {
   return (
     <header className="flex items-center justify-between gap-2 px-3 sm:px-6 py-2 pt-safe border-b border-white/10 bg-[#08090c]/85 backdrop-blur-2xl shrink-0 z-40 relative">
@@ -48,7 +44,7 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
       </button>
 
-      {/* Desktop Segmented Editorial Navigation + Radio Trigger */}
+      {/* Desktop Segmented Editorial Navigation */}
       <div className="hidden md:flex items-center gap-2">
         <nav
           className="flex items-center p-1 rounded-full glass-panel text-xs font-bold"
@@ -76,26 +72,6 @@ export const Header: React.FC<HeaderProps> = ({
             );
           })}
         </nav>
-
-        {/* Quick Launch: Live Hindi Audio Radio Trigger */}
-        <div className="flex items-center gap-1.5">
-          {onPlayHindiRadio && (
-            <button
-              onClick={onPlayHindiRadio}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[11px] font-mono font-black uppercase tracking-wider transition-all whitespace-nowrap ${
-                isRadioPlaying
-                  ? 'bg-gradient-to-r from-amber-500 to-pink-500 text-white border-amber-300/40 shadow-[0_0_14px_rgba(245,158,11,0.5)] animate-pulse'
-                  : 'glass-panel text-amber-300 hover:text-white hover:border-amber-400/50 hover:bg-amber-500/10'
-              }`}
-              title="Tune into 24/7 Live Hindi Radio Audio Channels"
-              aria-label="Play Live Hindi Radio"
-            >
-              <Radio className={`w-3.5 h-3.5 ${isRadioPlaying ? 'animate-spin-slow' : ''}`} />
-              <span className="hidden sm:inline">HINDI RADIO</span>
-              <span className="sm:hidden">RADIO</span>
-            </button>
-          )}
-        </div>
       </div>
 
       {/* Utility Actions */}

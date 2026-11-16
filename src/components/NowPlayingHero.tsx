@@ -28,7 +28,6 @@ import {
   Maximize2,
   Minimize2,
   X,
-  Radio,
 } from 'lucide-react';
 import { LyricsOverlay } from './LyricsOverlay';
 
@@ -66,7 +65,6 @@ interface NowPlayingHeroProps {
   onToggleFavorite: () => void;
   crossfadeDuration: number;
   onChangeCrossfadeDuration: (duration: number) => void;
-  onPlayHindiRadio?: () => void;
 }
 
 const SPEED_OPTIONS = [0.75, 1, 1.25, 1.5];
@@ -120,7 +118,6 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
   onToggleFavorite,
   crossfadeDuration,
   onChangeCrossfadeDuration,
-  onPlayHindiRadio,
 }) => {
   const [isHoveringSeek, setIsHoveringSeek] = useState(false);
   const [seekHoverPercent, setSeekHoverPercent] = useState<number>(0);
@@ -131,19 +128,6 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
   const [showCrossfadeMenu, setShowCrossfadeMenu] = useState(false);
   const [isLyricsOpen, setIsLyricsOpen] = useState(false);
   const [isVideoFullscreen, setIsVideoFullscreen] = useState(false);
-  const [showVideoControls, setShowVideoControls] = useState(false);
-  const [isVideoHoveringSeek, setIsVideoHoveringSeek] = useState(false);
-  const [videoSeekHoverPercent, setVideoSeekHoverPercent] = useState<number>(0);
-  const videoControlsTimerRef = useRef<any>(null);
-
-  // Auto-hide video controls overlay after 2.5s of mouse stillness
-  const handleVideoMouseMove = () => {
-    setShowVideoControls(true);
-    if (videoControlsTimerRef.current) clearTimeout(videoControlsTimerRef.current);
-    videoControlsTimerRef.current = setTimeout(() => {
-      setShowVideoControls(false);
-    }, 2800);
-  };
 
   // Keyboard shortcut: Escape exits fullscreen
   useEffect(() => {
@@ -216,8 +200,6 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
               ? 'fixed inset-0 z-50 bg-black/95 backdrop-blur-3xl flex flex-col items-center justify-center p-2 sm:p-6 select-none animate-in fade-in duration-200'
               : 'relative w-full max-w-3xl sm:max-w-4xl mx-auto my-2 aspect-video rounded-2xl overflow-hidden glass-panel shadow-[0_0_50px_rgba(236,72,153,0.3)] bg-black border border-white/20 select-none group shrink min-h-0'
           }`}
-        onMouseMove={handleVideoMouseMove}
-        onMouseLeave={() => setShowVideoControls(false)}
         aria-hidden={!isVideoVisible}
       >
         <div
@@ -235,193 +217,35 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
             {videoSlot}
           </div>
 
-          {/* Video Controls Overlay (Appears on hover or when paused) */}
+          {/* Video Controls: Only Resize and Close (X) buttons, no text, no extra options */}
           {isVideoVisible && (
-            <div
-              className={`absolute inset-0 pointer-events-none flex flex-col justify-between transition-opacity duration-300 ${showVideoControls || !isPlaying ? 'opacity-100' : 'opacity-0'
-                }`}
-            >
-              {/* Top Gradient & Info Bar */}
-              <div className="p-3 sm:p-4 bg-gradient-to-b from-black/80 via-black/40 to-transparent flex items-center justify-between pointer-events-auto">
-                <div className="flex items-center gap-2.5 min-w-0 pr-4">
-                  <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono font-extrabold uppercase tracking-wider bg-pink-500/20 text-pink-400 border border-pink-500/40 shadow-[0_0_10px_rgba(236,72,153,0.4)]">
-                    <span className="w-1.5 h-1.5 rounded-full bg-pink-400 animate-pulse" />
-                    HD VIDEO
-                  </span>
-                  <div className="min-w-0">
-                    <h3 className="text-xs sm:text-sm font-bold text-white truncate drop-shadow-md">
-                      {title}
-                    </h3>
-                    <p className="text-[11px] font-medium text-slate-300 truncate drop-shadow-md">
-                      {displayArtist}
-                    </p>
-                  </div>
-                </div>
+            <div className="absolute top-3 right-3 z-30 flex items-center gap-2 pointer-events-auto">
+              {/* Fullscreen / Fit-to-screen Toggle */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsVideoFullscreen(!isVideoFullscreen);
+                }}
+                className="p-2 rounded-xl glass-panel bg-black/60 border border-white/20 text-slate-200 hover:text-white hover:border-pink-400/50 hover:bg-white/10 transition-all active:scale-95 shadow-lg backdrop-blur-md"
+                title={isVideoFullscreen ? 'Exit Fullscreen' : 'Maximize'}
+                aria-label={isVideoFullscreen ? 'Exit fullscreen' : 'Maximize'}
+              >
+                {isVideoFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+              </button>
 
-                <div className="flex items-center gap-2 shrink-0">
-                  {/* Fullscreen / Fit-to-screen Toggle */}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setIsVideoFullscreen(!isVideoFullscreen);
-                    }}
-                    className="p-2 rounded-xl glass-panel text-slate-200 hover:text-white hover:border-pink-400/50 hover:bg-white/10 transition-all active:scale-95 shadow-lg"
-                    title={isVideoFullscreen ? 'Exit Fullscreen (Esc)' : 'Fit to Full Screen'}
-                    aria-label={isVideoFullscreen ? 'Exit fullscreen' : 'Full screen mode'}
-                  >
-                    {isVideoFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
-                  </button>
-
-                  {/* Close Video button */}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (isVideoFullscreen) setIsVideoFullscreen(false);
-                      onToggleVideo();
-                    }}
-                    className="p-2 rounded-xl glass-panel text-slate-300 hover:text-white hover:border-pink-400/50 hover:bg-white/10 transition-all active:scale-95 shadow-lg"
-                    title="Close Video (Return to Audio)"
-                    aria-label="Close video"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-
-              {/* Center Play/Pause Indicator (when paused) */}
-              {!isPlaying && (
-                <div className="self-center p-4 rounded-full glass-panel bg-black/60 border border-white/25 shadow-2xl text-white pointer-events-auto cursor-pointer hover:scale-110 active:scale-95 transition-all" onClick={onTogglePlay}>
-                  <Play className="w-8 h-8 fill-white ml-1 text-white" />
-                </div>
-              )}
-
-              {/* Bottom Gradient Controls Bar */}
-              <div className="p-3 sm:p-4 bg-gradient-to-t from-black/85 via-black/50 to-transparent pointer-events-auto space-y-2">
-                {/* On-Video Scrubber Bar */}
-                <div className="relative group/seek">
-                  <input
-                    type="range"
-                    min={0}
-                    max={effectiveDuration || 100}
-                    step={0.5}
-                    value={currentTime}
-                    onChange={(e) => {
-                      e.stopPropagation();
-                      handleSeekChange(e);
-                    }}
-                    onMouseEnter={() => setIsVideoHoveringSeek(true)}
-                    onMouseLeave={() => setIsVideoHoveringSeek(false)}
-                    onMouseMove={(e) => {
-                      const rect = e.currentTarget.getBoundingClientRect();
-                      const percent = (e.clientX - rect.left) / rect.width;
-                      setVideoSeekHoverPercent(Math.max(0, Math.min(1, percent)));
-                    }}
-                    style={{
-                      background: `linear-gradient(to right, #38bdf8 0%, #ec4899 ${progressPercent}%, rgba(255, 255, 255, 0.2) ${progressPercent}%)`,
-                    }}
-                    className="w-full h-1.5 rounded-lg appearance-none cursor-pointer accent-pink-500 hover:h-2 transition-all"
-                    aria-label="Seek video position"
-                  />
-                  {isVideoHoveringSeek && effectiveDuration > 0 && (
-                    <div
-                      className="absolute -top-7 -translate-x-1/2 px-2 py-0.5 rounded bg-black/90 border border-white/20 text-[10px] font-mono text-white pointer-events-none shadow-md"
-                      style={{ left: `${videoSeekHoverPercent * 100}%` }}
-                    >
-                      {formatTime(videoSeekHoverPercent * effectiveDuration)}
-                    </div>
-                  )}
-                </div>
-
-                {/* Bottom Action Controls */}
-                <div className="flex items-center justify-between text-xs text-white">
-                  <div className="flex items-center gap-3">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onTogglePlay();
-                      }}
-                      className="p-1.5 rounded-lg hover:bg-white/10 transition-colors text-white"
-                      aria-label={isPlaying ? 'Pause' : 'Play'}
-                    >
-                      {isPlaying ? <Pause className="w-4 h-4 fill-white" /> : <Play className="w-4 h-4 fill-white ml-0.5" />}
-                    </button>
-
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onSkipBack5s();
-                      }}
-                      className="p-1 rounded-lg text-slate-300 hover:text-white hover:bg-white/10 transition-colors"
-                      title="Rewind 5s"
-                      aria-label="Rewind 5 seconds"
-                    >
-                      <RotateCcw className="w-3.5 h-3.5" />
-                    </button>
-
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onSkipForward5s();
-                      }}
-                      className="p-1 rounded-lg text-slate-300 hover:text-white hover:bg-white/10 transition-colors"
-                      title="Fast forward 5s"
-                      aria-label="Fast forward 5 seconds"
-                    >
-                      <RotateCw className="w-3.5 h-3.5" />
-                    </button>
-
-                    <span className="text-[11px] font-mono tabular-nums text-slate-300 pl-1">
-                      {formatTime(currentTime)} / {effectiveDuration > 0 ? formatTime(effectiveDuration) : 'Live'}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-3">
-                    {/* Mini Volume Slider */}
-                    <div className="flex items-center gap-1.5 hidden sm:flex">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toggleMute();
-                        }}
-                        className="text-slate-300 hover:text-white transition-colors"
-                        aria-label={isMuted ? 'Unmute' : 'Mute'}
-                      >
-                        {isMuted || volume === 0 ? (
-                          <VolumeX className="w-3.5 h-3.5 text-pink-400" />
-                        ) : (
-                          <Volume2 className="w-3.5 h-3.5" />
-                        )}
-                      </button>
-                      <input
-                        type="range"
-                        min={0}
-                        max={100}
-                        value={isMuted ? 0 : volume}
-                        onChange={(e) => {
-                          e.stopPropagation();
-                          if (isMuted) setIsMuted(false);
-                          onChangeVolume(Number(e.target.value));
-                        }}
-                        className="w-16 h-1 rounded-lg appearance-none cursor-pointer accent-pink-500 bg-white/20"
-                        aria-label="Volume"
-                      />
-                    </div>
-
-                    {/* Fullscreen Button */}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setIsVideoFullscreen(!isVideoFullscreen);
-                      }}
-                      className="p-1.5 rounded-lg hover:bg-white/10 text-slate-300 hover:text-white transition-colors"
-                      title={isVideoFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
-                      aria-label="Fullscreen"
-                    >
-                      {isVideoFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
-                    </button>
-                  </div>
-                </div>
-              </div>
+              {/* Close Video button */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (isVideoFullscreen) setIsVideoFullscreen(false);
+                  onToggleVideo();
+                }}
+                className="p-2 rounded-xl glass-panel bg-black/60 border border-white/20 text-slate-300 hover:text-white hover:border-pink-400/50 hover:bg-white/10 transition-all active:scale-95 shadow-lg backdrop-blur-md"
+                title="Close Video"
+                aria-label="Close video"
+              >
+                <X className="w-4 h-4" />
+              </button>
             </div>
           )}
         </div>
@@ -780,19 +604,6 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
 
         {/* Right: Mode Switchers (Smooth horizontal swipeable pills on mobile) */}
         <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar max-w-full w-full sm:w-auto py-0.5 px-1 shrink-0">
-          {/* Hindi Radio Station Launcher */}
-          {onPlayHindiRadio && (
-            <button
-              onClick={onPlayHindiRadio}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[11px] font-mono font-black uppercase tracking-wider transition-all glass-panel text-amber-300 hover:text-white hover:border-amber-400/50 hover:bg-amber-500/10 active:scale-95 shadow-xs"
-              title="Tune into 24/7 Live Hindi Radio Streams (Mirchi, Retro, Bollywood Beats)"
-              aria-label="Play Live Hindi Radio"
-            >
-              <Radio className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
-              <span>LIVE RADIO</span>
-            </button>
-          )}
-
           {/* Player Style Switcher: Wavy vs Turntable Deck */}
           {onTogglePlayerStyle && (
             <button

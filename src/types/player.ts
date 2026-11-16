@@ -7,8 +7,6 @@ export interface Track {
   views?: string;
   thumbnail: string;
   isOfficial?: boolean;
-  streamUrl?: string; // Direct live audio channel HTTP/MP3 stream
-  isLiveRadio?: boolean;
 }
 
 export type RepeatMode = 'off' | 'all' | 'one';
