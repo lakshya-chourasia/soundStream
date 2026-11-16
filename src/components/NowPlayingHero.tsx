@@ -390,9 +390,6 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
     ? genreTag
     : getDynamicTrackTag(title, displayArtist, currentTrack.views);
 
-  const currentYear = new Date().getFullYear();
-  const dynamicCopyright = `© ${currentYear} ${displayArtist} · Streamed via SoundStream Hi-Fi Engine · ${currentTrack.views ? `${currentTrack.views} · ` : ''}24-bit / 48kHz Master`;
-
   const toggleMute = () => {
     if (isMuted) {
       setIsMuted(false);
@@ -403,10 +400,6 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
       onChangeVolume(0);
     }
   };
-
-  const totalMin = Math.round(
-    queue.reduce((acc, t) => acc + (t.durationSec || 210), 0) / 60
-  );
 
   const displayedTracks = leftListTab === 'recommendations'
     ? (recommendations.length > 0 ? recommendations : queue.filter((t) => t.id !== currentTrack.id))
@@ -676,8 +669,12 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         onError={(e) => {
                           const target = e.currentTarget;
-                          if (!target.dataset.fallback) {
+                          const ytHq = track.id ? `https://i.ytimg.com/vi/${track.id}/hqdefault.jpg` : '';
+                          if (!target.dataset.fallback && ytHq && target.src !== ytHq) {
                             target.dataset.fallback = '1';
+                            target.src = ytHq;
+                          } else {
+                            target.dataset.fallback = '2';
                             target.src = 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=300&auto=format&fit=crop&q=80';
                           }
                         }}
@@ -711,16 +708,6 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
                 );
               })}
             </div>
-
-            {/* Bottom Meta Stats (Dynamic in real time) */}
-            <div className="flex items-center justify-between pt-4 border-t border-white/10 text-xs text-white/50 font-normal">
-              <span>
-                {leftListTab === 'recommendations'
-                  ? `${displayedTracks.length} recommendations · Dynamic Vibe`
-                  : `${queue.length} songs · ${totalMin} min`}
-              </span>
-              <span>Audio Stream · {displayArtist}</span>
-            </div>
           </div>
 
           {/* ══════════════════════════════════════════════════
@@ -736,6 +723,17 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
                   src={currentTrack.thumbnail}
                   alt={title}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  onError={(e) => {
+                    const target = e.currentTarget;
+                    const ytHq = currentTrack.id ? `https://i.ytimg.com/vi/${currentTrack.id}/hqdefault.jpg` : '';
+                    if (!target.dataset.fallback && ytHq && target.src !== ytHq) {
+                      target.dataset.fallback = '1';
+                      target.src = ytHq;
+                    } else {
+                      target.dataset.fallback = '2';
+                      target.src = 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=600&auto=format&fit=crop&q=80';
+                    }
+                  }}
                 />
 
                 {/* Sub-artwork utility buttons (Expand video & Audio visualizer) */}
@@ -772,7 +770,7 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
 
               {/* Dynamic Genre Tag Badge (Unclickable as explicitly requested) */}
               <div className="mt-3 flex justify-end">
-                <div className="ref-genre-tag select-none cursor-default">
+                <div className="ref-genre-tag select-none cursor-default pointer-events-none">
                   <span>{dynamicTag}</span>
                 </div>
               </div>
@@ -900,11 +898,6 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
                     </span>
                   </div>
                 )}
-              </div>
-
-              {/* Bottom Copyright / Telemetry (Dynamic based on current track) */}
-              <div className="text-right text-[10px] font-mono text-white/30 tracking-tight leading-normal mt-2">
-                {dynamicCopyright}
               </div>
             </div>
           </div>
