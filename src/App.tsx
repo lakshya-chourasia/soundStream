@@ -13,7 +13,7 @@ import { MobileBottomNav } from './components/MobileBottomNav';
 import { YouTubePlayer, YouTubePlayerHandle } from './components/YouTubePlayer';
 import { QuickImportModal } from './components/QuickImportModal';
 import { SleepTimerModal } from './components/SleepTimerModal';
-import { getNextTrackIndex, getPrevTrackIndex, extractYouTubeId } from './utils/playerUtils';
+import { getNextTrackIndex, getPrevTrackIndex, extractYouTubeId, cleanTrackTitle, getDynamicTrackTag } from './utils/playerUtils';
 import { Compass, AlertCircle, X } from 'lucide-react';
 
 const DEFAULT_INITIAL_TRACK: Track = {
@@ -459,10 +459,13 @@ export default function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [currentTime, duration, handleNext, handlePrev, handleTogglePlay]);
 
-  const activeCollection = genres.find((g) => g.id === selectedCollectionId) || genres[0];
-  const playlistTitle = activeCollection?.name || 'LOVE 2K20';
-  const curatorName = (activeCollection as any)?.curator || 'Pharrell Williams';
-  const genreTag = (activeCollection as any)?.tag || '#RELATIONSHIPS';
+  // Dynamically compute active context as track changes — NO HARDCODED STRINGS
+  const { title: cleanCurrentTitle, artistFromTitle: currentArtistFromTitle } = cleanTrackTitle(currentTrack?.title || '');
+  const currentArtist = currentArtistFromTitle || currentTrack?.artist || 'SoundStream';
+  const activeCollection = genres.find((g) => g.id === selectedCollectionId && g.tracks?.some((t) => t.id === currentTrack?.id));
+  const dynamicPlaylistTitle = activeCollection ? activeCollection.name : currentArtist.toUpperCase();
+  const dynamicCuratorName = (activeCollection as any)?.curator || currentArtist;
+  const dynamicGenreTag = (activeCollection as any)?.tag || getDynamicTrackTag(cleanCurrentTitle, currentArtist, currentTrack?.views);
 
   return (
     <div className="h-screen w-screen text-white flex flex-col font-sans relative overflow-hidden bg-[#0d0f12] select-none">
@@ -500,6 +503,7 @@ export default function App() {
             onOpenSleepTimer={() => setIsSleepTimerOpen(true)}
             sleepTimerRemaining={sleepTimerRemaining}
             onOpenSearch={() => setActiveView(activeView === 'discover' ? 'now-playing' : 'discover')}
+            activeContextName={dynamicPlaylistTitle}
           />
 
           {/* Center Stage Canvas */}
@@ -584,9 +588,9 @@ export default function App() {
                 }}
                 queue={queue.filter((t) => !restrictedVideoIds.has(t.id))}
                 onPlayTrack={handlePlayTrack}
-                playlistName={playlistTitle}
-                curatorName={curatorName}
-                genreTag={genreTag}
+                playlistName={dynamicPlaylistTitle}
+                curatorName={dynamicCuratorName}
+                genreTag={dynamicGenreTag}
                 isLyricsOpen={isLyricsOpen}
                 onToggleLyrics={() => setIsLyricsOpen(!isLyricsOpen)}
                 isVisualizerOpen={isVisualizerOpen}

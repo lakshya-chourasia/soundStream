@@ -22,6 +22,7 @@ interface HeaderProps {
   onOpenSleepTimer: () => void;
   sleepTimerRemaining: number | null;
   onOpenSearch: () => void;
+  activeContextName?: string;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -34,12 +35,15 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenSleepTimer,
   sleepTimerRemaining,
   onOpenSearch,
+  activeContextName,
 }) => {
   const [isMoodDropdownOpen, setIsMoodDropdownOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
 
-  const currentCollection = curatedGenres.find((g) => g.id === selectedCollectionId) || curatedGenres[0];
-  const moodName = currentCollection ? currentCollection.name.split(' ')[0] : 'LOVE';
+  const currentCollection = curatedGenres.find((g) => g.id === selectedCollectionId);
+  const moodName = activeContextName
+    ? activeContextName.split(' ')[0]
+    : (currentCollection ? currentCollection.name.split(' ')[0] : 'MUSIC');
 
   return (
     <header className="h-16 w-full flex items-center justify-between px-6 sm:px-8 bg-transparent select-none shrink-0 z-30">

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Track, RepeatMode, VisualizerMode, ThemeConfig, StreamQuality, PlayerStyle } from '../types/player';
-import { formatTime, cleanTrackTitle } from '../utils/playerUtils';
+import { formatTime, cleanTrackTitle, getDynamicTrackTag } from '../utils/playerUtils';
 import {
   Play,
   Pause,
@@ -94,9 +94,9 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
   onToggleFavorite,
   queue = [],
   onPlayTrack,
-  playlistName = 'LOVE 2K20',
-  curatorName = 'Pharrell Williams',
-  genreTag = '#RELATIONSHIPS',
+  playlistName,
+  curatorName,
+  genreTag,
   isLyricsOpen = false,
   onToggleLyrics,
   isVisualizerOpen = false,
@@ -132,9 +132,21 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
   }
 
   const { title, artistFromTitle } = cleanTrackTitle(currentTrack.title);
-  const displayArtist = artistFromTitle || currentTrack.artist || 'Adele';
-  const effectiveDuration = duration > 0 ? duration : currentTrack.durationSec || 285;
+  const displayArtist = artistFromTitle || currentTrack.artist || 'Artist';
+  const effectiveDuration = duration > 0 ? duration : currentTrack.durationSec || 240;
   const progressPercent = effectiveDuration > 0 ? Math.min(100, (currentTime / effectiveDuration) * 100) : 0;
+
+  // Fully dynamic attributes — updates automatically on EVERY song change
+  const isCustomPlaylist = playlistName && !playlistName.includes('LOVE 2K20') && !playlistName.includes('Current Queue') && !playlistName.includes('Session');
+  const headlineTitle = isCustomPlaylist ? playlistName : displayArtist.toUpperCase();
+  const headlineCategory = isCustomPlaylist ? 'CURATED PLAYLIST' : 'ARTIST SPOTLIGHT';
+  const dynamicCurator = curatorName && !curatorName.includes('Pharrell Williams') ? curatorName : displayArtist;
+  const dynamicTag = genreTag && !genreTag.includes('#RELATIONSHIPS')
+    ? genreTag
+    : getDynamicTrackTag(title, displayArtist, currentTrack.views);
+  const dynamicPlaylistLabel = isCustomPlaylist ? playlistName : `${displayArtist} Session`;
+  const currentYear = new Date().getFullYear();
+  const dynamicCopyright = `© ${currentYear} ${displayArtist} · Streamed via SoundStream Hi-Fi Engine · ${currentTrack.views ? `${currentTrack.views} · ` : ''}24-bit / 48kHz Master`;
 
   const toggleMute = () => {
     if (isMuted) {
@@ -228,10 +240,10 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
             {/* Header info */}
             <div>
               <p className="font-display tracking-[0.25em] text-xs font-bold uppercase text-white/60 mb-1">
-                CURATED PLAYLISTS
+                {headlineCategory}
               </p>
-              <h1 className="font-display font-black text-6xl sm:text-7xl lg:text-8xl tracking-tight uppercase text-white leading-none drop-shadow-md">
-                {playlistName}
+              <h1 className="font-display font-black text-6xl sm:text-7xl lg:text-8xl tracking-tight uppercase text-white leading-none drop-shadow-md truncate">
+                {headlineTitle}
               </h1>
             </div>
 
@@ -301,12 +313,12 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
               })}
             </div>
 
-            {/* Bottom Meta Stats (Matches: 15 songs · 48 min / by Pharrell Williams) */}
+            {/* Bottom Meta Stats */}
             <div className="flex items-center justify-between pt-4 border-t border-white/10 text-xs text-white/50 font-normal">
               <span>
                 {queue.length} songs · {totalMin} min
               </span>
-              <span>by {curatorName}</span>
+              <span>by {dynamicCurator}</span>
             </div>
           </div>
 
@@ -322,7 +334,7 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
                   PLAYLIST
                 </p>
                 <p className="text-xs font-medium text-white/70 italic">
-                  {playlistName}
+                  {dynamicPlaylistLabel}
                 </p>
               </div>
 
@@ -367,14 +379,14 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
                 {displayArtist}
               </p>
 
-              {/* Yellow Genre Tag Badge (#RELATIONSHIPS >) */}
+              {/* Dynamic Genre Tag Badge */}
               <div className="mt-3 flex justify-end">
                 <button
                   onClick={onToggleLyrics}
                   className="ref-genre-tag"
                   title="Synchronized lyrics & genre tags"
                 >
-                  <span>{genreTag}</span>
+                  <span>{dynamicTag}</span>
                   <ChevronRight className="w-3 h-3 stroke-[3]" />
                 </button>
               </div>
@@ -530,9 +542,9 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
                 )}
               </div>
 
-              {/* Bottom Copyright / Telemetry (From Reference) */}
+              {/* Bottom Copyright / Telemetry (Dynamic based on current track) */}
               <div className="text-right text-[10px] font-mono text-white/30 tracking-tight leading-normal mt-2">
-                © 2026 mcDJ Recording, under license to RCA Records, a division of Sony Music Entertainment
+                {dynamicCopyright}
               </div>
             </div>
           </div>

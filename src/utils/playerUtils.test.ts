@@ -9,6 +9,7 @@ import {
   cleanTrackTitle,
   parseLrcLyrics,
   findActiveLyricIndex,
+  getDynamicTrackTag,
 } from './playerUtils.js';
 
 test('formatTime correctly formats seconds into mm:ss and hh:mm:ss', () => {
@@ -146,5 +147,15 @@ test('findActiveLyricIndex detects correct current line based on playback time',
   assert.equal(findActiveLyricIndex(lines, 15), 0);
   assert.equal(findActiveLyricIndex(lines, 20.5), 1);
   assert.equal(findActiveLyricIndex(lines, 35), 2);
+});
+
+test('getDynamicTrackTag accurately generates relevant dynamic hashtags', () => {
+  assert.equal(getDynamicTrackTag('Days of Thunder', 'The Midnight'), '#SYNTHWAVE');
+  assert.equal(getDynamicTrackTag('Someone Like You', 'Adele'), '#RELATIONSHIPS');
+  assert.equal(getDynamicTrackTag('Yellow', 'Coldplay'), '#ALT-ROCK');
+  assert.equal(getDynamicTrackTag('Alone', 'Marshmello'), '#RELATIONSHIPS');
+  assert.equal(getDynamicTrackTag('Resonance', 'HOME'), '#CHILLOUT');
+  assert.equal(getDynamicTrackTag('Bloom', 'The Paper Kites'), '#ACOUSTIC');
+  assert.equal(getDynamicTrackTag('Shape of You', 'Ed Sheeran', '6.2B views'), '#GLOBAL-HIT');
 });
 

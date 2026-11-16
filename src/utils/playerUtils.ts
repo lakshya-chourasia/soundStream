@@ -232,3 +232,21 @@ export function findActiveLyricIndex(lyrics: LyricLine[], currentTime: number): 
   return activeIndex;
 }
 
+/**
+ * Generates dynamic genre/mood hashtag for any song based on its title, artist, and views
+ */
+export function getDynamicTrackTag(title: string, artist: string, views?: string): string {
+  const text = `${title} ${artist}`.toLowerCase();
+  if (text.includes('synth') || text.includes('retro') || text.includes('wave') || text.includes('80s') || text.includes('neon') || text.includes('midnight') || text.includes('timecop')) return '#SYNTHWAVE';
+  if (text.includes('love') || text.includes('someone') || text.includes('heart') || text.includes('alone') || text.includes('kiss') || text.includes('relationship') || text.includes('adele')) return '#RELATIONSHIPS';
+  if (text.includes('rock') || text.includes('roll') || text.includes('guitar') || text.includes('punk') || text.includes('metal') || text.includes('brightside') || text.includes('yellow') || text.includes('coldplay') || text.includes('arctic')) return '#ALT-ROCK';
+  if (text.includes('chill') || text.includes('lofi') || text.includes('relax') || text.includes('sleep') || text.includes('ambient') || text.includes('resonance') || text.includes('home')) return '#CHILLOUT';
+  if (text.includes('dance') || text.includes('club') || text.includes('edm') || text.includes('house') || text.includes('bass') || text.includes('despacito') || text.includes('calvin') || text.includes('marshmello')) return '#ELECTRONIC';
+  if (text.includes('rap') || text.includes('hip hop') || text.includes('trap') || text.includes('drill')) return '#HIP-HOP';
+  if (text.includes('acoustic') || text.includes('piano') || text.includes('unplugged') || text.includes('folk') || text.includes('bloom') || text.includes('paper kites')) return '#ACOUSTIC';
+  if (text.includes('jazz') || text.includes('blues') || text.includes('soul')) return '#SOUL';
+  if (views && (views.includes('B views') || views.includes('B'))) return '#GLOBAL-HIT';
+  if (views && (views.includes('M views') || views.includes('M'))) return '#TRENDING';
+  return '#NOW-PLAYING';
+}
+
