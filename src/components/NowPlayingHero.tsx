@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Track, RepeatMode, VisualizerMode, ThemeConfig } from '../types/player';
+import React, { useState, useEffect, useRef } from 'react';
+import { Track, RepeatMode, VisualizerMode, ThemeConfig, StreamQuality, PlayerStyle } from '../types/player';
 import { AudioVisualizer } from './AudioVisualizer';
 import { formatTime, cleanTrackTitle } from '../utils/playerUtils';
 import {
@@ -20,10 +20,15 @@ import {
   Heart,
   Gauge,
   Disc,
-  Radio,
-  ExternalLink,
   Mic2,
   Blend,
+  Sliders,
+  Waves,
+  Activity,
+  Maximize2,
+  Minimize2,
+  X,
+  Radio,
 } from 'lucide-react';
 import { LyricsOverlay } from './LyricsOverlay';
 
@@ -37,7 +42,10 @@ interface NowPlayingHeroProps {
   repeatMode: RepeatMode;
   isShuffle: boolean;
   playbackRate: number;
+  playbackQuality: StreamQuality;
   visualizerMode: VisualizerMode;
+  playerStyle?: PlayerStyle;
+  onTogglePlayerStyle?: () => void;
   isVideoVisible: boolean;
   isFavorite: boolean;
   themeConfig: ThemeConfig;
@@ -52,14 +60,25 @@ interface NowPlayingHeroProps {
   onToggleRepeat: () => void;
   onChangeVolume: (volume: number) => void;
   onChangePlaybackRate: (rate: number) => void;
+  onChangePlaybackQuality: (quality: StreamQuality) => void;
   onChangeVisualizerMode: (mode: VisualizerMode) => void;
   onToggleVideo: () => void;
   onToggleFavorite: () => void;
   crossfadeDuration: number;
   onChangeCrossfadeDuration: (duration: number) => void;
+  onPlayHindiRadio?: () => void;
 }
 
 const SPEED_OPTIONS = [0.75, 1, 1.25, 1.5];
+const QUALITY_OPTIONS: { id: StreamQuality; label: string; bitrate: string }[] = [
+  { id: 'auto', label: 'Auto Stream', bitrate: 'Adaptive Bitrate' },
+  { id: 'hd1080', label: 'Master Studio (1080p)', bitrate: '320 kbps Hi-Fi' },
+  { id: 'hd720', label: 'High Fidelity (720p)', bitrate: '256 kbps Direct' },
+  { id: 'large', label: 'Standard Clean (480p)', bitrate: '160 kbps Balanced' },
+  { id: 'medium', label: 'Mobile Saver (360p)', bitrate: '128 kbps Light' },
+  { id: 'small', label: 'Bandwidth Saver (240p)', bitrate: '64 kbps Minimal' },
+];
+
 const VISUALIZER_MODES: { mode: VisualizerMode; label: string }[] = [
   { mode: 'spectrum', label: 'Bars' },
   { mode: 'wave', label: 'Wave' },
@@ -77,7 +96,10 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
   repeatMode,
   isShuffle,
   playbackRate,
+  playbackQuality,
   visualizerMode,
+  playerStyle = 'wavy',
+  onTogglePlayerStyle,
   isVideoVisible,
   isFavorite,
   themeConfig,
@@ -92,19 +114,47 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
   onToggleRepeat,
   onChangeVolume,
   onChangePlaybackRate,
+  onChangePlaybackQuality,
   onChangeVisualizerMode,
   onToggleVideo,
   onToggleFavorite,
   crossfadeDuration,
   onChangeCrossfadeDuration,
+  onPlayHindiRadio,
 }) => {
   const [isHoveringSeek, setIsHoveringSeek] = useState(false);
   const [seekHoverPercent, setSeekHoverPercent] = useState<number>(0);
   const [isMuted, setIsMuted] = useState(false);
   const [prevVolume, setPrevVolume] = useState(volume);
   const [showSpeedMenu, setShowSpeedMenu] = useState(false);
+  const [showQualityMenu, setShowQualityMenu] = useState(false);
   const [showCrossfadeMenu, setShowCrossfadeMenu] = useState(false);
   const [isLyricsOpen, setIsLyricsOpen] = useState(false);
+  const [isVideoFullscreen, setIsVideoFullscreen] = useState(false);
+  const [showVideoControls, setShowVideoControls] = useState(false);
+  const [isVideoHoveringSeek, setIsVideoHoveringSeek] = useState(false);
+  const [videoSeekHoverPercent, setVideoSeekHoverPercent] = useState<number>(0);
+  const videoControlsTimerRef = useRef<any>(null);
+
+  // Auto-hide video controls overlay after 2.5s of mouse stillness
+  const handleVideoMouseMove = () => {
+    setShowVideoControls(true);
+    if (videoControlsTimerRef.current) clearTimeout(videoControlsTimerRef.current);
+    videoControlsTimerRef.current = setTimeout(() => {
+      setShowVideoControls(false);
+    }, 2800);
+  };
+
+  // Keyboard shortcut: Escape exits fullscreen
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isVideoFullscreen) {
+        setIsVideoFullscreen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [isVideoFullscreen]);
 
   if (!currentTrack) {
     return (
@@ -112,7 +162,7 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
         <div className="fixed -bottom-[9999px] -right-[9999px] w-64 h-36 opacity-0 pointer-events-none" aria-hidden="true">
           {videoSlot}
         </div>
-        <Disc className="w-16 h-16 stroke-[1.2] opacity-30 mb-4 animate-spin-slow" />
+        <Disc className="w-16 h-16 stroke-[1.2] opacity-30 mb-4 animate-spin-slow text-emerald-400" />
         <p className="text-sm font-medium">No track currently loaded</p>
         <p className="text-xs text-zinc-400 mt-1">Select a track from discovery or paste a YouTube URL</p>
       </div>
@@ -123,6 +173,8 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
   const displayArtist = artistFromTitle || currentTrack.artist || 'YouTube Artist';
   const effectiveDuration = duration > 0 ? duration : currentTrack.durationSec || 0;
   const progressPercent = effectiveDuration > 0 ? Math.min(100, (currentTime / effectiveDuration) * 100) : 0;
+
+  const currentQualityObj = QUALITY_OPTIONS.find((q) => q.id === playbackQuality) || QUALITY_OPTIONS[0];
 
   const toggleMute = () => {
     if (isMuted) {
@@ -141,162 +193,422 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
   };
 
   return (
-    <div className="w-full max-w-3xl mx-auto flex flex-col items-center">
-      {/* Audio Engine Spec Badge */}
-      <div className="flex items-center gap-2 text-[11px] font-mono tracking-wider uppercase text-zinc-400 dark:text-zinc-500 mb-1">
-        <span className="flex items-center gap-1">
+    <div className="w-full max-w-3xl mx-auto flex flex-col items-center justify-between h-full min-h-0 select-none">
+      {/* Spec Badge & Stream Quality Pill Indicator (Uiverse Telemetry Badge) */}
+      <div className="flex items-center gap-2 sm:gap-3 text-[10px] font-mono font-bold tracking-widest uppercase mb-1 px-3 py-0.5 rounded-full glass-panel border border-white/10 shrink-0">
+        <span className="flex items-center gap-1.5 text-cyan-400">
           <span
-            className="w-1.5 h-1.5 rounded-full inline-block"
-            style={{ backgroundColor: isPlaying ? themeConfig.accent : '#71717a' }}
+            className={`w-2 h-2 rounded-full inline-block ${isPlaying ? 'bg-gradient-to-r from-cyan-400 to-pink-500 shadow-[0_0_8px_#ec4899]' : 'bg-slate-600'}`}
           />
-          {isPlaying ? 'Live Audio Stream' : 'Ready'}
+          {isPlaying ? 'OPTICAL REFRACTION' : 'STANDBY'}
         </span>
-        <span aria-hidden="true" className="opacity-40">/</span>
-        <span>24-bit 48kHz Direct</span>
-        <span aria-hidden="true" className="opacity-40">/</span>
-        <span className="text-zinc-400">{themeConfig.name}</span>
+        <span aria-hidden="true" className="text-white/20">|</span>
+        <span className="text-slate-300">{currentQualityObj.bitrate}</span>
+        <span aria-hidden="true" className="text-white/20">|</span>
+        <span className="bg-gradient-to-r from-cyan-400 via-pink-400 to-amber-300 bg-clip-text text-transparent font-black">24-BIT / 192 KHZ</span>
       </div>
 
       {/* Video Container (ALWAYS permanently mounted so audio never stops or drops out) */}
       <div
-        className={`transition-all duration-300 relative ${
-          isVideoVisible
-            ? 'w-full max-w-xl mx-auto my-4 aspect-video rounded-xl overflow-hidden border border-zinc-800 shadow-2xl bg-black block pointer-events-none select-none'
-            : 'fixed -bottom-[9999px] -right-[9999px] w-64 h-36 opacity-0 pointer-events-none'
-        }`}
+        className={`transition-all duration-300 ${!isVideoVisible
+            ? 'fixed -bottom-[9999px] -right-[9999px] w-64 h-36 opacity-0 pointer-events-none'
+            : isVideoFullscreen
+              ? 'fixed inset-0 z-50 bg-black/95 backdrop-blur-3xl flex flex-col items-center justify-center p-2 sm:p-6 select-none animate-in fade-in duration-200'
+              : 'relative w-full max-w-3xl sm:max-w-4xl mx-auto my-2 aspect-video rounded-2xl overflow-hidden glass-panel shadow-[0_0_50px_rgba(236,72,153,0.3)] bg-black border border-white/20 select-none group shrink min-h-0'
+          }`}
+        onMouseMove={handleVideoMouseMove}
+        onMouseLeave={() => setShowVideoControls(false)}
         aria-hidden={!isVideoVisible}
       >
-        {videoSlot}
+        <div
+          className={`relative w-full h-full flex items-center justify-center ${isVideoFullscreen
+              ? 'max-w-7xl max-h-[90vh] aspect-video rounded-2xl overflow-hidden shadow-[0_0_80px_rgba(0,0,0,0.95)] border border-white/20'
+              : ''
+            }`}
+        >
+          {/* Native Video Slot (100% fit, zero zoom/crop) */}
+          <div
+            className="w-full h-full cursor-pointer flex items-center justify-center"
+            onClick={onTogglePlay}
+            onDoubleClick={() => setIsVideoFullscreen(!isVideoFullscreen)}
+          >
+            {videoSlot}
+          </div>
+
+          {/* Video Controls Overlay (Appears on hover or when paused) */}
+          {isVideoVisible && (
+            <div
+              className={`absolute inset-0 pointer-events-none flex flex-col justify-between transition-opacity duration-300 ${showVideoControls || !isPlaying ? 'opacity-100' : 'opacity-0'
+                }`}
+            >
+              {/* Top Gradient & Info Bar */}
+              <div className="p-3 sm:p-4 bg-gradient-to-b from-black/80 via-black/40 to-transparent flex items-center justify-between pointer-events-auto">
+                <div className="flex items-center gap-2.5 min-w-0 pr-4">
+                  <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono font-extrabold uppercase tracking-wider bg-pink-500/20 text-pink-400 border border-pink-500/40 shadow-[0_0_10px_rgba(236,72,153,0.4)]">
+                    <span className="w-1.5 h-1.5 rounded-full bg-pink-400 animate-pulse" />
+                    HD VIDEO
+                  </span>
+                  <div className="min-w-0">
+                    <h3 className="text-xs sm:text-sm font-bold text-white truncate drop-shadow-md">
+                      {title}
+                    </h3>
+                    <p className="text-[11px] font-medium text-slate-300 truncate drop-shadow-md">
+                      {displayArtist}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  {/* Fullscreen / Fit-to-screen Toggle */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsVideoFullscreen(!isVideoFullscreen);
+                    }}
+                    className="p-2 rounded-xl glass-panel text-slate-200 hover:text-white hover:border-pink-400/50 hover:bg-white/10 transition-all active:scale-95 shadow-lg"
+                    title={isVideoFullscreen ? 'Exit Fullscreen (Esc)' : 'Fit to Full Screen'}
+                    aria-label={isVideoFullscreen ? 'Exit fullscreen' : 'Full screen mode'}
+                  >
+                    {isVideoFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+                  </button>
+
+                  {/* Close Video button */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (isVideoFullscreen) setIsVideoFullscreen(false);
+                      onToggleVideo();
+                    }}
+                    className="p-2 rounded-xl glass-panel text-slate-300 hover:text-white hover:border-pink-400/50 hover:bg-white/10 transition-all active:scale-95 shadow-lg"
+                    title="Close Video (Return to Audio)"
+                    aria-label="Close video"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Center Play/Pause Indicator (when paused) */}
+              {!isPlaying && (
+                <div className="self-center p-4 rounded-full glass-panel bg-black/60 border border-white/25 shadow-2xl text-white pointer-events-auto cursor-pointer hover:scale-110 active:scale-95 transition-all" onClick={onTogglePlay}>
+                  <Play className="w-8 h-8 fill-white ml-1 text-white" />
+                </div>
+              )}
+
+              {/* Bottom Gradient Controls Bar */}
+              <div className="p-3 sm:p-4 bg-gradient-to-t from-black/85 via-black/50 to-transparent pointer-events-auto space-y-2">
+                {/* On-Video Scrubber Bar */}
+                <div className="relative group/seek">
+                  <input
+                    type="range"
+                    min={0}
+                    max={effectiveDuration || 100}
+                    step={0.5}
+                    value={currentTime}
+                    onChange={(e) => {
+                      e.stopPropagation();
+                      handleSeekChange(e);
+                    }}
+                    onMouseEnter={() => setIsVideoHoveringSeek(true)}
+                    onMouseLeave={() => setIsVideoHoveringSeek(false)}
+                    onMouseMove={(e) => {
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      const percent = (e.clientX - rect.left) / rect.width;
+                      setVideoSeekHoverPercent(Math.max(0, Math.min(1, percent)));
+                    }}
+                    style={{
+                      background: `linear-gradient(to right, #38bdf8 0%, #ec4899 ${progressPercent}%, rgba(255, 255, 255, 0.2) ${progressPercent}%)`,
+                    }}
+                    className="w-full h-1.5 rounded-lg appearance-none cursor-pointer accent-pink-500 hover:h-2 transition-all"
+                    aria-label="Seek video position"
+                  />
+                  {isVideoHoveringSeek && effectiveDuration > 0 && (
+                    <div
+                      className="absolute -top-7 -translate-x-1/2 px-2 py-0.5 rounded bg-black/90 border border-white/20 text-[10px] font-mono text-white pointer-events-none shadow-md"
+                      style={{ left: `${videoSeekHoverPercent * 100}%` }}
+                    >
+                      {formatTime(videoSeekHoverPercent * effectiveDuration)}
+                    </div>
+                  )}
+                </div>
+
+                {/* Bottom Action Controls */}
+                <div className="flex items-center justify-between text-xs text-white">
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onTogglePlay();
+                      }}
+                      className="p-1.5 rounded-lg hover:bg-white/10 transition-colors text-white"
+                      aria-label={isPlaying ? 'Pause' : 'Play'}
+                    >
+                      {isPlaying ? <Pause className="w-4 h-4 fill-white" /> : <Play className="w-4 h-4 fill-white ml-0.5" />}
+                    </button>
+
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onSkipBack5s();
+                      }}
+                      className="p-1 rounded-lg text-slate-300 hover:text-white hover:bg-white/10 transition-colors"
+                      title="Rewind 5s"
+                      aria-label="Rewind 5 seconds"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" />
+                    </button>
+
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onSkipForward5s();
+                      }}
+                      className="p-1 rounded-lg text-slate-300 hover:text-white hover:bg-white/10 transition-colors"
+                      title="Fast forward 5s"
+                      aria-label="Fast forward 5 seconds"
+                    >
+                      <RotateCw className="w-3.5 h-3.5" />
+                    </button>
+
+                    <span className="text-[11px] font-mono tabular-nums text-slate-300 pl-1">
+                      {formatTime(currentTime)} / {effectiveDuration > 0 ? formatTime(effectiveDuration) : 'Live'}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    {/* Mini Volume Slider */}
+                    <div className="flex items-center gap-1.5 hidden sm:flex">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleMute();
+                        }}
+                        className="text-slate-300 hover:text-white transition-colors"
+                        aria-label={isMuted ? 'Unmute' : 'Mute'}
+                      >
+                        {isMuted || volume === 0 ? (
+                          <VolumeX className="w-3.5 h-3.5 text-pink-400" />
+                        ) : (
+                          <Volume2 className="w-3.5 h-3.5" />
+                        )}
+                      </button>
+                      <input
+                        type="range"
+                        min={0}
+                        max={100}
+                        value={isMuted ? 0 : volume}
+                        onChange={(e) => {
+                          e.stopPropagation();
+                          if (isMuted) setIsMuted(false);
+                          onChangeVolume(Number(e.target.value));
+                        }}
+                        className="w-16 h-1 rounded-lg appearance-none cursor-pointer accent-pink-500 bg-white/20"
+                        aria-label="Volume"
+                      />
+                    </div>
+
+                    {/* Fullscreen Button */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIsVideoFullscreen(!isVideoFullscreen);
+                      }}
+                      className="p-1.5 rounded-lg hover:bg-white/10 text-slate-300 hover:text-white transition-colors"
+                      title={isVideoFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
+                      aria-label="Fullscreen"
+                    >
+                      {isVideoFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Lyrics Overlay Centerpiece (When lyrics are toggled on in audio mode) */}
       {!isVideoVisible && isLyricsOpen && (
-        <LyricsOverlay
-          currentTrack={currentTrack}
-          currentTime={currentTime}
-          onSeek={onSeek}
-          themeConfig={themeConfig}
-          onClose={() => setIsLyricsOpen(false)}
-        />
+        <div className="w-full flex-1 min-h-0 my-1 overflow-hidden">
+          <LyricsOverlay
+            currentTrack={currentTrack}
+            currentTime={currentTime}
+            onSeek={onSeek}
+            themeConfig={themeConfig}
+            onClose={() => setIsLyricsOpen(false)}
+          />
+        </div>
       )}
 
-      {/* Vinyl Turntable Platter Deck with Tonearm (Visible in standard audio mode) */}
+      {/* Centerpiece: Wavy Fluid Orb vs Optical Turntable Platter Deck */}
       {!isVideoVisible && !isLyricsOpen && (
-        <div className="relative w-72 h-72 sm:w-88 sm:h-88 my-3 flex items-center justify-center">
-          {/* Subtle Ambient Theme Reactive Glow */}
-          <div
-            className={`absolute inset-0 rounded-full blur-3xl transition-opacity duration-1000 ${
-              isPlaying ? 'opacity-30' : 'opacity-10'
-            }`}
-            style={{ backgroundColor: themeConfig.accent }}
-          />
-
-          {/* Live Audio Visualizer Canvas Backdrop */}
-          <div className="absolute inset-x-0 bottom-0 top-0 opacity-45 dark:opacity-35 pointer-events-none">
-            <AudioVisualizer
-              isPlaying={isPlaying}
-              volume={volume}
-              mode={visualizerMode}
-              accentColor={themeConfig.accent}
-              accentSecondary={themeConfig.accentSecondary}
-            />
-          </div>
-
-          {/* Platter Base Ring */}
-          <div className="relative z-10 w-64 h-64 sm:w-80 sm:h-80 rounded-full p-2 bg-gradient-to-tr from-zinc-950 via-zinc-900 to-zinc-950 border border-white/[0.08] shadow-[0_20px_50px_rgba(0,0,0,0.6)] flex items-center justify-center">
-            {/* Vinyl Record with Anisotropic Specular Sheen */}
+        playerStyle === 'wavy' ? (
+          /* WAVY FLUID SOUND ENGINE MODE */
+          <div className="relative w-36 h-36 sm:w-44 sm:h-44 md:w-52 md:h-52 my-1 flex items-center justify-center shrink-0">
+            {/* Ambient Multi-Ring Wave Ripples */}
             <div
-              className={`relative w-full h-full rounded-full vinyl-sheen p-2 flex items-center justify-center transition-transform duration-700 ${
-                isPlaying ? 'scale-100' : 'scale-95'
+              className={`absolute inset-0 rounded-full border border-cyan-400/40 transition-all duration-1000 ${
+                isPlaying ? 'scale-125 opacity-60 animate-[wavyRotate_12s_linear_infinite]' : 'scale-100 opacity-20'
+              }`}
+            />
+            <div
+              className={`absolute -inset-2 rounded-full border border-pink-500/40 transition-all duration-1000 ${
+                isPlaying ? 'scale-115 opacity-50 animate-[wavyRotate2_16s_linear_infinite]' : 'scale-100 opacity-15'
+              }`}
+            />
+            <div
+              className={`absolute inset-0 rounded-full blur-2xl transition-opacity duration-700 ${
+                isPlaying ? 'opacity-70' : 'opacity-20'
+              } bg-gradient-to-tr from-cyan-500 via-pink-500 to-amber-500`}
+            />
+
+            {/* Live Audio Visualizer Canvas Backdrop */}
+            <div className="absolute inset-x-0 bottom-0 top-0 opacity-60 pointer-events-none">
+              <AudioVisualizer
+                isPlaying={isPlaying}
+                volume={volume}
+                mode={visualizerMode}
+                accentColor="#38bdf8"
+                accentSecondary="#ec4899"
+              />
+            </div>
+
+            {/* Organic Fluid Wave Centerpiece with Artwork */}
+            <div
+              className={`relative z-10 w-28 h-28 sm:w-34 sm:h-34 md:w-40 md:h-40 rounded-full p-1.5 shadow-[0_0_35px_rgba(236,72,153,0.5)] transition-transform duration-500 ${
+                isPlaying ? 'scale-105' : 'scale-95'
               }`}
             >
-              {/* Concentric Micro-Grooves */}
-              <div className="absolute inset-3 rounded-full border border-white/[0.04] pointer-events-none" />
-              <div className="absolute inset-6 rounded-full border border-white/[0.03] pointer-events-none" />
-              <div className="absolute inset-9 rounded-full border border-white/[0.04] pointer-events-none" />
-              <div className="absolute inset-13 rounded-full border border-white/[0.03] pointer-events-none" />
-              <div className="absolute inset-17 rounded-full border border-white/[0.04] pointer-events-none" />
-              <div className="absolute inset-21 rounded-full border border-white/[0.03] pointer-events-none" />
-
-              {/* Album Center Label */}
+              {/* Spinning Wave Ring Border */}
               <div
-                className={`relative w-28 h-28 sm:w-36 sm:h-36 rounded-full overflow-hidden border-2 border-zinc-950 shadow-inner ${
-                  isPlaying ? 'animate-[spin_22s_linear_infinite]' : ''
+                className={`absolute inset-0 rounded-full border-2 border-dashed border-cyan-300/70 ${
+                  isPlaying ? 'animate-[spin_20s_linear_infinite]' : ''
                 }`}
-              >
+              />
+              <div
+                className={`absolute inset-1 rounded-full border border-pink-400/60 ${
+                  isPlaying ? 'animate-[spin_15s_linear_infinite_reverse]' : ''
+                }`}
+              />
+
+              {/* Album Art with Floating Reflection */}
+              <div className="relative w-full h-full rounded-full overflow-hidden border-2 border-white/50 shadow-inner group">
                 <img
                   src={currentTrack.thumbnail}
                   alt={title}
                   referrerPolicy="no-referrer"
-                  className="w-full h-full object-cover"
+                  className={`w-full h-full object-cover transition-transform duration-1000 ${
+                    isPlaying ? 'scale-110' : 'scale-100'
+                  }`}
                   onError={(e) => {
                     (e.target as HTMLElement).style.display = 'none';
                   }}
                 />
-
-                {/* Vinyl Center Typography Overlay */}
-                <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center pointer-events-none p-1">
-                  <span className="text-[7px] tracking-widest uppercase font-mono text-white/80">33⅓ RPM</span>
-                  <span className="text-[6px] tracking-wider uppercase font-mono text-white/60">HI-RES AUDIO</span>
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent flex flex-col items-center justify-end pb-1.5 pointer-events-none">
+                  <div className="flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping" />
+                    <span className="text-[8px] font-mono font-bold tracking-widest uppercase text-cyan-300">WAVE ACTIVE</span>
+                  </div>
                 </div>
-
-                {/* Spindle hole */}
-                <div className="absolute inset-0 m-auto w-5 h-5 rounded-full bg-zinc-950 border border-zinc-700/80 shadow-md flex items-center justify-center">
-                  <div
-                    className="w-1.5 h-1.5 rounded-full"
-                    style={{ backgroundColor: themeConfig.accent }}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Slender Minimalist Tonearm with Stylus */}
-            <div className="absolute -top-1 -right-1 w-20 h-28 pointer-events-none z-20 hidden sm:block">
-              {/* Pivot Base */}
-              <div className="absolute top-0 right-3 w-5 h-5 rounded-full bg-zinc-800 border border-zinc-600 shadow-md flex items-center justify-center">
-                <div className="w-2 h-2 rounded-full bg-zinc-500" />
-              </div>
-              {/* Tonearm Wand */}
-              <div
-                className={`tonearm absolute top-2 right-5 w-1.5 h-24 rounded-full bg-gradient-to-b from-zinc-400 via-zinc-300 to-zinc-500 shadow-md ${
-                  isPlaying ? 'tonearm-playing' : 'tonearm-paused'
-                }`}
-              >
-                {/* Cartridge & Stylus Head */}
-                <div
-                  className="absolute bottom-0 -left-1 w-3.5 h-4.5 rounded-xs shadow-xs"
-                  style={{ backgroundColor: themeConfig.accent }}
-                />
               </div>
             </div>
           </div>
-        </div>
+        ) : (
+          /* Aether Optical Turntable Platter Deck with Tonearm */
+          <div className="relative w-36 h-36 sm:w-44 sm:h-44 md:w-52 md:h-52 my-1 flex items-center justify-center shrink-0">
+            {/* Subtle Ambient Prismatic Chromatic Glow */}
+            <div
+              className={`absolute inset-0 rounded-full blur-2xl transition-opacity duration-1000 ${isPlaying ? 'opacity-40' : 'opacity-10'
+                } bg-gradient-to-tr from-cyan-500 via-pink-500 to-amber-500`}
+            />
+
+            {/* Live Audio Visualizer Canvas Backdrop */}
+            <div className="absolute inset-x-0 bottom-0 top-0 opacity-45 pointer-events-none">
+              <AudioVisualizer
+                isPlaying={isPlaying}
+                volume={volume}
+                mode={visualizerMode}
+                accentColor="#38bdf8"
+                accentSecondary="#ec4899"
+              />
+            </div>
+
+            {/* Platter Base Ring: Matte Charcoal Surface with Prismatic Rim Light */}
+            <div className="relative z-10 w-34 h-34 sm:w-42 sm:h-42 md:w-48 md:h-48 rounded-full p-1.5 bg-gradient-to-tr from-[#0d0e14] via-[#141620] to-[#1c1f2c] border border-white/15 shadow-[0_10px_30px_rgba(0,0,0,0.9),0_0_20px_rgba(236,72,153,0.2)] ring-1 ring-cyan-400/20 flex items-center justify-center">
+              {/* Vinyl Record with Anisotropic Specular Sheen */}
+              <div
+                className={`relative w-full h-full rounded-full vinyl-sheen p-1 flex items-center justify-center transition-transform duration-700 ${isPlaying ? 'scale-100' : 'scale-95'
+                  }`}
+              >
+                {/* Concentric Micro-Grooves */}
+                <div className="absolute inset-1.5 rounded-full border border-white/5 pointer-events-none" />
+                <div className="absolute inset-3 rounded-full border border-white/10 pointer-events-none" />
+                <div className="absolute inset-5 rounded-full border border-pink-400/10 pointer-events-none" />
+                <div className="absolute inset-7 rounded-full border border-cyan-400/10 pointer-events-none" />
+                <div className="absolute inset-9 rounded-full border border-amber-400/10 pointer-events-none" />
+
+                {/* Album Center Label (Clean Glass Typography) */}
+                <div
+                  className={`relative w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-full overflow-hidden border-2 border-white/30 shadow-inner ${isPlaying ? 'animate-[spin_22s_linear_infinite]' : ''
+                    }`}
+                >
+                  <img
+                    src={currentTrack.thumbnail}
+                    alt={title}
+                    referrerPolicy="no-referrer"
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLElement).style.display = 'none';
+                    }}
+                  />
+
+                  {/* Center Typography Overlay */}
+                  <div className="absolute inset-0 bg-black/65 flex flex-col items-center justify-center pointer-events-none p-1">
+                    <span className="text-[7px] tracking-widest uppercase font-mono font-black text-cyan-300">33⅓ RPM</span>
+                    <span className="text-[6px] tracking-wider uppercase font-serif italic text-pink-300">Aether Prism</span>
+                  </div>
+
+                  {/* Spindle hole */}
+                  <div className="absolute inset-0 m-auto w-3.5 h-3.5 rounded-full bg-[#08090c] border border-white/30 shadow-md flex items-center justify-center">
+                    <div className="w-1.5 h-1.5 rounded-full bg-gradient-to-r from-cyan-400 to-pink-500 shadow-[0_0_8px_#ec4899]" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Tonearm with Prismatic Stylus Head */}
+              <div className="absolute -top-1 -right-1 w-12 h-18 pointer-events-none z-20 hidden sm:block">
+                {/* Pivot Base */}
+                <div className="absolute top-0 right-1.5 w-3.5 h-3.5 rounded-full bg-[#141620] border border-white/20 shadow-md flex items-center justify-center">
+                  <div className="w-1 h-1 rounded-full bg-pink-400 shadow-[0_0_8px_#ec4899]" />
+                </div>
+                {/* Tonearm Wand */}
+                <div
+                  className={`tonearm absolute top-1.5 right-3 w-1 h-16 rounded-full bg-gradient-to-b from-[#ffffff] via-[#ec4899] to-[#0ea5e9] shadow-md ${isPlaying ? 'tonearm-playing' : 'tonearm-paused'
+                    }`}
+                >
+                  {/* Cartridge & Stylus Head */}
+                  <div className="absolute bottom-0 -left-1 w-2.5 h-3 rounded-xs shadow-xs bg-amber-400 shadow-[0_0_10px_#f59e0b]" />
+                </div>
+              </div>
+            </div>
+          </div>
+        )
       )}
 
-      {/* Track Title and Artist (Zero-Pill Typographic Hierarchy) */}
-      <div className="text-center w-full max-w-xl px-4 mt-2 mb-4">
-        <h2 className="text-xl sm:text-2xl font-bold tracking-tight truncate max-w-full text-zinc-900 dark:text-zinc-50">
+      {/* Track Title and Artist: Editorial Typography Pairing (Bold Grotesque + Italic Serif) */}
+      <div className="text-center w-full max-w-xl px-4 my-0.5 shrink-0">
+        <h2 className="text-lg sm:text-xl font-black tracking-tight truncate max-w-full text-white uppercase drop-shadow-[0_2px_12px_rgba(0,0,0,0.9)]">
           {title}
         </h2>
-        <div className="flex items-center justify-center gap-2 mt-1">
-          <p className="text-sm text-zinc-500 dark:text-zinc-400 font-medium truncate">
+        <div className="flex items-center justify-center gap-2 mt-0.5">
+          <p className="text-xs sm:text-sm font-serif italic text-slate-300 truncate">
             {displayArtist}
           </p>
-          <a
-            href={`https://www.youtube.com/watch?v=${currentTrack.id}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors inline-flex items-center gap-1 text-[11px] font-mono opacity-70 hover:opacity-100"
-            title="Open track on YouTube"
-            aria-label="Open track on YouTube"
-          >
-            <ExternalLink className="w-3.5 h-3.5" />
-          </a>
         </div>
       </div>
 
       {/* Scrubber & Timestamps */}
-      <div className="w-full max-w-xl px-6 space-y-1">
+      <div className="w-full max-w-xl px-4 space-y-0.5 my-0.5 shrink-0">
         <div className="relative group">
           <input
             type="range"
@@ -313,16 +625,16 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
               setSeekHoverPercent(Math.max(0, Math.min(1, percent)));
             }}
             style={{
-              background: `linear-gradient(to right, ${themeConfig.accent} ${progressPercent}%, rgba(161, 161, 170, 0.2) ${progressPercent}%)`,
+              background: `linear-gradient(to right, #0ea5e9 0%, #ec4899 ${progressPercent}%, rgba(255, 255, 255, 0.08) ${progressPercent}%)`,
             }}
-            className="w-full h-1.5 rounded-lg appearance-none cursor-pointer"
+            className="w-full h-1.5 rounded-full appearance-none cursor-pointer"
             aria-label="Seek track position"
           />
 
           {/* Hover Time Tooltip */}
           {isHoveringSeek && effectiveDuration > 0 && (
             <div
-              className="absolute -top-7 -translate-x-1/2 px-2 py-0.5 bg-zinc-900 text-[10px] font-mono tabular-nums text-zinc-200 rounded shadow pointer-events-none"
+              className="absolute -top-7 -translate-x-1/2 px-2 py-0.5 glass-panel text-[10px] font-mono font-bold tabular-nums text-pink-300 rounded shadow-xl pointer-events-none"
               style={{ left: `${seekHoverPercent * 100}%` }}
             >
               {formatTime(seekHoverPercent * effectiveDuration)}
@@ -331,178 +643,244 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
         </div>
 
         {/* Time Labels */}
-        <div className="flex justify-between items-center text-xs font-mono tabular-nums text-zinc-400 dark:text-zinc-500 pt-1">
+        <div className="flex justify-between items-center text-[10px] font-mono font-bold tabular-nums text-slate-400">
           <span>{formatTime(currentTime)}</span>
-          <span>{effectiveDuration > 0 ? formatTime(effectiveDuration) : 'Live Stream'}</span>
+          <span>{effectiveDuration > 0 ? formatTime(effectiveDuration) : 'LIVE SIGNAL'}</span>
         </div>
       </div>
 
-      {/* Main Tactile Controls Bar */}
-      <div className="flex items-center justify-center gap-3 sm:gap-6 mt-3">
+      {/* Main Glass Transport Buttons Bar */}
+      <div className="flex items-center justify-center gap-2.5 sm:gap-4 my-1 shrink-0">
         {/* Shuffle */}
         <button
           onClick={onToggleShuffle}
-          className={`p-2.5 rounded-full transition-colors ${
-            isShuffle
-              ? 'text-white'
-              : 'text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200'
-          }`}
-          style={isShuffle ? { backgroundColor: `${themeConfig.accent}25`, color: themeConfig.accent } : {}}
+          className={`p-1.5 rounded-full transition-all ${isShuffle
+              ? 'bg-pink-500/20 text-pink-400 ring-1 ring-pink-500/50 shadow-[0_0_12px_rgba(236,72,153,0.45)]'
+              : 'text-slate-400 hover:text-cyan-300'
+            }`}
           aria-label={isShuffle ? 'Disable shuffle' : 'Enable shuffle'}
         >
-          <Shuffle className="w-4 h-4" />
+          <Shuffle className="w-3.5 h-3.5" />
         </button>
 
         {/* Skip Back 5s */}
         <button
           onClick={onSkipBack5s}
-          className="p-2 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 rounded-full transition-colors hidden sm:block"
+          className="p-1 text-slate-400 hover:text-cyan-300 rounded-full transition-colors hidden sm:block"
           aria-label="Rewind 5 seconds"
         >
-          <RotateCcw className="w-4 h-4" />
+          <RotateCcw className="w-3.5 h-3.5" />
         </button>
 
         {/* Prev Track */}
         <button
           onClick={onPrev}
-          className="p-2.5 text-zinc-700 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white rounded-full transition-colors active:scale-95"
+          className="p-1.5 text-slate-300 hover:text-white rounded-full transition-colors active:scale-90"
           aria-label="Previous track"
         >
-          <SkipBack className="w-5 h-5 fill-current" />
+          <SkipBack className="w-4 h-4 fill-current" />
         </button>
 
-        {/* Primary Tactile Play / Pause Button */}
+        {/* Primary Glass Play / Pause Button (Uiverse Aether Chromatic Gradient) */}
         <button
           onClick={onTogglePlay}
-          className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-full text-zinc-950 flex items-center justify-center active:scale-90 transition-all focus:outline-none"
-          style={{
-            backgroundColor: themeConfig.accent,
-            boxShadow: `0 8px 24px ${themeConfig.accent}45`,
-          }}
+          className="relative w-12 h-12 sm:w-14 sm:h-14 rounded-full glass-aether-button flex items-center justify-center active:scale-95 transition-all focus:outline-none"
           aria-label={isPlaying ? 'Pause music' : 'Play music'}
         >
           {isBuffering ? (
-            <div className="w-6 h-6 border-2 border-zinc-950 border-t-transparent rounded-full animate-spin" />
+            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
           ) : isPlaying ? (
-            <Pause className="w-6 h-6 fill-zinc-950" />
+            <Pause className="w-5 h-5 fill-white text-white" />
           ) : (
-            <Play className="w-6 h-6 fill-zinc-950 ml-0.5" />
+            <Play className="w-5 h-5 fill-white text-white ml-0.5" />
           )}
         </button>
 
         {/* Next Track */}
         <button
           onClick={onNext}
-          className="p-2.5 text-zinc-700 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white rounded-full transition-colors active:scale-95"
+          className="p-1.5 text-slate-300 hover:text-white rounded-full transition-colors active:scale-90"
           aria-label="Next track"
         >
-          <SkipForward className="w-5 h-5 fill-current" />
+          <SkipForward className="w-4 h-4 fill-current" />
         </button>
 
         {/* Skip Forward 5s */}
         <button
           onClick={onSkipForward5s}
-          className="p-2 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 rounded-full transition-colors hidden sm:block"
+          className="p-1 text-slate-400 hover:text-cyan-300 rounded-full transition-colors hidden sm:block"
           aria-label="Fast forward 5 seconds"
         >
-          <RotateCw className="w-4 h-4" />
+          <RotateCw className="w-3.5 h-3.5" />
         </button>
 
         {/* Repeat Mode */}
         <button
           onClick={onToggleRepeat}
-          className={`p-2.5 rounded-full transition-colors ${
-            repeatMode !== 'off'
-              ? 'text-white'
-              : 'text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200'
-          }`}
-          style={repeatMode !== 'off' ? { backgroundColor: `${themeConfig.accent}25`, color: themeConfig.accent } : {}}
+          className={`p-1.5 rounded-full transition-all ${repeatMode !== 'off'
+              ? 'bg-cyan-500/20 text-cyan-400 ring-1 ring-cyan-400/50 shadow-[0_0_12px_rgba(56,189,248,0.45)]'
+              : 'text-slate-400 hover:text-cyan-300'
+            }`}
           aria-label={`Repeat mode: ${repeatMode}`}
         >
-          {repeatMode === 'one' ? <Repeat1 className="w-4 h-4" /> : <Repeat className="w-4 h-4" />}
+          {repeatMode === 'one' ? <Repeat1 className="w-3.5 h-3.5" /> : <Repeat className="w-3.5 h-3.5" />}
         </button>
       </div>
 
-      {/* Secondary Utilities Strip */}
-      <div className="w-full max-w-xl px-6 mt-6 pt-4 border-t border-white/[0.08] dark:border-white/[0.08] flex flex-wrap items-center justify-between gap-4 text-xs">
+      {/* Secondary Utilities Strip (Optimized for Mobile Swipe & Desktop Row) */}
+      <div className="w-full max-w-xl px-2 sm:px-4 mt-0.5 pt-1 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-1.5 text-xs shrink-0">
         {/* Left: Volume Slider */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center justify-between sm:justify-start w-full sm:w-auto gap-2 px-1">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={toggleMute}
+              className="text-slate-400 hover:text-cyan-300 transition-colors p-1"
+              aria-label={isMuted ? 'Unmute' : 'Mute'}
+            >
+              {isMuted || volume === 0 ? (
+                <VolumeX className="w-4 h-4 text-rose-500" />
+              ) : volume < 50 ? (
+                <Volume1 className="w-4 h-4" />
+              ) : (
+                <Volume2 className="w-4 h-4" />
+              )}
+            </button>
+            <input
+              type="range"
+              min={0}
+              max={100}
+              value={isMuted ? 0 : volume}
+              onChange={(e) => {
+                if (isMuted) setIsMuted(false);
+                onChangeVolume(Number(e.target.value));
+              }}
+              style={{
+                background: `linear-gradient(to right, #ec4899 ${isMuted ? 0 : volume}%, rgba(255, 255, 255, 0.08) ${isMuted ? 0 : volume}%)`,
+              }}
+              className="w-24 sm:w-24 h-1 rounded-full appearance-none cursor-pointer"
+              aria-label="Volume control"
+            />
+            <span className="font-mono font-bold tabular-nums text-[10px] text-pink-300 w-7">
+              {isMuted ? '0%' : `${volume}%`}
+            </span>
+          </div>
+
+          {/* Quick Favorite on mobile header */}
           <button
-            onClick={toggleMute}
-            className="text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors"
-            aria-label={isMuted ? 'Unmute' : 'Mute'}
+            onClick={onToggleFavorite}
+            className={`p-1.5 rounded-full border transition-all sm:hidden ${isFavorite
+                ? 'text-pink-400 bg-pink-500/20 border-pink-400/50 shadow-[0_0_10px_rgba(236,72,153,0.35)]'
+                : 'glass-panel text-slate-400 hover:text-pink-400'
+              }`}
+            aria-label={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
           >
-            {isMuted || volume === 0 ? (
-              <VolumeX className="w-4 h-4 text-rose-500" />
-            ) : volume < 50 ? (
-              <Volume1 className="w-4 h-4" />
-            ) : (
-              <Volume2 className="w-4 h-4" />
-            )}
+            <Heart className={`w-3.5 h-3.5 ${isFavorite ? 'fill-current' : ''}`} />
           </button>
-          <input
-            type="range"
-            min={0}
-            max={100}
-            value={isMuted ? 0 : volume}
-            onChange={(e) => {
-              if (isMuted) setIsMuted(false);
-              onChangeVolume(Number(e.target.value));
-            }}
-            style={{
-              background: `linear-gradient(to right, ${themeConfig.accent} ${isMuted ? 0 : volume}%, rgba(161, 161, 170, 0.2) ${isMuted ? 0 : volume}%)`,
-            }}
-            className="w-20 sm:w-24 h-1 rounded-lg appearance-none cursor-pointer"
-            aria-label="Volume control"
-          />
-          <span className="font-mono tabular-nums text-[11px] text-zinc-400 w-7">
-            {isMuted ? '0%' : `${volume}%`}
-          </span>
         </div>
 
-        {/* Right: Mode Switchers (Lyrics, Crossfade, Visualizer, Speed, Video, Favorite) */}
-        <div className="flex items-center flex-wrap gap-2 sm:gap-2.5">
-          {/* Lyrics Overlay Toggle Button */}
+        {/* Right: Mode Switchers (Smooth horizontal swipeable pills on mobile) */}
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar max-w-full w-full sm:w-auto py-0.5 px-1 shrink-0">
+          {/* Hindi Radio Station Launcher */}
+          {onPlayHindiRadio && (
+            <button
+              onClick={onPlayHindiRadio}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[11px] font-mono font-black uppercase tracking-wider transition-all glass-panel text-amber-300 hover:text-white hover:border-amber-400/50 hover:bg-amber-500/10 active:scale-95 shadow-xs"
+              title="Tune into 24/7 Live Hindi Radio Streams (Mirchi, Retro, Bollywood Beats)"
+              aria-label="Play Live Hindi Radio"
+            >
+              <Radio className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
+              <span>LIVE RADIO</span>
+            </button>
+          )}
+
+          {/* Player Style Switcher: Wavy vs Turntable Deck */}
+          {onTogglePlayerStyle && (
+            <button
+              onClick={onTogglePlayerStyle}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[11px] font-black uppercase tracking-wider transition-all ${playerStyle === 'wavy'
+                  ? 'bg-gradient-to-r from-cyan-500 via-pink-500 to-amber-400 text-white border-white/30 shadow-[0_0_14px_rgba(236,72,153,0.5)]'
+                  : 'glass-panel text-slate-300 hover:text-white hover:border-cyan-400/40'
+                }`}
+              title={playerStyle === 'wavy' ? 'Switch to Turntable Mode' : 'Switch to Wavy Player Mode'}
+              aria-label="Toggle Player Style"
+            >
+              <Waves className="w-3.5 h-3.5" />
+              <span>{playerStyle === 'wavy' ? 'WAVY ON' : 'WAVY OFF'}</span>
+            </button>
+          )}
+
+          {/* Quality Selector */}
+          <div className="relative">
+            <button
+              onClick={() => {
+                setShowQualityMenu(!showQualityMenu);
+                setShowCrossfadeMenu(false);
+                setShowSpeedMenu(false);
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full glass-panel text-[11px] font-mono font-bold uppercase tracking-wider text-slate-300 hover:border-pink-400/50 hover:text-white transition-all shadow-sm"
+              title="Stream Audio & Video Quality"
+              aria-label="Stream quality"
+            >
+              <Sliders className="w-3 h-3 text-cyan-400" />
+              <span>{playbackQuality.toUpperCase()}</span>
+            </button>
+            {showQualityMenu && (
+              <div className="absolute bottom-full right-0 mb-1.5 p-1.5 glass-panel rounded-xl shadow-2xl z-40 flex flex-col gap-1 min-w-[200px] border border-white/20">
+                <span className="text-[9px] font-mono font-extrabold uppercase tracking-widest text-slate-400 px-2 py-0.5">STREAM QUALITY</span>
+                {QUALITY_OPTIONS.map((q) => (
+                  <button
+                    key={q.id}
+                    onClick={() => {
+                      onChangePlaybackQuality(q.id);
+                      setShowQualityMenu(false);
+                    }}
+                    className={`px-3 py-1.5 text-left text-xs font-mono font-bold rounded-lg transition-all flex items-center justify-between ${playbackQuality === q.id
+                        ? 'bg-gradient-to-r from-cyan-500 via-pink-500 to-amber-400 text-white font-extrabold shadow-[0_0_12px_rgba(236,72,153,0.5)]'
+                        : 'text-slate-300 hover:bg-white/10 hover:text-white'
+                      }`}
+                  >
+                    <span>{q.label}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Lyrics Toggle Button */}
           <button
             onClick={() => {
               if (isVideoVisible) onToggleVideo();
               setIsLyricsOpen(!isLyricsOpen);
             }}
-            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-medium transition-colors ${
-              isLyricsOpen && !isVideoVisible
-                ? 'shadow-xs font-semibold'
-                : 'border-white/[0.08] text-zinc-400 hover:text-zinc-200 hover:border-white/20'
-            }`}
-            style={
-              isLyricsOpen && !isVideoVisible
-                ? {
-                    backgroundColor: `${themeConfig.accent}25`,
-                    borderColor: `${themeConfig.accent}40`,
-                    color: themeConfig.accent,
-                  }
-                : {}
-            }
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[11px] font-black uppercase tracking-wider transition-all ${isLyricsOpen && !isVideoVisible
+                ? 'bg-gradient-to-r from-cyan-500 to-pink-500 text-white border-white/30 shadow-[0_0_14px_rgba(236,72,153,0.5)]'
+                : 'glass-panel text-slate-300 hover:text-white hover:border-pink-400/40'
+              }`}
             title={isLyricsOpen ? 'Return to Turntable' : 'View Lyrics'}
             aria-label={isLyricsOpen ? 'Hide lyrics overlay' : 'Show lyrics overlay'}
           >
             <Mic2 className="w-3.5 h-3.5" />
-            <span>Lyrics</span>
+            <span>LYRICS</span>
           </button>
 
           {/* Crossfade Selector */}
           <div className="relative">
             <button
-              onClick={() => setShowCrossfadeMenu(!showCrossfadeMenu)}
-              className="flex items-center gap-1 px-2 py-1 rounded-lg bg-white/5 dark:bg-black/30 border border-white/[0.08] text-[11px] font-mono text-zinc-300 hover:border-white/20 transition-colors"
+              onClick={() => {
+                setShowCrossfadeMenu(!showCrossfadeMenu);
+                setShowQualityMenu(false);
+                setShowSpeedMenu(false);
+              }}
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-full glass-panel text-[11px] font-mono font-bold uppercase tracking-wider text-slate-300 hover:border-pink-400/40 hover:text-white transition-colors"
               title="Audio crossfade duration between tracks"
               aria-label="Crossfade duration"
             >
-              <Blend className="w-3 h-3 text-zinc-400" />
-              <span>{crossfadeDuration === 0 ? 'Fade: Off' : `${crossfadeDuration}s Fade`}</span>
+              <Blend className="w-3 h-3 text-pink-400" />
+              <span>{crossfadeDuration === 0 ? 'FADE: OFF' : `${crossfadeDuration}S`}</span>
             </button>
             {showCrossfadeMenu && (
-              <div className="absolute bottom-full right-0 mb-1.5 p-1 bg-zinc-900 border border-zinc-700/80 rounded-lg shadow-xl z-30 flex flex-col gap-0.5 min-w-[125px]">
-                <span className="text-[10px] font-mono uppercase text-zinc-500 px-2 py-0.5">Crossfade</span>
+              <div className="absolute bottom-full right-0 mb-1.5 p-1.5 glass-panel rounded-xl shadow-2xl z-40 flex flex-col gap-1 min-w-[140px] border border-white/20">
+                <span className="text-[9px] font-mono font-extrabold uppercase tracking-widest text-slate-400 px-2 py-0.5">CROSSFADE</span>
                 {[0, 1, 1.5, 2, 3].map((dur) => (
                   <button
                     key={dur}
@@ -510,13 +888,12 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
                       onChangeCrossfadeDuration(dur);
                       setShowCrossfadeMenu(false);
                     }}
-                    className={`px-2.5 py-1 text-left text-xs font-mono rounded ${
-                      crossfadeDuration === dur
-                        ? 'bg-white/10 text-white font-medium'
-                        : 'text-zinc-400 hover:bg-white/5 hover:text-white'
-                    }`}
+                    className={`px-2.5 py-1 text-left text-xs font-mono font-bold rounded-lg ${crossfadeDuration === dur
+                        ? 'bg-gradient-to-r from-cyan-500 to-pink-500 text-white font-extrabold shadow-[0_0_10px_rgba(236,72,153,0.5)]'
+                        : 'text-slate-300 hover:bg-white/10 hover:text-white'
+                      }`}
                   >
-                    {dur === 0 ? 'Off (Instant)' : `${dur} seconds`}
+                    {dur === 0 ? 'OFF (INSTANT)' : `${dur} SECONDS`}
                   </button>
                 ))}
               </div>
@@ -526,36 +903,25 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
           {/* Favorite Toggle */}
           <button
             onClick={onToggleFavorite}
-            className={`p-1.5 rounded-lg transition-colors ${
-              isFavorite
-                ? 'text-rose-500 bg-rose-500/10'
-                : 'text-zinc-400 hover:text-rose-500 hover:bg-white/5'
-            }`}
+            className={`p-2 rounded-full border transition-all ${isFavorite
+                ? 'text-pink-400 bg-pink-500/20 border-pink-400/50 shadow-[0_0_12px_rgba(236,72,153,0.35)]'
+                : 'glass-panel text-slate-400 hover:text-pink-400 hover:border-pink-400/40'
+              }`}
             aria-label={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
           >
-            <Heart className={`w-4 h-4 ${isFavorite ? 'fill-current' : ''}`} />
+            <Heart className={`w-3.5 h-3.5 ${isFavorite ? 'fill-current' : ''}`} />
           </button>
 
           {/* Visualizer Mode Switcher */}
-          <div className="flex items-center gap-0.5 bg-white/5 dark:bg-black/30 p-0.5 rounded-lg border border-white/[0.08]">
+          <div className="flex items-center gap-0.5 glass-panel p-0.5 rounded-full border border-white/10">
             {VISUALIZER_MODES.map((vm) => (
               <button
                 key={vm.mode}
                 onClick={() => onChangeVisualizerMode(vm.mode)}
-                className={`px-2 py-1 rounded text-[11px] font-medium transition-colors ${
-                  visualizerMode === vm.mode
-                    ? 'shadow-xs'
-                    : 'text-zinc-400 hover:text-zinc-100'
-                }`}
-                style={
-                  visualizerMode === vm.mode
-                    ? {
-                        backgroundColor: `${themeConfig.accent}20`,
-                        color: themeConfig.accent,
-                        fontWeight: 600,
-                      }
-                    : {}
-                }
+                className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider transition-all ${visualizerMode === vm.mode
+                    ? 'bg-gradient-to-r from-cyan-500 to-pink-500 text-white shadow-xs font-black'
+                    : 'text-slate-400 hover:text-white'
+                  }`}
                 title={vm.label}
               >
                 {vm.label}
@@ -566,15 +932,19 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
           {/* Speed Selector */}
           <div className="relative">
             <button
-              onClick={() => setShowSpeedMenu(!showSpeedMenu)}
-              className="flex items-center gap-1 px-2 py-1 rounded-lg bg-white/5 dark:bg-black/30 border border-white/[0.08] text-[11px] font-mono text-zinc-300 hover:border-white/20 transition-colors"
+              onClick={() => {
+                setShowSpeedMenu(!showSpeedMenu);
+                setShowQualityMenu(false);
+                setShowCrossfadeMenu(false);
+              }}
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-full glass-panel text-[11px] font-mono font-bold text-slate-300 hover:border-pink-400/40 hover:text-white transition-colors"
               aria-label="Playback speed"
             >
-              <Gauge className="w-3 h-3 text-zinc-400" />
-              <span>{playbackRate}x</span>
+              <Gauge className="w-3 h-3 text-cyan-400" />
+              <span>{playbackRate}X</span>
             </button>
             {showSpeedMenu && (
-              <div className="absolute bottom-full right-0 mb-1.5 p-1 bg-zinc-900 border border-zinc-700/80 rounded-lg shadow-xl z-30 flex flex-col gap-0.5">
+              <div className="absolute bottom-full right-0 mb-1.5 p-1.5 glass-panel rounded-xl shadow-2xl z-40 flex flex-col gap-1 border border-white/20">
                 {SPEED_OPTIONS.map((rate) => (
                   <button
                     key={rate}
@@ -582,13 +952,12 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
                       onChangePlaybackRate(rate);
                       setShowSpeedMenu(false);
                     }}
-                    className={`px-2.5 py-1 text-left text-xs font-mono rounded ${
-                      playbackRate === rate
-                        ? 'bg-white/10 text-white font-medium'
-                        : 'text-zinc-400 hover:bg-white/5 hover:text-white'
-                    }`}
+                    className={`px-2.5 py-1 text-left text-xs font-mono font-bold rounded-lg ${playbackRate === rate
+                        ? 'bg-gradient-to-r from-cyan-500 to-pink-500 text-white font-extrabold shadow-[0_0_10px_rgba(236,72,153,0.5)]'
+                        : 'text-slate-300 hover:bg-white/10 hover:text-white'
+                      }`}
                   >
-                    {rate}x
+                    {rate}X
                   </button>
                 ))}
               </div>
@@ -601,23 +970,14 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
               if (isLyricsOpen) setIsLyricsOpen(false);
               onToggleVideo();
             }}
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-medium transition-colors"
-            style={
-              isVideoVisible
-                ? {
-                    backgroundColor: `${themeConfig.accent}20`,
-                    borderColor: `${themeConfig.accent}40`,
-                    color: themeConfig.accent,
-                  }
-                : {
-                    borderColor: 'rgba(255,255,255,0.08)',
-                    color: '#a1a1aa',
-                  }
-            }
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[11px] font-black uppercase tracking-wider transition-all ${isVideoVisible
+                ? 'bg-gradient-to-r from-cyan-500 to-pink-500 text-white border-white/30 shadow-[0_0_14px_rgba(236,72,153,0.5)]'
+                : 'glass-panel text-slate-300 hover:text-white hover:border-pink-400/40'
+              }`}
             aria-label={isVideoVisible ? 'Hide video dock' : 'Show video dock'}
           >
             {isVideoVisible ? <Video className="w-3.5 h-3.5" /> : <VideoOff className="w-3.5 h-3.5" />}
-            <span className="hidden sm:inline">{isVideoVisible ? 'Video' : 'Audio'}</span>
+            <span className="hidden sm:inline">{isVideoVisible ? 'VIDEO ON' : 'AUDIO ONLY'}</span>
           </button>
         </div>
       </div>

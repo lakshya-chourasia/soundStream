@@ -84,27 +84,27 @@ export const QuickImportModal: React.FC<QuickImportModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
-      <div className="relative w-full max-w-md bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-2xl p-6 space-y-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-xl animate-in fade-in">
+      <div className="relative w-full max-w-md glass-panel border-white/15 rounded-2xl shadow-[0_0_60px_rgba(0,0,0,0.95)] p-6 space-y-4">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between pb-3 border-b border-white/10">
           <div className="flex items-center gap-2">
-            <Link2 className="w-5 h-5 text-amber-500" />
-            <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
-              Add YouTube Track
+            <Link2 className="w-5 h-5 text-cyan-400" />
+            <h3 className="text-base font-black text-white">
+              Import Recording
             </h3>
           </div>
           <button
             onClick={onClose}
-            className="p-1 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 rounded-lg"
+            className="p-1 text-slate-400 hover:text-white rounded-full transition-colors"
             aria-label="Close modal"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        <p className="text-xs text-zinc-500">
-          Paste any YouTube song link, short URL, or video ID to play directly without leaving the app.
+        <p className="text-xs font-mono font-bold text-slate-400 uppercase tracking-widest">
+          ENTER YOUTUBE URL OR 11-CHARACTER VIDEO IDENTIFIER:
         </p>
 
         {/* Input */}
@@ -119,37 +119,36 @@ export const QuickImportModal: React.FC<QuickImportModalProps> = ({
               }}
               placeholder="https://www.youtube.com/watch?v=..."
               autoFocus
-              className="flex-1 px-3 py-2 text-xs bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-amber-500"
+              className="flex-1 px-4 py-2 text-xs font-bold glass-panel rounded-full text-white placeholder:text-slate-500 focus:outline-none focus:border-pink-500/50"
             />
             <button
               type="submit"
               disabled={isLoading || !inputVal.trim()}
-              className="px-4 py-2 text-xs font-semibold text-zinc-950 rounded-lg disabled:opacity-50 hover:opacity-90 transition-opacity whitespace-nowrap flex items-center gap-1.5"
-              style={{ backgroundColor: 'var(--theme-accent, #f59e0b)' }}
+              className="px-4 py-2 text-xs font-black uppercase tracking-wider glass-aether-button rounded-full disabled:opacity-40 transition-colors whitespace-nowrap flex items-center gap-1.5"
             >
               {isLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
-              <span>Inspect</span>
+              <span>Resolve</span>
             </button>
           </div>
 
-          {errorMsg && <p className="text-xs text-rose-500">{errorMsg}</p>}
+          {errorMsg && <p className="text-xs font-mono font-bold text-rose-400">{errorMsg}</p>}
         </form>
 
         {/* Resolved Preview Card */}
         {resolvedTrack && (
-          <div className="p-3 bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl space-y-3 animate-in fade-in">
+          <div className="p-3.5 glass-panel border-white/10 rounded-xl space-y-3 animate-in fade-in">
             <div className="flex items-center gap-3">
               <img
                 src={resolvedTrack.thumbnail}
                 alt={resolvedTrack.title}
                 referrerPolicy="no-referrer"
-                className="w-14 h-14 rounded-lg object-cover shrink-0"
+                className="w-14 h-14 rounded-lg object-cover shrink-0 border border-white/10 shadow-inner"
               />
               <div className="min-w-0 flex-1">
-                <h4 className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 truncate">
+                <h4 className="text-xs font-bold text-white truncate">
                   {resolvedTrack.title}
                 </h4>
-                <p className="text-[11px] text-zinc-500 truncate mt-0.5">
+                <p className="text-[11px] font-serif italic text-slate-300 truncate mt-0.5">
                   {resolvedTrack.artist}
                 </p>
               </div>
@@ -158,20 +157,19 @@ export const QuickImportModal: React.FC<QuickImportModalProps> = ({
             <div className="flex gap-2 pt-1">
               <button
                 onClick={handlePlayNow}
-                className="flex-1 py-1.5 px-3 text-xs font-semibold text-zinc-950 rounded-lg flex items-center justify-center gap-1.5 shadow-sm hover:opacity-90 transition-opacity"
-                style={{ backgroundColor: 'var(--theme-accent, #f59e0b)' }}
+                className="flex-1 py-2 px-3 text-xs font-black uppercase tracking-wider glass-aether-button rounded-full flex items-center justify-center gap-1.5 transition-colors"
               >
-                <Play className="w-3.5 h-3.5 fill-current" />
+                <Play className="w-3.5 h-3.5 fill-white" />
                 <span>Play Now</span>
               </button>
 
               <button
                 onClick={handleQueue}
                 disabled={isAdded}
-                className="py-1.5 px-3 text-xs font-medium bg-zinc-200 dark:bg-zinc-800 hover:bg-zinc-300 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 rounded-lg flex items-center gap-1.5 transition-colors"
+                className="py-2 px-3 text-xs font-bold uppercase tracking-wider glass-pill text-white rounded-full flex items-center gap-1.5 transition-colors"
               >
-                {isAdded ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Plus className="w-3.5 h-3.5" />}
-                <span>{isAdded ? 'Added' : 'Add to Queue'}</span>
+                {isAdded ? <Check className="w-3.5 h-3.5 text-cyan-400" /> : <Plus className="w-3.5 h-3.5" />}
+                <span>{isAdded ? 'Added' : 'Queue'}</span>
               </button>
             </div>
           </div>

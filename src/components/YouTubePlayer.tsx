@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useImperativeHandle, forwardRef } from 'react';
-import { Track } from '../types/player';
+import { Track, StreamQuality } from '../types/player';
 
 export interface YouTubePlayerHandle {
   play: () => void;
@@ -7,9 +7,10 @@ export interface YouTubePlayerHandle {
   seekTo: (seconds: number) => void;
   setVolume: (volume: number) => void;
   setPlaybackRate: (rate: number) => void;
+  setPlaybackQuality: (quality: StreamQuality) => void;
   getCurrentTime: () => number;
   getDuration: () => number;
-  loadTrack: (videoId: string, autoPlay?: boolean) => void;
+  loadTrack: (trackOrId: string | Track, autoPlay?: boolean) => void;
 }
 
 interface YouTubePlayerProps {
@@ -17,6 +18,7 @@ interface YouTubePlayerProps {
   isPlaying: boolean;
   volume: number;
   playbackRate: number;
+  playbackQuality?: StreamQuality;
   isVideoVisible: boolean;
   onTimeUpdate: (currentTime: number, duration: number) => void;
   onStateChange: (isPlaying: boolean, isBuffering: boolean) => void;
@@ -38,6 +40,7 @@ export const YouTubePlayer = forwardRef<YouTubePlayerHandle, YouTubePlayerProps>
       isPlaying,
       volume,
       playbackRate,
+      playbackQuality = 'auto',
       isVideoVisible,
       onTimeUpdate,
       onStateChange,
@@ -48,6 +51,7 @@ export const YouTubePlayer = forwardRef<YouTubePlayerHandle, YouTubePlayerProps>
   ) => {
     const playerRef = useRef<any>(null);
     const containerRef = useRef<HTMLDivElement | null>(null);
+    const audioRef = useRef<HTMLAudioElement | null>(null);
     const [isApiReady, setIsApiReady] = useState<boolean>(() => !!(typeof window !== 'undefined' && window.YT && window.YT.Player));
     const [isPlayerReady, setIsPlayerReady] = useState<boolean>(false);
     const lastLoadedIdRef = useRef<string | null>(null);
@@ -57,6 +61,10 @@ export const YouTubePlayer = forwardRef<YouTubePlayerHandle, YouTubePlayerProps>
     useImperativeHandle(ref, () => ({
       play: () => {
         try {
+          if (currentTrack?.streamUrl && audioRef.current) {
+            audioRef.current.play().catch((err) => console.warn('Audio play error:', err));
+            return;
+          }
           if (playerRef.current?.playVideo) {
             playerRef.current.playVideo();
           }
@@ -66,6 +74,10 @@ export const YouTubePlayer = forwardRef<YouTubePlayerHandle, YouTubePlayerProps>
       },
       pause: () => {
         try {
+          if (currentTrack?.streamUrl && audioRef.current) {
+            audioRef.current.pause();
+            return;
+          }
           if (playerRef.current?.pauseVideo) {
             playerRef.current.pauseVideo();
           }
@@ -75,6 +87,10 @@ export const YouTubePlayer = forwardRef<YouTubePlayerHandle, YouTubePlayerProps>
       },
       seekTo: (seconds: number) => {
         try {
+          if (currentTrack?.streamUrl && audioRef.current) {
+            // Live streams cannot be scrubbed
+            return;
+          }
           if (playerRef.current?.seekTo) {
             playerRef.current.seekTo(seconds, true);
           }
@@ -84,6 +100,9 @@ export const YouTubePlayer = forwardRef<YouTubePlayerHandle, YouTubePlayerProps>
       },
       setVolume: (vol: number) => {
         try {
+          if (audioRef.current) {
+            audioRef.current.volume = Math.max(0, Math.min(1, vol / 100));
+          }
           if (playerRef.current?.setVolume) {
             playerRef.current.setVolume(vol);
           }
@@ -91,13 +110,26 @@ export const YouTubePlayer = forwardRef<YouTubePlayerHandle, YouTubePlayerProps>
       },
       setPlaybackRate: (rate: number) => {
         try {
+          if (audioRef.current) {
+            audioRef.current.playbackRate = rate;
+          }
           if (playerRef.current?.setPlaybackRate) {
             playerRef.current.setPlaybackRate(rate);
           }
         } catch {}
       },
+      setPlaybackQuality: (quality: StreamQuality) => {
+        try {
+          if (playerRef.current?.setPlaybackQuality) {
+            playerRef.current.setPlaybackQuality(quality);
+          }
+        } catch {}
+      },
       getCurrentTime: () => {
         try {
+          if (currentTrack?.streamUrl && audioRef.current) {
+            return audioRef.current.currentTime || 0;
+          }
           return playerRef.current?.getCurrentTime ? playerRef.current.getCurrentTime() : 0;
         } catch {
           return 0;
@@ -105,19 +137,48 @@ export const YouTubePlayer = forwardRef<YouTubePlayerHandle, YouTubePlayerProps>
       },
       getDuration: () => {
         try {
+          if (currentTrack?.streamUrl && audioRef.current) {
+            return 0; // Live stream duration is dynamic / live
+          }
           return playerRef.current?.getDuration ? playerRef.current.getDuration() : 0;
         } catch {
           return 0;
         }
       },
-      loadTrack: (videoId: string, autoPlay = true) => {
-        lastLoadedIdRef.current = videoId;
+      loadTrack: (trackOrId: string | Track, autoPlay = true) => {
+        const id = typeof trackOrId === 'string' ? trackOrId : trackOrId.id;
+        const streamUrl = typeof trackOrId === 'object' ? trackOrId.streamUrl : undefined;
+        lastLoadedIdRef.current = id;
+
+        // If it is a live audio channel
+        if (streamUrl && audioRef.current) {
+          try {
+            if (playerRef.current?.pauseVideo) {
+              playerRef.current.pauseVideo();
+            }
+            audioRef.current.src = streamUrl;
+            audioRef.current.volume = Math.max(0, Math.min(1, volume / 100));
+            if (autoPlay) {
+              audioRef.current.play().catch((e) => console.warn('Audio play error:', e));
+            }
+          } catch (e) {
+            console.warn('Audio element load error:', e);
+          }
+          return;
+        }
+
+        // Otherwise pause audio element and load YouTube video
+        if (audioRef.current) {
+          audioRef.current.pause();
+          audioRef.current.src = '';
+        }
+
         try {
           if (!playerRef.current) return;
           if (autoPlay && playerRef.current.loadVideoById) {
-            playerRef.current.loadVideoById({ videoId, startSeconds: 0 });
+            playerRef.current.loadVideoById({ videoId: id, startSeconds: 0 });
           } else if (playerRef.current.cueVideoById) {
-            playerRef.current.cueVideoById({ videoId, startSeconds: 0 });
+            playerRef.current.cueVideoById({ videoId: id, startSeconds: 0 });
           }
         } catch (err) {
           console.warn('YouTubePlayer loadTrack error:', err);
@@ -307,6 +368,16 @@ export const YouTubePlayer = forwardRef<YouTubePlayerHandle, YouTubePlayerProps>
       } catch {}
     }, [playbackRate, isPlayerReady]);
 
+    // Step 6.5: Handle playback quality change
+    useEffect(() => {
+      if (!isPlayerReady || !playerRef.current) return;
+      try {
+        if (playerRef.current.setPlaybackQuality) {
+          playerRef.current.setPlaybackQuality(playbackQuality);
+        }
+      } catch {}
+    }, [playbackQuality, isPlayerReady]);
+
     // Step 7: Time update ticker
     useEffect(() => {
       if (!isPlayerReady) return;
@@ -328,11 +399,51 @@ export const YouTubePlayer = forwardRef<YouTubePlayerHandle, YouTubePlayerProps>
       };
     }, [isPlayerReady]);
 
+    // Audio element event listeners for live radio streams
+    useEffect(() => {
+      const audio = audioRef.current;
+      if (!audio) return;
+
+      const handleAudioPlay = () => onStateChange(true, false);
+      const handleAudioPause = () => onStateChange(false, false);
+      const handleAudioWaiting = () => onStateChange(true, true);
+      const handleAudioPlaying = () => onStateChange(true, false);
+      const handleAudioError = () => {
+        onError('Radio channel is currently unavailable. Reconnecting or choose another station...');
+        onStateChange(false, false);
+      };
+      const handleTimeUpdate = () => {
+        onTimeUpdate(audio.currentTime || 0, 0);
+      };
+
+      audio.addEventListener('play', handleAudioPlay);
+      audio.addEventListener('pause', handleAudioPause);
+      audio.addEventListener('waiting', handleAudioWaiting);
+      audio.addEventListener('playing', handleAudioPlaying);
+      audio.addEventListener('error', handleAudioError);
+      audio.addEventListener('timeupdate', handleTimeUpdate);
+
+      return () => {
+        audio.removeEventListener('play', handleAudioPlay);
+        audio.removeEventListener('pause', handleAudioPause);
+        audio.removeEventListener('waiting', handleAudioWaiting);
+        audio.removeEventListener('playing', handleAudioPlaying);
+        audio.removeEventListener('error', handleAudioError);
+        audio.removeEventListener('timeupdate', handleTimeUpdate);
+      };
+    }, [onStateChange, onError, onTimeUpdate]);
+
     return (
-      <div className="w-full h-full relative overflow-hidden select-none bg-black pointer-events-none" aria-hidden={!isVideoVisible}>
+      <div
+        className="w-full h-full relative overflow-hidden select-none bg-black flex items-center justify-center pointer-events-none"
+        aria-hidden={!isVideoVisible}
+      >
+        {/* Native Audio Tag for Live Audio Channels (Mirchi, Red FM, Bombay Beats) */}
+        <audio ref={audioRef} preload="none" className="hidden" />
+
         <div
           ref={containerRef}
-          className="w-full h-full scale-[1.42] origin-[50%_46%] pointer-events-none"
+          className="w-full h-full flex items-center justify-center pointer-events-none [&>iframe]:w-full [&>iframe]:h-full [&>iframe]:object-contain"
         />
       </div>
     );

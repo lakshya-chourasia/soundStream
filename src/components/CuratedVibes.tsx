@@ -1,7 +1,7 @@
 import React from 'react';
 import { GenreCollection, Track } from '../types/player';
 import { TrackCard } from './TrackCard';
-import { Play, Sparkles } from 'lucide-react';
+import { Play, Disc } from 'lucide-react';
 
 interface CuratedVibesProps {
   genres: GenreCollection[];
@@ -26,38 +26,38 @@ export const CuratedVibes: React.FC<CuratedVibesProps> = ({
 }) => {
   return (
     <div className="w-full max-w-4xl mx-auto space-y-8">
-      <div className="text-center max-w-xl mx-auto space-y-1">
-        <h2 className="text-xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100 flex items-center justify-center gap-2">
-          <Sparkles className="w-4 h-4 text-amber-500" />
-          <span>Curated Soundscapes</span>
+      <div className="text-center max-w-xl mx-auto space-y-1.5">
+        <h2 className="text-xl sm:text-2xl font-black uppercase tracking-tight text-white flex items-center justify-center gap-2">
+          <Disc className="w-5 h-5 text-pink-400 animate-spin-slow" />
+          <span className="drop-shadow-[0_0_14px_rgba(236,72,153,0.35)]">Curated Soundscapes</span>
         </h2>
-        <p className="text-xs text-zinc-500">
-          Hand-picked collections designed for deep focus, late-night coding, and tranquil relaxation.
+        <p className="text-xs font-mono font-bold uppercase tracking-widest text-slate-400">
+          UIVERSE AETHER // <span className="font-serif italic font-normal text-cyan-300">prismatic sound archives</span>
         </p>
       </div>
 
-      <div className="space-y-8">
+      <div className="space-y-6">
         {genres.map((genre) => (
           <section
             key={genre.id}
-            className="p-5 bg-white dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800/80 rounded-2xl shadow-xs space-y-3"
+            className="p-5 glass-panel rounded-2xl border-white/10 shadow-xl space-y-4"
           >
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-zinc-100 dark:border-zinc-800 pb-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-4">
               <div>
-                <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
+                <h3 className="text-base font-black text-white flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-gradient-to-r from-cyan-400 to-pink-500 shadow-[0_0_8px_#ec4899]" />
                   {genre.name}
                 </h3>
-                <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+                <p className="text-xs font-serif italic text-slate-300 mt-0.5">
                   {genre.description}
                 </p>
               </div>
 
               <button
                 onClick={() => onPlayGenre(genre)}
-                className="self-start sm:self-auto flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-zinc-950 rounded-lg shadow-xs hover:opacity-90 transition-opacity shrink-0"
-                style={{ backgroundColor: 'var(--theme-accent, #f59e0b)' }}
+                className="self-start sm:self-auto flex items-center gap-2 px-4 py-1.5 text-xs font-black uppercase tracking-wider glass-aether-button rounded-full shadow-sm transition-all shrink-0"
               >
-                <Play className="w-3.5 h-3.5 fill-current" />
+                <Play className="w-3.5 h-3.5 fill-white" />
                 <span>Play Collection</span>
               </button>
             </div>

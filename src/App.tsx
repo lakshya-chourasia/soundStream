@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Track, RepeatMode, VisualizerMode, ActiveView, GenreCollection, Playlist, ThemePreset } from './types/player';
+import { Track, RepeatMode, VisualizerMode, ActiveView, GenreCollection, Playlist, ThemePreset, StreamQuality, PlayerStyle } from './types/player';
 import { THEME_PRESETS } from './utils/themeConfig';
 import { Header } from './components/Header';
 import { NowPlayingHero } from './components/NowPlayingHero';
@@ -8,9 +8,11 @@ import { TrackCard } from './components/TrackCard';
 import { QueueDrawer } from './components/QueueDrawer';
 import { CuratedVibes } from './components/CuratedVibes';
 import { MiniPlayerBar } from './components/MiniPlayerBar';
+import { MobileBottomNav } from './components/MobileBottomNav';
 import { YouTubePlayer, YouTubePlayerHandle } from './components/YouTubePlayer';
 import { QuickImportModal } from './components/QuickImportModal';
 import { SleepTimerModal } from './components/SleepTimerModal';
+import { NodesBackground } from './components/NodesBackground';
 import { getNextTrackIndex, getPrevTrackIndex, extractYouTubeId } from './utils/playerUtils';
 import { Music2, Compass, AlertCircle, Info } from 'lucide-react';
 
@@ -40,12 +42,30 @@ export default function App() {
   const [repeatMode, setRepeatMode] = useState<RepeatMode>('off');
   const [isShuffle, setIsShuffle] = useState<boolean>(false);
   const [playbackRate, setPlaybackRate] = useState<number>(1);
+  const [playbackQuality, setPlaybackQuality] = useState<StreamQuality>(() => {
+    const saved = localStorage.getItem('soundstream_quality') as StreamQuality;
+    return saved || 'auto';
+  });
   const [visualizerMode, setVisualizerMode] = useState<VisualizerMode>('spectrum');
+  const [playerStyle, setPlayerStyle] = useState<PlayerStyle>(() => {
+    const saved = localStorage.getItem('soundstream_player_style') as PlayerStyle;
+    return saved === 'vinyl' ? 'vinyl' : 'wavy';
+  });
   const [isVideoVisible, setIsVideoVisible] = useState<boolean>(false);
   const [crossfadeDuration, setCrossfadeDuration] = useState<number>(() => {
     const saved = localStorage.getItem('aura_crossfade');
     return saved !== null ? Number(saved) : 1.5;
   });
+
+  // Persist Quality
+  useEffect(() => {
+    localStorage.setItem('soundstream_quality', playbackQuality);
+  }, [playbackQuality]);
+
+  // Persist Player Style
+  useEffect(() => {
+    localStorage.setItem('soundstream_player_style', playerStyle);
+  }, [playerStyle]);
 
   // Navigation & Modals State
   const [activeView, setActiveView] = useState<ActiveView>('now-playing');
@@ -242,7 +262,7 @@ export default function App() {
         setCurrentTrack(targetTrack);
         setIsPlaying(autoPlay);
         setCurrentTime(0);
-        playerRef.current?.loadTrack(targetTrack.id, autoPlay);
+        playerRef.current?.loadTrack(targetTrack, autoPlay);
         return;
       }
 
@@ -274,7 +294,7 @@ export default function App() {
           setCurrentTrack(targetTrack);
           setCurrentTime(0);
           setIsPlaying(true);
-          playerRef.current?.loadTrack(targetTrack.id, true);
+          playerRef.current?.loadTrack(targetTrack, true);
 
           // Phase 3: Smooth Fade-In
           let inStep = 0;
@@ -411,6 +431,36 @@ export default function App() {
     showToast('Queue cleared.');
   };
 
+  // Hindi Live Radio Audio Channels Trigger
+  const [isRadioPlaying, setIsRadioPlaying] = useState<boolean>(false);
+
+  const handlePlayHindiRadio = useCallback(async () => {
+    try {
+      showToast('Tuning into live Hindi audio radio...');
+      const res = await fetch('/api/radio');
+      if (!res.ok) throw new Error('Radio fetch failed');
+      const data = await res.json();
+      const stations: Track[] = data.stations || [];
+      if (stations.length === 0) {
+        showToast('No active Hindi radio channels found.');
+        return;
+      }
+      // Pick a live station (Radio Mirchi FM, Mirchi Top 20, Hits of Bollywood, etc.)
+      const randomStation = stations[Math.floor(Math.random() * stations.length)];
+      setQueue((prev) => {
+        const remainingStations = stations.filter((s) => s.id !== randomStation.id);
+        return [randomStation, ...remainingStations, ...prev.filter((t) => !stations.some((s) => s.id === t.id))];
+      });
+      handlePlayTrack(randomStation);
+      setIsRadioPlaying(true);
+      setActiveView('now-playing');
+      showToast(`Tuned into Live Radio: ${randomStation.title}`);
+    } catch (err: any) {
+      console.error(err);
+      showToast('Could not load Hindi radio channels.');
+    }
+  }, [handlePlayTrack]);
+
   // Favorites Operations
   const handleToggleFavorite = (track: Track) => {
     setFavorites((prev) => {
@@ -485,13 +535,29 @@ export default function App() {
 
   return (
     <div
-      className={`min-h-screen ${isDarkMode ? currentTheme.bgClass : 'bg-stone-50'} text-zinc-900 dark:text-zinc-100 flex flex-col font-sans transition-colors duration-300 relative overflow-x-hidden`}
-      style={{
-        backgroundImage: isDarkMode
-          ? `radial-gradient(circle at 50% 20%, ${currentTheme.accent}14 0%, transparent 60%)`
-          : `radial-gradient(circle at 50% 20%, ${currentTheme.accent}0a 0%, transparent 60%)`,
-      }}
+      className="h-screen text-[#f4f5f8] flex flex-col font-sans relative overflow-hidden selection:bg-[#ec4899]/30 selection:text-[#38bdf8] bg-[#06070a]"
     >
+      {/* Prismatic Aurora Borealis & Deep Space Nebula Ambient Atmosphere */}
+      <div
+        className="absolute inset-0 aurora-nebula-bg pointer-events-none z-0"
+        aria-hidden="true"
+      />
+
+      {/* Cosmic Stardust Layer */}
+      <div
+        className="absolute inset-0 stardust-layer pointer-events-none z-0"
+        aria-hidden="true"
+      />
+
+      {/* Interactive Constellation / Musical Nodes Canvas with Audio Reactivity */}
+      <NodesBackground isPlaying={isPlaying} volume={volume} connectionDistance={150} />
+
+      {/* Subtle Vignette Shading for audiophile focus & crisp UI legibility */}
+      <div 
+        className="absolute inset-0 bg-gradient-to-b from-[#06070a]/40 via-transparent to-[#06070a]/60 pointer-events-none z-0"
+        aria-hidden="true"
+      />
+
       {/* Top Navigation Bar */}
       <Header
         activeView={activeView}
@@ -499,48 +565,56 @@ export default function App() {
         queueCount={queue.length}
         onOpenQuickImport={() => setIsQuickImportOpen(true)}
         sleepTimerRemaining={sleepTimerRemaining}
-        isDarkMode={isDarkMode}
-        onToggleTheme={() => setIsDarkMode(!isDarkMode)}
         onOpenSleepTimer={() => setIsSleepTimerOpen(true)}
-        themePreset={themePreset}
-        onChangeThemePreset={setThemePreset}
+        onPlayHindiRadio={handlePlayHindiRadio}
+        isRadioPlaying={isRadioPlaying}
       />
 
       {/* Toast Notification */}
       {toastMessage && (
         <div
-          className="fixed top-18 right-6 z-50 bg-zinc-900/95 text-zinc-100 text-xs px-3.5 py-2 rounded-xl border shadow-xl flex items-center gap-2 animate-in fade-in slide-in-from-top-2"
-          style={{ borderColor: `${currentTheme.accent}40` }}
+          className="fixed top-18 right-6 z-50 glass-panel text-[#f4f5f8] text-xs font-bold px-4 py-2.5 rounded-xl border border-white/20 shadow-2xl flex items-center gap-2.5 animate-in fade-in slide-in-from-top-2"
         >
-          <Info className="w-4 h-4 shrink-0" style={{ color: currentTheme.accent }} />
+          <span className="w-2 h-2 rounded-full bg-gradient-to-r from-cyan-400 to-pink-500 shadow-[0_0_8px_#ec4899] shrink-0" />
           <span>{toastMessage}</span>
         </div>
       )}
 
-      {/* Main Content Area */}
-      <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-6 pb-28">
-        {/* VIEW 1: NOW PLAYING (kept in DOM with off-screen positioning so audio never pauses during tab switching) */}
-        <div className={activeView === 'now-playing' ? 'block space-y-6' : 'fixed -left-[99999px] top-0 opacity-0 pointer-events-none h-0 w-0 overflow-hidden'}>
-          <NowPlayingHero
-            currentTrack={currentTrack}
-            isPlaying={isPlaying}
-            isBuffering={isBuffering}
-            currentTime={currentTime}
-            duration={duration}
-            volume={volume}
-            repeatMode={repeatMode}
-            isShuffle={isShuffle}
-            playbackRate={playbackRate}
-            visualizerMode={visualizerMode}
-            isVideoVisible={isVideoVisible}
-            themeConfig={currentTheme}
-            videoSlot={
+      {/* Main Content Area: Locked viewport container */}
+      <main className="flex-1 max-w-6xl w-full mx-auto px-2 sm:px-6 py-1 overflow-hidden flex flex-col relative z-10 min-h-0">
+        {/* VIEW 1: NOW PLAYING (Zero scrolling, fully responsive, mobile bottom nav clearance) */}
+        <div className={activeView === 'now-playing' ? 'h-full flex-1 flex flex-col justify-between overflow-hidden pb-16 md:pb-1' : 'fixed -left-[99999px] top-0 opacity-0 pointer-events-none h-0 w-0 overflow-hidden'}>
+          <div className="h-full flex-1 flex flex-col justify-between items-center min-h-0">
+            <NowPlayingHero
+              currentTrack={currentTrack}
+              isPlaying={isPlaying}
+              isBuffering={isBuffering}
+              currentTime={currentTime}
+              duration={duration}
+              volume={volume}
+              repeatMode={repeatMode}
+              isShuffle={isShuffle}
+              playbackRate={playbackRate}
+              playbackQuality={playbackQuality}
+              visualizerMode={visualizerMode}
+              playerStyle={playerStyle}
+              onTogglePlayerStyle={() => {
+                setPlayerStyle((prev) => {
+                  const next = prev === 'wavy' ? 'vinyl' : 'wavy';
+                  showToast(`Player style: ${next === 'wavy' ? 'Wavy Flow' : 'Vinyl Turntable'}`);
+                  return next;
+                });
+              }}
+              isVideoVisible={isVideoVisible}
+              themeConfig={currentTheme}
+              videoSlot={
               <YouTubePlayer
                 ref={playerRef}
                 currentTrack={currentTrack}
                 isPlaying={isPlaying}
                 volume={volume}
                 playbackRate={playbackRate}
+                playbackQuality={playbackQuality}
                 isVideoVisible={isVideoVisible}
                 onTimeUpdate={(cur, dur) => {
                   setCurrentTime(cur);
@@ -582,29 +656,35 @@ export default function App() {
             }}
             onChangeVolume={setVolume}
             onChangePlaybackRate={setPlaybackRate}
+            onChangePlaybackQuality={(q) => {
+              setPlaybackQuality(q);
+              playerRef.current?.setPlaybackQuality(q);
+              showToast(`Quality set to ${q.toUpperCase()}`);
+            }}
             onChangeVisualizerMode={setVisualizerMode}
             onToggleVideo={() => setIsVideoVisible(!isVideoVisible)}
             onToggleFavorite={() => {
               if (currentTrack) handleToggleFavorite(currentTrack);
             }}
+            onPlayHindiRadio={handlePlayHindiRadio}
           />
 
-          {/* Quick Up Next Preview Strip */}
+          {/* Quick Up Next Preview Strip (Ultra-compact, non-overflowing) */}
           {queue.length > 1 && (
-            <div className="max-w-xl mx-auto pt-6 border-t border-zinc-200 dark:border-zinc-800/60">
-              <div className="flex items-center justify-between text-xs text-zinc-500 mb-2">
-                <span>Up Next in Queue</span>
+            <div className="max-w-xl w-full mx-auto pt-1 mt-1 border-t border-white/10 shrink-0 hidden md:block">
+              <div className="flex items-center justify-between text-[10px] mb-1">
+                <span className="font-mono font-bold tracking-wider uppercase text-cyan-300">UP NEXT IN QUEUE</span>
                 <button
                   onClick={() => setActiveView('queue')}
-                  className="text-amber-500 hover:text-amber-400 font-medium"
+                  className="text-pink-400 hover:text-pink-300 font-black text-[10px] uppercase tracking-wider transition-colors"
                 >
-                  View All ({queue.length})
+                  VIEW ALL ({queue.length})
                 </button>
               </div>
               <div className="space-y-1">
                 {queue
                   .filter((t) => t.id !== currentTrack?.id)
-                  .slice(0, 3)
+                  .slice(0, 1)
                   .map((track) => (
                     <TrackCard
                       key={`hero-next-${track.id}`}
@@ -621,68 +701,73 @@ export default function App() {
               </div>
             </div>
           )}
+          </div>
         </div>
 
         {/* VIEW 2: SEARCH & BROWSE */}
-        <div className={activeView === 'discover' ? 'block space-y-6' : 'hidden'}>
-          <SearchBar
-            onSearch={handleSearch}
-            onDirectPlay={handleDirectPlay}
-            isLoading={isSearching}
-            activeGenre={activeGenreFilter}
-            onSelectGenre={handleSelectGenreFilter}
-          />
+        <div className={activeView === 'discover' ? 'h-full flex-1 flex flex-col space-y-4 pb-36 md:pb-24 overflow-hidden min-h-0' : 'hidden'}>
+          <div className="shrink-0">
+            <SearchBar
+              onSearch={handleSearch}
+              onDirectPlay={handleDirectPlay}
+              isLoading={isSearching}
+              activeGenre={activeGenreFilter}
+              onSelectGenre={handleSelectGenreFilter}
+            />
+          </div>
 
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
-                <Compass className="w-4 h-4 text-amber-500" />
+          <div className="flex-1 flex flex-col min-h-0 space-y-3">
+            <div className="flex items-center justify-between pb-2 border-b border-white/10 shrink-0">
+              <h3 className="text-base font-black tracking-tight text-white uppercase flex items-center gap-2">
+                <Compass className="w-4 h-4 text-cyan-400" />
                 <span>
                   {searchQuery
-                    ? `Search Results for "${searchQuery}"`
+                    ? `SEARCH RESULTS: "${searchQuery}"`
                     : activeGenreFilter
-                    ? `Featured in ${activeGenreFilter.toUpperCase()}`
-                    : 'Featured Music'}
+                    ? `COLLECTION: ${activeGenreFilter.toUpperCase()}`
+                    : 'CATALOG DISCOVERY'}
                 </span>
               </h3>
-              <span className="text-xs text-zinc-400 font-mono tabular-nums">
-                {searchResults.length} tracks
+              <span className="text-xs font-mono font-bold tracking-wider text-pink-400/80 tabular-nums uppercase">
+                {searchResults.length} TRACKS
               </span>
             </div>
 
             {isSearching ? (
-              <div className="py-16 text-center text-zinc-500 space-y-2">
-                <div className="w-6 h-6 border-2 border-amber-500 border-t-transparent rounded-full animate-spin mx-auto" />
-                <p className="text-xs">Fetching tracks from YouTube...</p>
+              <div className="py-20 text-center text-slate-500 space-y-3">
+                <div className="w-8 h-8 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin mx-auto shadow-[0_0_12px_rgba(56,189,248,0.5)]" />
+                <p className="text-xs font-mono uppercase tracking-wider text-cyan-400 font-bold">Querying YouTube Audio Stream...</p>
               </div>
             ) : searchResults.length === 0 ? (
-              <div className="py-16 text-center text-zinc-500">
-                <AlertCircle className="w-8 h-8 opacity-30 mx-auto mb-2" />
-                <p className="text-sm font-medium">No results found.</p>
-                <p className="text-xs text-zinc-400 mt-1">Try a different song or artist query.</p>
+              <div className="py-20 text-center text-slate-500">
+                <AlertCircle className="w-8 h-8 opacity-40 mx-auto mb-2 text-cyan-400" />
+                <p className="text-sm font-bold uppercase tracking-wider text-slate-300">No tracks located</p>
+                <p className="text-xs text-slate-500 mt-1 font-mono">Check artist query or link.</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                {searchResults.map((track) => (
-                  <TrackCard
-                    key={`search-${track.id}`}
-                    track={track}
-                    isCurrent={currentTrack?.id === track.id}
-                    isPlaying={isPlaying && currentTrack?.id === track.id}
-                    isQueued={queue.some((q) => q.id === track.id)}
-                    onPlay={handlePlayTrack}
-                    onAddToQueue={handleAddToQueue}
-                    onToggleFavorite={handleToggleFavorite}
-                    isFavorite={favorites.some((f) => f.id === track.id)}
-                  />
-                ))}
+              <div className="flex-1 overflow-y-auto pr-1 pb-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 pb-6">
+                  {searchResults.map((track) => (
+                    <TrackCard
+                      key={`search-${track.id}`}
+                      track={track}
+                      isCurrent={currentTrack?.id === track.id}
+                      isPlaying={isPlaying && currentTrack?.id === track.id}
+                      isQueued={queue.some((q) => q.id === track.id)}
+                      onPlay={handlePlayTrack}
+                      onAddToQueue={handleAddToQueue}
+                      onToggleFavorite={handleToggleFavorite}
+                      isFavorite={favorites.some((f) => f.id === track.id)}
+                    />
+                  ))}
+                </div>
               </div>
             )}
           </div>
         </div>
 
         {/* VIEW 3: CURATED VIBES */}
-        <div className={activeView === 'genres' ? 'block' : 'hidden'}>
+        <div className={activeView === 'genres' ? 'h-full flex-1 overflow-y-auto pb-36 md:pb-28 pr-1' : 'hidden'}>
           <CuratedVibes
             genres={genres}
             currentTrack={currentTrack}
@@ -696,7 +781,7 @@ export default function App() {
         </div>
 
         {/* VIEW 4: QUEUE & PLAYLISTS */}
-        <div className={activeView === 'queue' ? 'block' : 'hidden'}>
+        <div className={activeView === 'queue' ? 'h-full flex-1 overflow-y-auto pb-36 md:pb-28 pr-1' : 'hidden'}>
           <QueueDrawer
             queue={queue}
             currentTrack={currentTrack}
@@ -758,6 +843,15 @@ export default function App() {
             showToast(`Sleep timer set for ${mins} minutes.`);
           }
         }}
+      />
+
+      {/* Dedicated Mobile Bottom Navigation Bar (Phone First) */}
+      <MobileBottomNav
+        activeView={activeView}
+        onSelectView={setActiveView}
+        onPlayHindiRadio={handlePlayHindiRadio}
+        isRadioPlaying={Boolean(currentTrack?.isLiveRadio && isPlaying)}
+        queueCount={queue.length}
       />
     </div>
   );

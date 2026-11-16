@@ -6,12 +6,16 @@ export interface Track {
   durationSec: number;
   views?: string;
   thumbnail: string;
+  isOfficial?: boolean;
+  streamUrl?: string; // Direct live audio channel HTTP/MP3 stream
+  isLiveRadio?: boolean;
 }
 
 export type RepeatMode = 'off' | 'all' | 'one';
 export type VisualizerMode = 'spectrum' | 'wave' | 'aura' | 'minimal';
+export type PlayerStyle = 'wavy' | 'vinyl';
 export type ActiveView = 'now-playing' | 'discover' | 'queue' | 'genres';
-export type ThemePreset = 'obsidian' | 'midnight' | 'nordic' | 'braun' | 'emerald';
+export type ThemePreset = 'aether' | 'spotify' | 'obsidian' | 'midnight' | 'amethyst' | 'emerald' | 'braun' | 'nordic';
 
 export interface ThemeConfig {
   id: ThemePreset;
@@ -55,4 +59,6 @@ export interface LyricsData {
 }
 
 export type CrossfadeDuration = 0 | 1 | 1.5 | 2 | 3;
+export type StreamQuality = 'auto' | 'highres' | 'hd1080' | 'hd720' | 'large' | 'medium' | 'small';
+
 

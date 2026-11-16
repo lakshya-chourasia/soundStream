@@ -1,7 +1,6 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React from 'react';
 import { ActiveView, ThemePreset } from '../types/player';
-import { THEME_PRESETS } from '../utils/themeConfig';
-import { Radio, Plus, Moon, Sun, Timer, Palette, Check } from 'lucide-react';
+import { Plus, Timer, Radio } from 'lucide-react';
 
 interface HeaderProps {
   activeView: ActiveView;
@@ -9,11 +8,13 @@ interface HeaderProps {
   queueCount: number;
   onOpenQuickImport: () => void;
   sleepTimerRemaining: number | null;
-  isDarkMode: boolean;
-  onToggleTheme: () => void;
+  isDarkMode?: boolean;
+  onToggleTheme?: () => void;
   onOpenSleepTimer: () => void;
-  themePreset: ThemePreset;
-  onChangeThemePreset: (preset: ThemePreset) => void;
+  onPlayHindiRadio?: () => void;
+  isRadioPlaying?: boolean;
+  themePreset?: ThemePreset;
+  onChangeThemePreset?: (preset: ThemePreset) => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -22,216 +23,114 @@ export const Header: React.FC<HeaderProps> = ({
   queueCount,
   onOpenQuickImport,
   sleepTimerRemaining,
-  isDarkMode,
-  onToggleTheme,
   onOpenSleepTimer,
-  themePreset,
-  onChangeThemePreset,
+  onPlayHindiRadio,
+  isRadioPlaying = false,
 }) => {
-  const [showThemeMenu, setShowThemeMenu] = useState(false);
-  const themeMenuRef = useRef<HTMLDivElement | null>(null);
-  const currentTheme = THEME_PRESETS[themePreset];
-
-  useEffect(() => {
-    const handleOutsideClick = (e: MouseEvent) => {
-      if (themeMenuRef.current && !themeMenuRef.current.contains(e.target as Node)) {
-        setShowThemeMenu(false);
-      }
-    };
-    if (showThemeMenu) {
-      document.addEventListener('mousedown', handleOutsideClick);
-    }
-    return () => document.removeEventListener('mousedown', handleOutsideClick);
-  }, [showThemeMenu]);
-
   return (
-    <header className="flex items-center justify-between gap-4 md:gap-8 px-4 sm:px-6 py-3.5 border-b border-white/[0.08] dark:border-white/[0.08] bg-white/75 dark:bg-black/50 backdrop-blur-xl sticky top-0 z-40">
-      {/* Zone 1: Single text element Brand wordmark */}
+    <header className="flex items-center justify-between gap-2 px-3 sm:px-6 py-2 pt-safe border-b border-white/10 bg-[#08090c]/85 backdrop-blur-2xl shrink-0 z-40 relative">
+      {/* Prismatic Top Spectral Ribbon */}
+      <div className="absolute top-0 inset-x-0 h-[2px] bg-gradient-to-r from-cyan-400 via-pink-500 to-amber-400 opacity-80" />
+
+      {/* Brand: Uiverse Aether Wordmark */}
       <button
         onClick={() => onSelectView('now-playing')}
-        className="flex items-center gap-2.5 text-left text-zinc-900 dark:text-zinc-100 hover:opacity-90 transition-opacity whitespace-nowrap shrink-0 group focus:outline-none"
-        aria-label="Aura Minimalist Music Player Home"
+        className="flex items-center text-left hover:opacity-90 transition-opacity whitespace-nowrap shrink-0 group focus:outline-none"
+        aria-label="SoundStream Home"
       >
-        <div
-          className="w-8 h-8 rounded-lg flex items-center justify-center transition-transform group-hover:scale-105 shadow-inner"
-          style={{
-            backgroundColor: `${currentTheme.accent}18`,
-            borderColor: `${currentTheme.accent}35`,
-            borderWidth: '1px',
-            color: currentTheme.accent,
-          }}
-        >
-          <Radio className="w-4 h-4" />
+        <div className="flex flex-col">
+          <span className="text-sm font-black tracking-widest uppercase text-white leading-none">
+            SOUND<span className="bg-gradient-to-r from-cyan-400 via-pink-400 to-amber-300 bg-clip-text text-transparent">STREAM</span>
+          </span>
+          <span className="text-[9px] font-mono tracking-widest text-slate-400 uppercase font-semibold mt-0.5">
+            AETHER <span className="font-serif italic text-pink-400 font-normal">audio</span>
+          </span>
         </div>
-        <span className="text-base font-semibold tracking-tight">Aura Sound</span>
       </button>
 
-      {/* Zone 2: 4 single-line text navigation links */}
-      <nav className="flex items-center gap-2 md:gap-6 text-sm font-medium text-zinc-600 dark:text-zinc-400" aria-label="Main Navigation">
-        <button
-          onClick={() => onSelectView('now-playing')}
-          className={`py-1 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors whitespace-nowrap shrink-0 text-xs md:text-sm font-medium`}
-          style={
-            activeView === 'now-playing'
-              ? {
-                  color: currentTheme.accent,
-                  borderBottom: `2px solid ${currentTheme.accent}`,
-                  fontWeight: 600,
-                }
-              : {}
-          }
+      {/* Desktop Segmented Editorial Navigation + Radio Trigger */}
+      <div className="hidden md:flex items-center gap-2">
+        <nav
+          className="flex items-center p-1 rounded-full glass-panel text-xs font-bold"
+          aria-label="Main Navigation"
         >
-          <span className="sm:hidden">Player</span>
-          <span className="hidden sm:inline">Now Playing</span>
-        </button>
-        <button
-          onClick={() => onSelectView('discover')}
-          className={`py-1 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors whitespace-nowrap shrink-0 text-xs md:text-sm font-medium`}
-          style={
-            activeView === 'discover'
-              ? {
-                  color: currentTheme.accent,
-                  borderBottom: `2px solid ${currentTheme.accent}`,
-                  fontWeight: 600,
-                }
-              : {}
-          }
-        >
-          <span className="sm:hidden">Search</span>
-          <span className="hidden sm:inline">Search & Browse</span>
-        </button>
-        <button
-          onClick={() => onSelectView('genres')}
-          className={`py-1 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors whitespace-nowrap shrink-0 text-xs md:text-sm font-medium`}
-          style={
-            activeView === 'genres'
-              ? {
-                  color: currentTheme.accent,
-                  borderBottom: `2px solid ${currentTheme.accent}`,
-                  fontWeight: 600,
-                }
-              : {}
-          }
-        >
-          <span className="sm:hidden">Vibes</span>
-          <span className="hidden sm:inline">Curated Vibes</span>
-        </button>
-        <button
-          onClick={() => onSelectView('queue')}
-          className={`py-1 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors whitespace-nowrap shrink-0 flex items-center gap-1.5 text-xs md:text-sm font-medium`}
-          style={
-            activeView === 'queue'
-              ? {
-                  color: currentTheme.accent,
-                  borderBottom: `2px solid ${currentTheme.accent}`,
-                  fontWeight: 600,
-                }
-              : {}
-          }
-        >
-          <span>Queue</span>
-          {queueCount > 0 && (
-            <span className="text-[11px] font-mono tabular-nums text-zinc-500 dark:text-zinc-400">
-              ({queueCount})
-            </span>
-          )}
-        </button>
-      </nav>
+          {[
+            { id: 'now-playing', label: 'DECK' },
+            { id: 'discover', label: 'SEARCH' },
+            { id: 'genres', label: 'CURATED' },
+            { id: 'queue', label: `QUEUE${queueCount > 0 ? ` (${queueCount})` : ''}` },
+          ].map((item) => {
+            const isActive = activeView === item.id;
+            return (
+              <button
+                key={item.id}
+                onClick={() => onSelectView(item.id as ActiveView)}
+                className={`px-3 sm:px-3.5 py-1.5 rounded-full transition-all tracking-wider text-[11px] whitespace-nowrap font-mono font-bold ${
+                  isActive
+                    ? 'bg-gradient-to-r from-cyan-500 via-pink-500 to-amber-400 text-white font-black shadow-[0_0_14px_rgba(236,72,153,0.5)]'
+                    : 'text-slate-400 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                {item.label}
+              </button>
+            );
+          })}
+        </nav>
 
-      {/* Zone 3: 1 primary action + compact utilities */}
-      <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
-        {/* Sleep Timer Active Indicator */}
-        {sleepTimerRemaining !== null && (
+        {/* Quick Launch: Live Hindi Audio Radio Trigger */}
+        <div className="flex items-center gap-1.5">
+          {onPlayHindiRadio && (
+            <button
+              onClick={onPlayHindiRadio}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[11px] font-mono font-black uppercase tracking-wider transition-all whitespace-nowrap ${
+                isRadioPlaying
+                  ? 'bg-gradient-to-r from-amber-500 to-pink-500 text-white border-amber-300/40 shadow-[0_0_14px_rgba(245,158,11,0.5)] animate-pulse'
+                  : 'glass-panel text-amber-300 hover:text-white hover:border-amber-400/50 hover:bg-amber-500/10'
+              }`}
+              title="Tune into 24/7 Live Hindi Radio Audio Channels"
+              aria-label="Play Live Hindi Radio"
+            >
+              <Radio className={`w-3.5 h-3.5 ${isRadioPlaying ? 'animate-spin-slow' : ''}`} />
+              <span className="hidden sm:inline">HINDI RADIO</span>
+              <span className="sm:hidden">RADIO</span>
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Utility Actions */}
+      <div className="flex items-center gap-2 shrink-0">
+        {/* Active Sleep Timer countdown pill */}
+        {sleepTimerRemaining !== null ? (
           <button
             onClick={onOpenSleepTimer}
-            className="flex items-center gap-1 px-2 py-1 text-xs font-mono tabular-nums rounded-md transition-colors whitespace-nowrap shrink-0"
-            style={{
-              color: currentTheme.accent,
-              backgroundColor: `${currentTheme.accent}15`,
-              borderColor: `${currentTheme.accent}30`,
-              borderWidth: '1px',
-            }}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono font-bold rounded-full glass-panel border-pink-500/40 text-pink-300 hover:bg-pink-500/15 transition-colors shadow-[0_0_12px_rgba(236,72,153,0.3)]"
             title="Sleep timer active"
-            aria-label="Sleep timer settings"
+            aria-label="Sleep timer active"
           >
-            <Timer className="w-3.5 h-3.5" />
-            <span>{Math.ceil(sleepTimerRemaining / 60)}m</span>
+            <Timer className="w-3.5 h-3.5 text-pink-400" />
+            <span>{Math.ceil(sleepTimerRemaining / 60)}M</span>
+          </button>
+        ) : (
+          <button
+            onClick={onOpenSleepTimer}
+            className="p-2 text-slate-400 hover:text-white rounded-full hover:bg-white/5 transition-colors hidden sm:flex items-center border border-transparent hover:border-white/10"
+            title="Set Sleep Timer"
+            aria-label="Set sleep timer"
+          >
+            <Timer className="w-4 h-4" />
           </button>
         )}
 
-        {/* Theme Preset Selector Dropdown */}
-        <div className="relative" ref={themeMenuRef}>
-          <button
-            onClick={() => setShowThemeMenu(!showThemeMenu)}
-            className="p-1.5 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 rounded-lg hover:bg-white/10 dark:hover:bg-white/5 transition-colors flex items-center gap-1"
-            title="Choose Aesthetic Theme"
-            aria-label="Choose aesthetic theme"
-          >
-            <Palette className="w-4 h-4" />
-            <div
-              className="w-2.5 h-2.5 rounded-full shadow-xs"
-              style={{ backgroundColor: currentTheme.accent }}
-            />
-          </button>
-
-          {showThemeMenu && (
-            <div className="absolute right-0 top-full mt-2 w-56 p-1.5 bg-zinc-900/95 border border-zinc-700/80 rounded-xl shadow-2xl backdrop-blur-xl z-50 animate-in fade-in zoom-in-95 space-y-0.5">
-              <div className="px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-zinc-400">
-                Aesthetic Themes
-              </div>
-              {Object.values(THEME_PRESETS).map((t) => (
-                <button
-                  key={t.id}
-                  onClick={() => {
-                    onChangeThemePreset(t.id);
-                    setShowThemeMenu(false);
-                  }}
-                  className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs flex items-center justify-between transition-colors ${
-                    themePreset === t.id
-                      ? 'bg-white/15 text-white font-medium'
-                      : 'text-zinc-300 hover:bg-white/5 hover:text-white'
-                  }`}
-                >
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <div
-                      className="w-3 h-3 rounded-full shrink-0 shadow-xs"
-                      style={{ backgroundColor: t.accent }}
-                    />
-                    <div className="truncate">
-                      <span className="block truncate font-medium">{t.name}</span>
-                      <span className="block truncate text-[10px] text-zinc-400">{t.tagline}</span>
-                    </div>
-                  </div>
-                  {themePreset === t.id && (
-                    <Check className="w-3.5 h-3.5 shrink-0 ml-1" style={{ color: t.accent }} />
-                  )}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Light / Dark Mode Toggle */}
-        <button
-          onClick={onToggleTheme}
-          className="p-1.5 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 rounded-lg hover:bg-white/10 dark:hover:bg-white/5 transition-colors"
-          aria-label={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
-        >
-          {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-        </button>
-
-        {/* Primary CTA: Add YouTube Link */}
+        {/* Primary CTA: Uiverse Aether Prismatic Button */}
         <button
           onClick={onOpenQuickImport}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg shadow-sm hover:shadow transition-all whitespace-nowrap shrink-0 text-zinc-950"
-          style={{
-            backgroundColor: currentTheme.accent,
-          }}
-          aria-label="Paste YouTube URL or Video ID"
+          className="flex items-center gap-1.5 px-4 py-1.5 text-xs font-black uppercase tracking-wider rounded-full glass-aether-button whitespace-nowrap"
+          aria-label="Import YouTube URL"
         >
-          <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-          <span className="hidden sm:inline">Add YouTube Link</span>
-          <span className="sm:hidden">Add</span>
+          <Plus className="w-3.5 h-3.5 stroke-[3]" />
+          <span className="hidden sm:inline">IMPORT LINK</span>
+          <span className="sm:hidden">IMPORT</span>
         </button>
       </div>
     </header>
