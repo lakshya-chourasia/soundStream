@@ -24,6 +24,7 @@ interface YouTubePlayerProps {
   onStateChange: (isPlaying: boolean, isBuffering: boolean) => void;
   onTrackEnded: () => void;
   onError: (errorMsg: string) => void;
+  onPlaybackRestricted?: (track: Track, errorCode: number) => void;
 }
 
 declare global {
@@ -46,6 +47,7 @@ export const YouTubePlayer = forwardRef<YouTubePlayerHandle, YouTubePlayerProps>
       onStateChange,
       onTrackEnded,
       onError,
+      onPlaybackRestricted,
     },
     ref
   ) => {
@@ -201,7 +203,6 @@ export const YouTubePlayer = forwardRef<YouTubePlayerHandle, YouTubePlayerProps>
             fs: 0,
             autohide: 1,
             cc_load_policy: 0,
-            origin: typeof window !== 'undefined' ? window.location.origin : undefined,
           },
           events: {
             onReady: (event: any) => {
@@ -236,12 +237,20 @@ export const YouTubePlayer = forwardRef<YouTubePlayerHandle, YouTubePlayerProps>
               }
             },
             onError: (event: any) => {
-              console.warn('YouTube Player error code:', event.data);
+              console.warn('YouTube Player error code:', event.data, 'for video:', currentTrack?.id);
+              // Error 101 / 150 = Video owner disallowed embedding
+              // Error 100 = Video removed / not found / private
+              if (event.data === 101 || event.data === 150 || event.data === 100) {
+                if (currentTrack && onPlaybackRestricted) {
+                  onPlaybackRestricted(currentTrack, event.data);
+                  return;
+                }
+              }
               let msg = 'Playback error occurred.';
               if (event.data === 101 || event.data === 150) {
-                msg = 'Playback is restricted on this video by the owner. Try another track or open on YouTube.';
+                msg = 'Playback restricted on this video by the owner.';
               } else if (event.data === 100) {
-                msg = 'Video not found or removed. Try another track.';
+                msg = 'Video not found or removed.';
               } else if (event.data === 2) {
                 msg = 'Invalid YouTube video ID.';
               }

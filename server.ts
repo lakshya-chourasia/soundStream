@@ -18,7 +18,7 @@ const CURATED_GENRES = [
     tag: '#RELATIONSHIPS',
     tracks: [
       {
-        id: 'hLQl3WQQoQ0',
+        id: '22c3_LoIfZQ',
         title: 'Someone Like You',
         artist: 'Adele',
         duration: '4:45',
@@ -238,11 +238,24 @@ function parseDurationSec(durationStr: string): number {
   return parts[0] || 0;
 }
 
+// In-memory blacklist for known playback-restricted videos (disallowed embedding)
+const KNOWN_RESTRICTED_IDS = new Set<string>(['hLQl3WQQoQ0']);
+
 async function startServer() {
   const app = express();
   const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
   app.use(express.json());
+
+  // Report playback-restricted video to filter across all clients
+  app.post('/api/report-restricted', (req: Request, res: Response) => {
+    const { videoId } = req.body;
+    if (videoId && typeof videoId === 'string') {
+      KNOWN_RESTRICTED_IDS.add(videoId);
+      console.warn(`[Restricted Video Added to Blacklist]: ${videoId}`);
+    }
+    res.json({ ok: true, count: KNOWN_RESTRICTED_IDS.size });
+  });
 
   // API 1: Curated Genres and Starter Tracks
   app.get('/api/curated', (_req: Request, res: Response) => {
@@ -379,7 +392,10 @@ async function startServer() {
         return 0;
       });
 
-      res.json({ tracks: tracks.slice(0, 25) });
+      // Filter out known playback-restricted videos
+      const filtered = tracks.filter((t) => !KNOWN_RESTRICTED_IDS.has(t.id));
+
+      res.json({ tracks: filtered.slice(0, 25) });
     } catch (err: any) {
       console.error('Search error:', err.message);
       // Fallback

@@ -17,7 +17,7 @@ import { getNextTrackIndex, getPrevTrackIndex, extractYouTubeId } from './utils/
 import { Compass, AlertCircle, X } from 'lucide-react';
 
 const DEFAULT_INITIAL_TRACK: Track = {
-  id: 'hLQl3WQQoQ0',
+  id: '22c3_LoIfZQ',
   title: 'Someone Like You',
   artist: 'Adele',
   duration: '4:45',
@@ -28,6 +28,16 @@ const DEFAULT_INITIAL_TRACK: Track = {
 
 export default function App() {
   const playerRef = useRef<YouTubePlayerHandle | null>(null);
+
+  // Playback Restricted Video Filter List (persist across sessions)
+  const [restrictedVideoIds, setRestrictedVideoIds] = useState<Set<string>>(() => {
+    try {
+      const saved = localStorage.getItem('soundstream_restricted_ids');
+      return saved ? new Set(JSON.parse(saved)) : new Set<string>();
+    } catch {
+      return new Set<string>();
+    }
+  });
 
   // Core Player State
   const [currentTrack, setCurrentTrack] = useState<Track>(DEFAULT_INITIAL_TRACK);
@@ -201,7 +211,7 @@ export default function App() {
   };
 
   // Play Specific Track
-  const handlePlayTrack = (track: Track) => {
+  const handlePlayTrack = useCallback((track: Track) => {
     const isSameTrack = currentTrack?.id === track.id;
     setCurrentTrack(track);
 
@@ -221,7 +231,70 @@ export default function App() {
       setIsPlaying(true);
       setIsBuffering(true);
     }
-  };
+  }, [currentTrack]);
+
+  // Handle and filter playback-restricted videos automatically
+  const handlePlaybackRestricted = useCallback(
+    (restrictedTrack: Track, errorCode: number) => {
+      console.warn(`[Restricted Video Blocked] ID: ${restrictedTrack.id} - ${restrictedTrack.title} (code ${errorCode})`);
+
+      // 1. Add to blacklist & persist in localStorage so it never renders again
+      setRestrictedVideoIds((prev) => {
+        const updated = new Set(prev);
+        updated.add(restrictedTrack.id);
+        try {
+          localStorage.setItem('soundstream_restricted_ids', JSON.stringify(Array.from(updated)));
+        } catch {}
+        return updated;
+      });
+
+      // Report to backend blacklist
+      fetch('/api/report-restricted', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ videoId: restrictedTrack.id }),
+      }).catch(() => {});
+
+      // 2. Remove immediately from queue and search results
+      setQueue((prevQueue) => prevQueue.filter((t) => t.id !== restrictedTrack.id));
+      setSearchResults((prevResults) => prevResults.filter((t) => t.id !== restrictedTrack.id));
+
+      // 3. Immediately auto-play the next available non-restricted track
+      setQueue((currentQueue) => {
+        const playableRemaining = currentQueue.filter(
+          (t) => t.id !== restrictedTrack.id && !restrictedVideoIds.has(t.id)
+        );
+
+        if (playableRemaining.length > 0) {
+          const nextTrack = playableRemaining[0];
+          setTimeout(() => {
+            handlePlayTrack(nextTrack);
+            showToast(`Skipped restricted video: "${restrictedTrack.title}". Playing next.`);
+          }, 50);
+        } else {
+          // If queue had only that track, search for an embed-playable audio stream
+          fetch(`/api/search?q=${encodeURIComponent(restrictedTrack.title + ' audio')}`)
+            .then((res) => res.json())
+            .then((data) => {
+              const fallbackTrack = data.tracks?.find(
+                (t: Track) => t.id !== restrictedTrack.id && !restrictedVideoIds.has(t.id)
+              );
+              if (fallbackTrack) {
+                handlePlayTrack(fallbackTrack);
+                showToast(`Streaming embed-friendly version of "${restrictedTrack.title}"`);
+              } else {
+                showToast(`"${restrictedTrack.title}" has playback restrictions.`);
+              }
+            })
+            .catch(() => {
+              showToast(`"${restrictedTrack.title}" has playback restrictions.`);
+            });
+        }
+        return playableRemaining;
+      });
+    },
+    [handlePlayTrack, restrictedVideoIds]
+  );
 
   // Direct Play
   const handleDirectPlay = (urlOrId: string) => {
@@ -470,6 +543,7 @@ export default function App() {
                     onError={(err) => {
                       showToast(err);
                     }}
+                    onPlaybackRestricted={handlePlaybackRestricted}
                   />
                 }
                 isFavorite={currentTrack ? favorites.some((f) => f.id === currentTrack.id) : false}
@@ -508,7 +582,7 @@ export default function App() {
                 onToggleFavorite={() => {
                   if (currentTrack) handleToggleFavorite(currentTrack);
                 }}
-                queue={queue}
+                queue={queue.filter((t) => !restrictedVideoIds.has(t.id))}
                 onPlayTrack={handlePlayTrack}
                 playlistName={playlistTitle}
                 curatorName={curatorName}
@@ -569,7 +643,7 @@ export default function App() {
                       </div>
                     ) : (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pb-8">
-                        {searchResults.map((track) => (
+                        {searchResults.filter((t) => !restrictedVideoIds.has(t.id)).map((track) => (
                           <TrackCard
                             key={`search-${track.id}`}
                             track={track}
@@ -636,7 +710,7 @@ export default function App() {
                     </button>
                   </div>
                   <QueueDrawer
-                    queue={queue}
+                    queue={queue.filter((t) => !restrictedVideoIds.has(t.id))}
                     currentTrack={currentTrack}
                     isPlaying={isPlaying}
                     favorites={favorites}
