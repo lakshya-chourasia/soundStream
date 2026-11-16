@@ -147,31 +147,31 @@ export const LyricsOverlay: React.FC<LyricsOverlayProps> = ({
           {hasSynced && (
             <button
               onClick={() => setAutoScroll(!autoScroll)}
-              className={`px-3 py-1 rounded-full text-[11px] font-mono font-black tracking-wider uppercase transition-all ${
+              className={`px-3 py-1 rounded-full text-[11px] font-mono font-semibold tracking-wider uppercase transition-all ${
                 autoScroll
-                  ? 'bg-gradient-to-r from-cyan-500 to-pink-500 text-white shadow-[0_0_10px_rgba(236,72,153,0.5)] border border-white/20'
-                  : 'glass-pill text-slate-300 hover:text-white'
+                  ? 'bg-white text-black shadow-sm'
+                  : 'bg-white/[0.05] border border-white/10 text-zinc-400 hover:text-white'
               }`}
               title={autoScroll ? 'Disable auto-scrolling' : 'Enable auto-scrolling'}
             >
-              {autoScroll ? 'AUTO SCROLL' : 'MANUAL'}
+              {autoScroll ? 'Auto Scroll' : 'Manual'}
             </button>
           )}
 
           {(lyricsData?.plainLyrics || hasSynced) && (
             <button
               onClick={handleCopy}
-              className="p-1.5 rounded-full text-slate-400 hover:text-pink-300 hover:bg-white/5 transition-colors"
+              className="p-1.5 rounded-full text-zinc-400 hover:text-white hover:bg-white/5 transition-colors"
               title="Copy lyrics to clipboard"
               aria-label="Copy lyrics"
             >
-              {isCopied ? <Check className="w-4 h-4 text-cyan-400" /> : <Copy className="w-4 h-4" />}
+              {isCopied ? <Check className="w-4 h-4 text-white" /> : <Copy className="w-4 h-4" />}
             </button>
           )}
 
           <button
             onClick={onClose}
-            className="p-1.5 rounded-full text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
+            className="p-1.5 rounded-full text-zinc-400 hover:text-white hover:bg-white/5 transition-colors"
             title="Close lyrics view"
             aria-label="Close lyrics view"
           >
@@ -191,16 +191,16 @@ export const LyricsOverlay: React.FC<LyricsOverlayProps> = ({
             <div className="h-5 bg-white/5 rounded w-1/2 mx-auto" />
             <div className="h-5 bg-white/5 rounded w-2/3 mx-auto" />
             <div className="h-5 bg-white/5 rounded w-4/5 mx-auto" />
-            <p className="text-xs text-slate-400 pt-4 font-mono font-bold uppercase tracking-wider">Decompressing telemetry stream...</p>
+            <p className="text-xs text-zinc-500 pt-4 font-mono uppercase tracking-wider">Loading lyrics...</p>
           </div>
         ) : lyricsData?.instrumental ? (
           <div className="flex flex-col items-center justify-center text-center py-10 px-4 space-y-3">
-            <div className="w-12 h-12 rounded-full flex items-center justify-center bg-white/5 text-pink-400 border border-white/10 shadow-inner">
+            <div className="w-12 h-12 rounded-full flex items-center justify-center bg-white/5 text-white border border-white/10 shadow-inner">
               <Music className="w-6 h-6" />
             </div>
-            <h4 className="text-base font-black text-white">Instrumental Session</h4>
-            <p className="text-xs font-serif italic text-slate-300 max-w-sm leading-relaxed">
-              No vocal modulation cataloged for this signal. Pure acoustic and synthesised refraction.
+            <h4 className="text-base font-bold text-white">Instrumental Track</h4>
+            <p className="text-xs text-zinc-400 max-w-sm leading-relaxed">
+              No vocal lyrics cataloged for this track. Pure instrumental composition.
             </p>
           </div>
         ) : hasSynced ? (
@@ -216,15 +216,15 @@ export const LyricsOverlay: React.FC<LyricsOverlayProps> = ({
                   onClick={() => onSeek(line.time)}
                   className={`group cursor-pointer py-1.5 px-3 rounded-lg transition-all duration-200 ${
                     isActive
-                      ? 'scale-105 font-black text-2xl sm:text-3xl py-4 my-2 bg-gradient-to-r from-cyan-300 via-pink-400 to-amber-300 bg-clip-text text-transparent drop-shadow-[0_0_15px_rgba(236,72,153,0.5)]'
+                      ? 'scale-105 font-bold text-2xl sm:text-3xl py-4 my-2 text-white drop-shadow-[0_2px_12px_rgba(255,255,255,0.4)]'
                       : isPast
-                      ? 'text-slate-600 font-bold text-base sm:text-lg hover:text-slate-400'
-                      : 'text-slate-400 font-bold text-base sm:text-lg hover:text-white'
+                      ? 'text-zinc-600 font-semibold text-base sm:text-lg hover:text-zinc-400'
+                      : 'text-zinc-400 font-semibold text-base sm:text-lg hover:text-white'
                   }`}
                 >
                   <p className="leading-snug select-none tracking-tight">{line.text}</p>
-                  <span className="hidden group-hover:inline-block text-[10px] font-mono font-bold tracking-wider uppercase text-pink-400/80 mt-1">
-                    SEEK • {formatTime(line.time)}
+                  <span className="hidden group-hover:inline-block text-[10px] font-mono font-medium tracking-wider uppercase text-zinc-400 mt-1">
+                    Seek • {formatTime(line.time)}
                   </span>
                 </div>
               );
@@ -235,7 +235,7 @@ export const LyricsOverlay: React.FC<LyricsOverlayProps> = ({
             {lyricsData.plainLyrics.split(/\n\s*\n/).map((stanza, idx) => (
               <div key={`stanza-${idx}`} className="space-y-1.5">
                 {stanza.split('\n').map((line, lIdx) => (
-                  <p key={`line-${idx}-${lIdx}`} className="text-base font-medium text-slate-200 leading-relaxed font-serif">
+                  <p key={`line-${idx}-${lIdx}`} className="text-base font-medium text-zinc-200 leading-relaxed font-sans">
                     {line}
                   </p>
                 ))}
@@ -244,10 +244,10 @@ export const LyricsOverlay: React.FC<LyricsOverlayProps> = ({
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center text-center py-12 px-4 space-y-3">
-            <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-slate-400 border border-white/10">
+            <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-zinc-400 border border-white/10">
               <Music className="w-5 h-5" />
             </div>
-            <h4 className="text-sm font-bold text-white">Lyrics Not Cataloged</h4>
+            <h4 className="text-sm font-semibold text-white">Lyrics Not Available</h4>
             <p className="text-xs font-serif italic text-slate-400 max-w-xs">
               No synced LRC modulation detected for this track identifier.
             </p>

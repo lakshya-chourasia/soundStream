@@ -13,7 +13,6 @@ import { MobileBottomNav } from './components/MobileBottomNav';
 import { YouTubePlayer, YouTubePlayerHandle } from './components/YouTubePlayer';
 import { QuickImportModal } from './components/QuickImportModal';
 import { SleepTimerModal } from './components/SleepTimerModal';
-import { NodesBackground } from './components/NodesBackground';
 import { getNextTrackIndex, getPrevTrackIndex, extractYouTubeId } from './utils/playerUtils';
 import { Compass, AlertCircle } from 'lucide-react';
 
@@ -465,14 +464,8 @@ export default function App() {
   }, [currentTime, duration, handleNext, handlePrev, handleTogglePlay]);
 
   return (
-    <div className="h-screen w-screen text-[#f4f5f8] flex flex-col font-sans relative overflow-hidden bg-[#06070a] select-none">
-      {/* Prismatic Aurora Borealis & Nebula Ambient Atmosphere */}
-      <div className="absolute inset-0 aurora-nebula-bg pointer-events-none z-0" aria-hidden="true" />
-      <div className="absolute inset-0 stardust-layer pointer-events-none z-0" aria-hidden="true" />
-      <NodesBackground isPlaying={isPlaying} volume={volume} connectionDistance={150} />
-      <div className="absolute inset-0 bg-gradient-to-b from-[#06070a]/40 via-transparent to-[#06070a]/70 pointer-events-none z-0" aria-hidden="true" />
-
-      {/* Main Desktop Sidebar + Dynamic Center Stage App Shell */}
+    <div className="h-screen w-screen text-zinc-100 flex flex-col font-sans relative overflow-hidden bg-black stealth-bg select-none">
+      {/* App Shell: Desktop Sidebar + Dynamic Center Stage */}
       <div className="flex-1 flex overflow-hidden relative z-10 min-h-0">
         {/* Desktop Sidebar Navigation */}
         <Sidebar
@@ -489,7 +482,7 @@ export default function App() {
         />
 
         {/* Dynamic Center Stage Area */}
-        <div className="flex-1 flex flex-col overflow-hidden min-h-0 relative">
+        <div className="flex-1 flex flex-col overflow-hidden min-h-0 relative bg-black/40">
           {/* Top Header */}
           <Header
             activeView={activeView}
@@ -599,31 +592,31 @@ export default function App() {
 
               <div className="space-y-3">
                 <div className="flex items-center justify-between pb-2 border-b border-white/10 shrink-0">
-                  <h3 className="text-base font-black tracking-tight text-white uppercase flex items-center gap-2">
-                    <Compass className="w-4 h-4 text-cyan-400" />
+                  <h3 className="text-base font-bold tracking-tight text-white uppercase flex items-center gap-2">
+                    <Compass className="w-4 h-4 text-white" />
                     <span>
                       {searchQuery
-                        ? `SEARCH RESULTS: "${searchQuery}"`
+                        ? `Search Results: "${searchQuery}"`
                         : activeGenreFilter
-                        ? `COLLECTION: ${activeGenreFilter.toUpperCase()}`
-                        : 'CATALOG DISCOVERY'}
+                        ? `Collection: ${activeGenreFilter.toUpperCase()}`
+                        : 'Catalog Discovery'}
                     </span>
                   </h3>
-                  <span className="text-xs font-mono font-bold tracking-wider text-pink-400/80 tabular-nums uppercase">
-                    {searchResults.length} TRACKS
+                  <span className="text-xs font-mono font-medium text-zinc-400 tabular-nums uppercase">
+                    {searchResults.length} Tracks
                   </span>
                 </div>
 
                 {isSearching ? (
-                  <div className="py-20 text-center text-slate-500 space-y-3">
-                    <div className="w-8 h-8 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin mx-auto shadow-[0_0_12px_rgba(56,189,248,0.5)]" />
-                    <p className="text-xs font-mono uppercase tracking-wider text-cyan-400 font-bold">Querying YouTube Audio Stream...</p>
+                  <div className="py-20 text-center text-zinc-500 space-y-3">
+                    <div className="w-7 h-7 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto" />
+                    <p className="text-xs font-mono uppercase tracking-wider text-zinc-400">Searching audio catalog...</p>
                   </div>
                 ) : searchResults.length === 0 ? (
-                  <div className="py-20 text-center text-slate-500">
-                    <AlertCircle className="w-8 h-8 opacity-40 mx-auto mb-2 text-cyan-400" />
-                    <p className="text-sm font-bold uppercase tracking-wider text-slate-300">No tracks located</p>
-                    <p className="text-xs text-slate-500 mt-1 font-mono">Check artist query or link.</p>
+                  <div className="py-20 text-center text-zinc-500">
+                    <AlertCircle className="w-7 h-7 opacity-40 mx-auto mb-2 text-zinc-400" />
+                    <p className="text-sm font-semibold uppercase tracking-wider text-zinc-300">No tracks located</p>
+                    <p className="text-xs text-zinc-500 mt-1 font-mono">Check artist query or link.</p>
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 pb-6">
@@ -680,7 +673,7 @@ export default function App() {
         </div>
       </div>
 
-      {/* Persistent Bottom Player Bar (Industry-Standard Spotify/Apple Music Style) */}
+      {/* Persistent Bottom Player Bar (Minimalist Monochrome) */}
       <div className={activeView === 'now-playing' ? 'hidden md:block' : 'block'}>
         <PlayerBottomBar
           currentTrack={currentTrack}
@@ -717,8 +710,8 @@ export default function App() {
 
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed top-18 right-6 z-50 glass-panel text-[#f4f5f8] text-xs font-bold px-4 py-2.5 rounded-2xl border border-white/20 shadow-2xl flex items-center gap-2.5 animate-in fade-in slide-in-from-top-2">
-          <span className="w-2 h-2 rounded-full bg-gradient-to-r from-cyan-400 to-pink-500 shadow-[0_0_8px_#ec4899] shrink-0" />
+        <div className="fixed top-18 right-6 z-50 glass-panel text-white text-xs font-semibold px-4 py-2.5 rounded-2xl border border-white/15 shadow-2xl flex items-center gap-2.5 animate-in fade-in slide-in-from-top-2">
+          <span className="w-1.5 h-1.5 rounded-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.9)] shrink-0" />
           <span>{toastMessage}</span>
         </div>
       )}

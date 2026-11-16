@@ -15,7 +15,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
 }) => {
   return (
     <nav
-      className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#07080d]/90 backdrop-blur-2xl border-t border-white/10 pb-safe touch-manipulation select-none shadow-[0_-8px_30px_rgba(0,0,0,0.85)]"
+      className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#09090b]/95 backdrop-blur-2xl border-t border-white/10 pb-safe touch-manipulation select-none shadow-2xl"
       aria-label="Mobile Navigation"
     >
       <div className="flex items-center justify-around px-2 py-1.5 h-14">
@@ -24,15 +24,15 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
           onClick={() => onSelectView('now-playing')}
           className={`flex flex-col items-center justify-center flex-1 h-full py-1 rounded-xl transition-all ${
             activeView === 'now-playing'
-              ? 'text-pink-400 font-bold scale-105'
-              : 'text-slate-400 hover:text-slate-200'
+              ? 'text-white font-bold scale-105'
+              : 'text-zinc-500 hover:text-zinc-300'
           }`}
           aria-label="Player"
         >
           <div className="relative">
             <Disc className={`w-5 h-5 ${activeView === 'now-playing' ? 'animate-spin-slow' : ''}`} />
             {activeView === 'now-playing' && (
-              <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-pink-500 shadow-[0_0_8px_#ec4899]" />
+              <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-white" />
             )}
           </div>
           <span className="text-[10px] tracking-tight mt-1 font-mono uppercase">Player</span>
@@ -43,15 +43,15 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
           onClick={() => onSelectView('discover')}
           className={`flex flex-col items-center justify-center flex-1 h-full py-1 rounded-xl transition-all ${
             activeView === 'discover'
-              ? 'text-cyan-400 font-bold scale-105'
-              : 'text-slate-400 hover:text-slate-200'
+              ? 'text-white font-bold scale-105'
+              : 'text-zinc-500 hover:text-zinc-300'
           }`}
           aria-label="Search"
         >
           <div className="relative">
             <Search className="w-5 h-5" />
             {activeView === 'discover' && (
-              <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-cyan-400 shadow-[0_0_8px_#22d3ee]" />
+              <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-white" />
             )}
           </div>
           <span className="text-[10px] tracking-tight mt-1 font-mono uppercase">Search</span>
@@ -62,39 +62,39 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
           onClick={() => onSelectView('genres')}
           className={`flex flex-col items-center justify-center flex-1 h-full py-1 rounded-xl transition-all ${
             activeView === 'genres'
-              ? 'text-purple-400 font-bold scale-105'
-              : 'text-slate-400 hover:text-slate-200'
+              ? 'text-white font-bold scale-105'
+              : 'text-zinc-500 hover:text-zinc-300'
           }`}
           aria-label="Curated Vibes"
         >
           <div className="relative">
             <Sparkles className="w-5 h-5" />
             {activeView === 'genres' && (
-              <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-purple-400 shadow-[0_0_8px_#c084fc]" />
+              <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-white" />
             )}
           </div>
           <span className="text-[10px] tracking-tight mt-1 font-mono uppercase">Vibes</span>
         </button>
 
-        {/* 5. Queue & Playlists */}
+        {/* 4. Queue & Playlists */}
         <button
           onClick={() => onSelectView('queue')}
           className={`flex flex-col items-center justify-center flex-1 h-full py-1 rounded-xl transition-all ${
             activeView === 'queue'
-              ? 'text-pink-400 font-bold scale-105'
-              : 'text-slate-400 hover:text-slate-200'
+              ? 'text-white font-bold scale-105'
+              : 'text-zinc-500 hover:text-zinc-300'
           }`}
           aria-label="Queue & Library"
         >
           <div className="relative">
             <ListMusic className="w-5 h-5" />
             {queueCount > 0 && (
-              <span className="absolute -top-1 -right-2 px-1 text-[8px] font-mono font-bold rounded-full bg-pink-500 text-white">
+              <span className="absolute -top-1 -right-2 px-1 text-[8px] font-mono font-bold rounded-full bg-white text-black">
                 {queueCount > 99 ? '99+' : queueCount}
               </span>
             )}
             {activeView === 'queue' && (
-              <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-pink-400 shadow-[0_0_8px_#ec4899]" />
+              <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-white" />
             )}
           </div>
           <span className="text-[10px] tracking-tight mt-1 font-mono uppercase">Queue</span>
@@ -103,4 +103,3 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
     </nav>
   );
 };
-

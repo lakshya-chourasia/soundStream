@@ -1,14 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Track, RepeatMode, VisualizerMode, ThemeConfig, StreamQuality, PlayerStyle } from '../types/player';
-import { AudioVisualizer } from './AudioVisualizer';
 import { formatTime, cleanTrackTitle } from '../utils/playerUtils';
 import {
   Play,
   Pause,
   SkipBack,
   SkipForward,
-  RotateCcw,
-  RotateCw,
   Shuffle,
   Repeat,
   Repeat1,
@@ -21,7 +18,6 @@ import {
   Maximize2,
   Minimize2,
   X,
-  Sliders,
 } from 'lucide-react';
 import { LyricsOverlay } from './LyricsOverlay';
 
@@ -80,7 +76,6 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
   repeatMode,
   isShuffle,
   playbackQuality,
-  visualizerMode,
   isVideoVisible,
   isFavorite,
   themeConfig,
@@ -122,11 +117,11 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
         <div className="fixed -bottom-[9999px] -right-[9999px] w-64 h-36 opacity-0 pointer-events-none" aria-hidden="true">
           {videoSlot}
         </div>
-        <div className="w-16 h-16 rounded-full glass-panel flex items-center justify-center mb-4">
+        <div className="w-16 h-16 rounded-full border border-white/10 bg-white/[0.04] flex items-center justify-center mb-4">
           <Play className="w-6 h-6 text-zinc-600 ml-1" />
         </div>
-        <p className="text-sm font-medium">No track currently loaded</p>
-        <p className="text-xs text-zinc-400 mt-1">Select a track from discovery or paste a YouTube URL</p>
+        <p className="text-sm font-medium text-zinc-300">No track loaded</p>
+        <p className="text-xs text-zinc-500 mt-1">Select a track from discover or paste a YouTube URL</p>
       </div>
     );
   }
@@ -154,21 +149,21 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
 
   return (
     <div className="w-full flex flex-col items-center justify-center min-h-0 select-none py-2 px-3">
-      {/* Offscreen / Fullscreen Video Container (Maintains audio continuously) */}
+      {/* Offscreen / Fullscreen Video Container */}
       <div
         className={`transition-all duration-300 ${
           !isVideoVisible
             ? 'fixed -bottom-[9999px] -right-[9999px] w-64 h-36 opacity-0 pointer-events-none'
             : isVideoFullscreen
-              ? 'fixed inset-0 z-50 bg-black/95 backdrop-blur-3xl flex flex-col items-center justify-center p-2 sm:p-6 select-none animate-in fade-in duration-200'
-              : 'relative w-full max-w-2xl sm:max-w-3xl mx-auto my-2 aspect-video rounded-3xl overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.8)] bg-black border border-white/20 select-none group shrink min-h-0'
+              ? 'fixed inset-0 z-50 bg-black flex flex-col items-center justify-center p-2 sm:p-6 select-none animate-in fade-in duration-200'
+              : 'relative w-full max-w-2xl sm:max-w-3xl mx-auto my-2 aspect-video rounded-3xl overflow-hidden shadow-2xl bg-black border border-white/10 select-none group shrink min-h-0'
         }`}
         aria-hidden={!isVideoVisible}
       >
         <div
           className={`relative w-full h-full flex items-center justify-center ${
             isVideoFullscreen
-              ? 'max-w-7xl max-h-[90vh] aspect-video rounded-3xl overflow-hidden shadow-[0_0_80px_rgba(0,0,0,0.95)] border border-white/20'
+              ? 'max-w-7xl max-h-[90vh] aspect-video rounded-3xl overflow-hidden shadow-2xl border border-white/15'
               : ''
           }`}
         >
@@ -188,7 +183,7 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
                   e.stopPropagation();
                   setIsVideoFullscreen(!isVideoFullscreen);
                 }}
-                className="p-2 rounded-xl glass-panel bg-black/60 border border-white/20 text-slate-200 hover:text-white hover:border-pink-400/50 hover:bg-white/10 transition-all active:scale-95 shadow-lg backdrop-blur-md"
+                className="p-2 rounded-xl bg-black/70 border border-white/15 text-zinc-300 hover:text-white hover:bg-black/90 transition-all active:scale-95 shadow-lg backdrop-blur-md"
                 title={isVideoFullscreen ? 'Exit Fullscreen' : 'Maximize'}
                 aria-label={isVideoFullscreen ? 'Exit fullscreen' : 'Maximize'}
               >
@@ -200,7 +195,7 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
                   if (isVideoFullscreen) setIsVideoFullscreen(false);
                   onToggleVideo();
                 }}
-                className="p-2 rounded-xl glass-panel bg-black/60 border border-white/20 text-slate-300 hover:text-white hover:border-pink-400/50 hover:bg-white/10 transition-all active:scale-95 shadow-lg backdrop-blur-md"
+                className="p-2 rounded-xl bg-black/70 border border-white/15 text-zinc-300 hover:text-white hover:bg-black/90 transition-all active:scale-95 shadow-lg backdrop-blur-md"
                 title="Close Video"
                 aria-label="Close video"
               >
@@ -211,38 +206,27 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
         </div>
       </div>
 
-      {/* Main Glass Player Card (Ivan Odintsov Design) */}
+      {/* Main Stealth Glass Player Card (Ivan Odintsov Design - Stealth Edition) */}
       {!isVideoVisible && (
-        <div className="codepen-player w-[350px] sm:w-[400px] h-[440px] sm:h-[460px] mx-auto shadow-2xl relative select-none flex flex-col justify-between">
+        <div className="codepen-player w-[350px] sm:w-[400px] h-[430px] sm:h-[450px] mx-auto shadow-2xl relative select-none flex flex-col justify-between border border-white/10">
           {/* Background image & gradient blend layers */}
           <div
             className="absolute inset-0 bg-bottom bg-cover pointer-events-none transition-all duration-700"
             style={{ backgroundImage: `url(${currentTrack.thumbnail})` }}
           >
-            {/* Top & Bottom gradient shadows for crisp typography and button contrast */}
-            <div className="absolute inset-0 bg-gradient-to-b from-black/75 via-black/35 to-black/85" />
-            <div className="absolute inset-0 bg-black/20 mix-blend-soft-light" />
-          </div>
-
-          {/* Subtle audio visualizer aura in the background */}
-          <div className="absolute inset-x-0 bottom-24 top-28 opacity-25 pointer-events-none">
-            <AudioVisualizer
-              isPlaying={isPlaying}
-              volume={volume}
-              mode={visualizerMode}
-              accentColor="#ffffff"
-              accentSecondary="#ec4899"
-            />
+            {/* Smooth dark vignette */}
+            <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-black/45 to-black/90" />
+            <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]" />
           </div>
 
           {/* Lyrics Overlay inside Card if toggled */}
           {isLyricsOpen ? (
-            <div className="relative z-20 w-full h-full p-4 flex flex-col backdrop-blur-xl bg-black/85">
-              <div className="flex items-center justify-between pb-2 border-b border-white/15">
-                <span className="text-xs font-mono font-bold uppercase tracking-wider text-pink-400">Synchronized Lyrics</span>
+            <div className="relative z-20 w-full h-full p-4 flex flex-col backdrop-blur-2xl bg-black/90">
+              <div className="flex items-center justify-between pb-2 border-b border-white/10">
+                <span className="text-xs font-mono font-medium uppercase tracking-wider text-white">Lyrics</span>
                 <button
                   onClick={() => setIsLyricsOpen(false)}
-                  className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-white/10"
+                  className="p-1 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -262,13 +246,13 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
               {/* Top Section */}
               <div className="p-6 pb-2">
                 {/* Top Controls Bar */}
-                <div className="flex items-center justify-between text-white/80">
+                <div className="flex items-center justify-between text-zinc-300">
                   {/* Left: Quick Actions (Favorite, Video, Lyrics) */}
                   <div className="flex items-center gap-3">
                     <button
                       onClick={onToggleFavorite}
                       className={`transition-colors p-1 rounded-full ${
-                        isFavorite ? 'text-pink-400 drop-shadow-[0_0_8px_rgba(236,72,153,0.8)]' : 'hover:text-white'
+                        isFavorite ? 'text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.8)]' : 'hover:text-white text-zinc-400'
                       }`}
                       title={isFavorite ? 'Remove Favorite' : 'Add Favorite'}
                       aria-label="Favorite"
@@ -277,7 +261,7 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
                     </button>
                     <button
                       onClick={onToggleVideo}
-                      className="hover:text-white transition-colors p-1"
+                      className="hover:text-white text-zinc-400 transition-colors p-1"
                       title="Watch HD Video"
                       aria-label="Watch video"
                     >
@@ -285,7 +269,7 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
                     </button>
                     <button
                       onClick={() => setIsLyricsOpen(true)}
-                      className="hover:text-white transition-colors p-1"
+                      className="hover:text-white text-zinc-400 transition-colors p-1"
                       title="Show Lyrics"
                       aria-label="Lyrics"
                     >
@@ -298,13 +282,13 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
                     <div className="relative">
                       <button
                         onClick={() => setShowQualityMenu(!showQualityMenu)}
-                        className="text-[11px] font-mono font-bold tracking-wider uppercase px-2 py-0.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 transition-all text-white/90"
+                        className="text-[11px] font-mono font-medium tracking-wider uppercase px-2.5 py-0.5 rounded-full bg-white/[0.08] hover:bg-white/[0.15] border border-white/10 transition-all text-zinc-200"
                         title="Stream Quality"
                       >
                         {playbackQuality.toUpperCase()}
                       </button>
                       {showQualityMenu && (
-                        <div className="absolute top-full right-0 mt-2 p-1.5 rounded-2xl bg-black/90 backdrop-blur-2xl border border-white/20 shadow-2xl z-50 flex flex-col gap-1 min-w-[170px]">
+                        <div className="absolute top-full right-0 mt-2 p-1.5 rounded-xl bg-[#121214] border border-white/15 shadow-2xl z-50 flex flex-col gap-1 min-w-[170px]">
                           {QUALITY_OPTIONS.map((q) => (
                             <button
                               key={q.id}
@@ -312,8 +296,8 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
                                 onChangePlaybackQuality(q.id);
                                 setShowQualityMenu(false);
                               }}
-                              className={`px-3 py-1.5 text-left text-xs font-mono font-bold rounded-xl transition-all ${
-                                playbackQuality === q.id ? 'bg-pink-500 text-white font-black' : 'text-slate-300 hover:bg-white/10'
+                              className={`px-3 py-1.5 text-left text-xs font-mono rounded-lg transition-all ${
+                                playbackQuality === q.id ? 'bg-white text-black font-bold' : 'text-zinc-300 hover:bg-white/10'
                               }`}
                             >
                               {q.label}
@@ -327,11 +311,11 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
                     <div className="relative">
                       <button
                         onClick={() => setShowVolumeMenu(!showVolumeMenu)}
-                        className="hover:text-white transition-colors p-1"
+                        className="hover:text-white text-zinc-400 transition-colors p-1"
                         aria-label="Volume"
                       >
                         {isMuted || volume === 0 ? (
-                          <VolumeX className="w-5 h-5 text-rose-400" />
+                          <VolumeX className="w-5 h-5 text-zinc-400" />
                         ) : volume < 50 ? (
                           <Volume1 className="w-5 h-5" />
                         ) : (
@@ -339,9 +323,9 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
                         )}
                       </button>
                       {showVolumeMenu && (
-                        <div className="absolute top-full right-0 mt-2 p-3 rounded-2xl bg-black/90 backdrop-blur-2xl border border-white/20 shadow-2xl z-50 flex items-center gap-2 w-44">
+                        <div className="absolute top-full right-0 mt-2 p-3 rounded-xl bg-[#121214] border border-white/15 shadow-2xl z-50 flex items-center gap-2 w-44">
                           <button onClick={toggleMute} className="text-white">
-                            {isMuted ? <VolumeX className="w-4 h-4 text-rose-400" /> : <Volume2 className="w-4 h-4" />}
+                            {isMuted ? <VolumeX className="w-4 h-4 text-zinc-400" /> : <Volume2 className="w-4 h-4" />}
                           </button>
                           <input
                             type="range"
@@ -352,9 +336,9 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
                               if (isMuted) setIsMuted(false);
                               onChangeVolume(Number(e.target.value));
                             }}
-                            className="w-full h-1 appearance-none cursor-pointer accent-pink-500 bg-white/20 rounded-full"
+                            className="w-full h-1 appearance-none cursor-pointer accent-white bg-white/20 rounded-full"
                           />
-                          <span className="text-[10px] font-mono text-white/80 w-6 text-right">
+                          <span className="text-[10px] font-mono text-zinc-400 w-6 text-right">
                             {isMuted ? '0' : volume}%
                           </span>
                         </div>
@@ -365,10 +349,10 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
 
                 {/* Song Meta Typography */}
                 <div className="text-center mt-6 px-2">
-                  <h2 className="text-2xl sm:text-[26px] font-bold text-white tracking-tight drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] truncate">
+                  <h2 className="text-2xl sm:text-[25px] font-bold text-white tracking-tight drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] truncate">
                     {title}
                   </h2>
-                  <p className="text-sm sm:text-base font-light text-white/80 mt-1 drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)] truncate">
+                  <p className="text-sm sm:text-base font-normal text-zinc-300 mt-1 drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)] truncate">
                     {displayArtist}
                   </p>
                 </div>
@@ -392,7 +376,7 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
                       setSeekHoverPercent(Math.max(0, Math.min(1, percent)));
                     }}
                     style={{
-                      background: `linear-gradient(to right, #ffffff 0%, #ffffff ${progressPercent}%, rgba(255, 255, 255, 0.25) ${progressPercent}%)`,
+                      background: `linear-gradient(to right, #ffffff 0%, #ffffff ${progressPercent}%, rgba(255, 255, 255, 0.2) ${progressPercent}%)`,
                     }}
                     className="w-full h-1 sm:h-1.5 rounded-full appearance-none cursor-pointer transition-all"
                     aria-label="Seek track"
@@ -406,25 +390,19 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
                     </div>
                   )}
                 </div>
-                <div className="flex justify-between items-center text-[10px] font-mono font-medium text-white/70 mt-1">
+                <div className="flex justify-between items-center text-[10px] font-mono font-medium text-zinc-400 mt-1">
                   <span>{formatTime(currentTime)}</span>
                   <span>{effectiveDuration > 0 ? formatTime(effectiveDuration) : 'Live'}</span>
                 </div>
               </div>
 
-              {/* Bottom Controls Bar (Odintsov Glass Design) */}
+              {/* Bottom Controls Bar (Stealth Edition) */}
               <div className="codepen-player-bottom relative h-20 w-full px-5 flex items-center justify-between overflow-hidden">
-                {/* Blurred controls background from thumbnail */}
-                <div
-                  className="absolute inset-0 bg-bottom bg-cover pointer-events-none filter blur-xl opacity-30 scale-125"
-                  style={{ backgroundImage: `url(${currentTrack.thumbnail})` }}
-                />
-
                 {/* Repeat Button */}
                 <button
                   onClick={onToggleRepeat}
-                  className={`relative z-10 transition-colors p-2 text-white/80 hover:text-white ${
-                    repeatMode !== 'off' ? 'text-pink-300 drop-shadow-[0_0_8px_rgba(244,114,182,0.8)]' : ''
+                  className={`relative z-10 transition-colors p-2 ${
+                    repeatMode !== 'off' ? 'text-white' : 'text-zinc-500 hover:text-white'
                   }`}
                   title={`Repeat: ${repeatMode}`}
                   aria-label="Repeat"
@@ -435,7 +413,7 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
                 {/* Prev Track Button */}
                 <button
                   onClick={onPrev}
-                  className="codepen-btn-circle relative z-10 w-10 h-10 rounded-full text-white/90 hover:text-white"
+                  className="codepen-btn-circle relative z-10 w-10 h-10 rounded-full text-zinc-300 hover:text-white"
                   title="Previous Track"
                   aria-label="Previous"
                 >
@@ -445,7 +423,7 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
                 {/* Main Play / Pause Button */}
                 <button
                   onClick={onTogglePlay}
-                  className="codepen-btn-circle relative z-10 w-14 h-14 rounded-full text-white shadow-2xl"
+                  className="codepen-btn-circle relative z-10 w-14 h-14 rounded-full text-white shadow-2xl bg-white/10 hover:bg-white/20 border border-white/20"
                   title={isPlaying ? 'Pause' : 'Play'}
                   aria-label={isPlaying ? 'Pause' : 'Play'}
                 >
@@ -461,7 +439,7 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
                 {/* Next Track Button */}
                 <button
                   onClick={onNext}
-                  className="codepen-btn-circle relative z-10 w-10 h-10 rounded-full text-white/90 hover:text-white"
+                  className="codepen-btn-circle relative z-10 w-10 h-10 rounded-full text-zinc-300 hover:text-white"
                   title="Next Track"
                   aria-label="Next"
                 >
@@ -471,8 +449,8 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
                 {/* Shuffle Button */}
                 <button
                   onClick={onToggleShuffle}
-                  className={`relative z-10 transition-colors p-2 text-white/80 hover:text-white ${
-                    isShuffle ? 'text-pink-300 drop-shadow-[0_0_8px_rgba(244,114,182,0.8)]' : ''
+                  className={`relative z-10 transition-colors p-2 ${
+                    isShuffle ? 'text-white' : 'text-zinc-500 hover:text-white'
                   }`}
                   title="Shuffle"
                   aria-label="Shuffle"
