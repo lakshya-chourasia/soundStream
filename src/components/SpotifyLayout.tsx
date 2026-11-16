@@ -509,6 +509,20 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
   // Active Tip for Getting Started
   const currentTip = GETTING_STARTED_TIPS[activeTipIndex % GETTING_STARTED_TIPS.length];
 
+  // ── Synced Lyrics State for Center Panel ──
+  const [lyricsData, setLyricsData] = useState<{
+    plainLyrics: string | null;
+    syncedLyrics: string | null;
+    parsedLines: Array<{ time: number; text: string }>;
+    isLoading: boolean;
+  }>({
+    plainLyrics: null,
+    syncedLyrics: null,
+    parsedLines: [],
+    isLoading: false,
+  });
+  const lyricsCacheRef = useRef<Map<string, any>>(new Map());
+
   // Right Panel Lyrics Preview Lines (first 2-3 lines)
   const lyricsPreviewLines = useMemo(() => {
     if (lyricsData.parsedLines.length > 0) {
@@ -558,20 +572,6 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
   const handleShowAll = () => {
     setRandomSeed((s) => s + 1);
   };
-
-  // ── Synced Lyrics State for Center Panel ──
-  const [lyricsData, setLyricsData] = useState<{
-    plainLyrics: string | null;
-    syncedLyrics: string | null;
-    parsedLines: Array<{ time: number; text: string }>;
-    isLoading: boolean;
-  }>({
-    plainLyrics: null,
-    syncedLyrics: null,
-    parsedLines: [],
-    isLoading: false,
-  });
-  const lyricsCacheRef = useRef<Map<string, any>>(new Map());
 
   // Derive active display track (hovered track takes preview precedence)
   const displayTrack = hoveredTrack || currentTrack;
