@@ -123,6 +123,33 @@ const CURATED_GENRES = [
         views: '1.3B views',
         thumbnail: 'https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/f5/93/8c/f5938c49-964c-31d1-4b33-78b634f71fb7/190295978075.jpg/1200x1200bb.jpg',
       },
+      {
+        id: 'H5v3kku4y6Q',
+        title: 'As It Was (Official Video)',
+        artist: 'Harry Styles',
+        duration: '2:47',
+        durationSec: 167,
+        views: '850M views',
+        thumbnail: 'https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/2a/19/fb/2a19fb85-2f70-9e44-f2a9-82abe679b88e/886449990061.jpg/1200x1200bb.jpg',
+      },
+      {
+        id: 'TUVcZfQe-Kw',
+        title: 'Levitating (Official Music Video)',
+        artist: 'Dua Lipa',
+        duration: '3:50',
+        durationSec: 230,
+        views: '920M views',
+        thumbnail: 'https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/6c/11/d6/6c11d681-aa3a-d59e-4c2e-f77e181026ab/190295092665.jpg/1200x1200bb.jpg',
+      },
+      {
+        id: 'wXhTHyIgQ_U',
+        title: 'Circles (Official Music Video)',
+        artist: 'Post Malone',
+        duration: '3:35',
+        durationSec: 215,
+        views: '640M views',
+        thumbnail: 'https://is1-ssl.mzstatic.com/image/thumb/Music115/v4/7b/1b/1b/7b1b1b0b-7ce2-b223-f9e0-8e36abe51877/19UMGIM78325.rgb.jpg/1200x1200bb.jpg',
+      },
     ],
   },
   {
@@ -225,6 +252,24 @@ const CURATED_GENRES = [
         views: '2.4B views',
         thumbnail: 'https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/7e/be/33/7ebe3370-959a-94f7-77e2-c9e7fea9a4ed/859716988917_cover.jpg/1200x1200bb.jpg',
       },
+      {
+        id: 'IcrbM1l_BoI',
+        title: 'Wake Me Up (Official Video)',
+        artist: 'Avicii',
+        duration: '4:32',
+        durationSec: 272,
+        views: '2.3B views',
+        thumbnail: 'https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/18/5b/1e/185b1ef5-5d97-19d8-aebf-8e29e41874ef/13UAAIM59255.rgb.jpg/1200x1200bb.jpg',
+      },
+      {
+        id: 'DyDfgMOUjCI',
+        title: 'bad guy (Official Music Video)',
+        artist: 'Billie Eilish',
+        duration: '3:25',
+        durationSec: 205,
+        views: '1.2B views',
+        thumbnail: 'https://is1-ssl.mzstatic.com/image/thumb/Music115/v4/1a/37/d1/1a37d1b1-8508-54f2-f541-bf4e437dda76/19UMGIM05028.rgb.jpg/1200x1200bb.jpg',
+      },
     ],
   },
 ];
@@ -257,12 +302,65 @@ async function startServer() {
     res.json({ ok: true, count: KNOWN_RESTRICTED_IDS.size });
   });
 
-  // API 1: Curated Genres and Starter Tracks
+  // API 1: Curated Genres and Starter Tracks (Random Flexible Starter)
   app.get('/api/curated', (_req: Request, res: Response) => {
+    const allTracks = CURATED_GENRES.flatMap((g) => g.tracks).filter((t) => !KNOWN_RESTRICTED_IDS.has(t.id));
+    const randomStarter = allTracks.length > 0
+      ? allTracks[Math.floor(Math.random() * allTracks.length)]
+      : CURATED_GENRES[0].tracks[0];
+
     res.json({
       genres: CURATED_GENRES,
       featured: CURATED_GENRES[0].tracks,
+      randomStarter,
     });
+  });
+
+  // API 2: Dynamic Smart Recommendations (Flexible, Shuffled Mix)
+  app.get('/api/recommendations', async (req: Request, res: Response) => {
+    const trackId = (req.query.trackId as string || '').trim();
+    const artist = (req.query.artist as string || '').trim().toLowerCase();
+    const limit = Math.min(20, Math.max(4, parseInt(req.query.limit as string || '8', 10)));
+
+    try {
+      const allTracks = CURATED_GENRES.flatMap((g) => g.tracks).filter((t) => !KNOWN_RESTRICTED_IDS.has(t.id));
+      const uniqueMap = new Map<string, any>();
+      for (const t of allTracks) {
+        if (!uniqueMap.has(t.id) && t.id !== trackId) {
+          uniqueMap.set(t.id, t);
+        }
+      }
+
+      const pool = Array.from(uniqueMap.values());
+      const artistMatches: any[] = [];
+      const others: any[] = [];
+
+      for (const t of pool) {
+        if (artist && (t.artist.toLowerCase().includes(artist) || artist.includes(t.artist.toLowerCase()))) {
+          artistMatches.push(t);
+        } else {
+          others.push(t);
+        }
+      }
+
+      // Fisher-Yates random shuffle
+      const shuffle = (arr: any[]) => {
+        const a = [...arr];
+        for (let i = a.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [a[i], a[j]] = [a[j], a[i]];
+        }
+        return a;
+      };
+
+      const shuffledOthers = shuffle(others);
+      const combined = [...artistMatches, ...shuffledOthers].slice(0, limit);
+
+      res.json({ recommendations: combined });
+    } catch (err: any) {
+      console.error('Error generating recommendations:', err);
+      res.status(500).json({ error: 'Failed to generate recommendations' });
+    }
   });
 
   // API 2: Search Autocomplete Suggestions

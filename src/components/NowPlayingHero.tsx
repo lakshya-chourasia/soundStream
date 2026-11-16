@@ -17,6 +17,9 @@ import {
   X,
   GripHorizontal,
   BookOpen,
+  Sparkles,
+  ListMusic,
+  Plus,
 } from 'lucide-react';
 import { AudioVisualizer } from './AudioVisualizer';
 import { LyricsOverlay } from './LyricsOverlay';
@@ -49,6 +52,10 @@ interface NowPlayingHeroProps {
   onToggleLyrics?: () => void;
   isVisualizerOpen?: boolean;
   onToggleVisualizer?: () => void;
+  recommendations?: Track[];
+  isRecommendationsLoading?: boolean;
+  onRefreshRecommendations?: () => void;
+  onAddToQueue?: (track: Track) => void;
 }
 
 export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
@@ -79,7 +86,12 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
   onToggleLyrics,
   isVisualizerOpen = false,
   onToggleVisualizer,
+  recommendations = [],
+  isRecommendationsLoading = false,
+  onRefreshRecommendations,
+  onAddToQueue,
 }) => {
+  const [leftListTab, setLeftListTab] = useState<'recommendations' | 'queue'>('recommendations');
   const [isVolumePopoverOpen, setIsVolumePopoverOpen] = useState(false);
   const [isVideoFullscreen, setIsVideoFullscreen] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
@@ -395,6 +407,10 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
     queue.reduce((acc, t) => acc + (t.durationSec || 210), 0) / 60
   );
 
+  const displayedTracks = leftListTab === 'recommendations'
+    ? (recommendations.length > 0 ? recommendations : queue.filter((t) => t.id !== currentTrack.id))
+    : queue.slice(0, 8);
+
   const isInteracting = isDraggingVideo || isResizingVideo || isDraggingLyrics || isResizingLyrics;
 
   return (
@@ -580,9 +596,49 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
               </h1>
             </div>
 
+            {/* Recommendations & Queue Header Switcher */}
+            <div className="flex items-center justify-between mt-3 mb-1.5 px-0.5">
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={() => setLeftListTab('recommendations')}
+                  className={`text-[10px] font-mono font-bold tracking-wider uppercase px-2.5 py-1 rounded-full transition-all flex items-center gap-1.5 ${
+                    leftListTab === 'recommendations'
+                      ? 'bg-yellow-400 text-black font-black shadow-[0_0_12px_rgba(250,204,21,0.35)]'
+                      : 'text-white/60 hover:text-white bg-white/10'
+                  }`}
+                >
+                  <Sparkles className="w-3 h-3" />
+                  <span>RECOMMENDED</span>
+                </button>
+                <button
+                  onClick={() => setLeftListTab('queue')}
+                  className={`text-[10px] font-mono font-bold tracking-wider uppercase px-2.5 py-1 rounded-full transition-all flex items-center gap-1.5 ${
+                    leftListTab === 'queue'
+                      ? 'bg-yellow-400 text-black font-black shadow-[0_0_12px_rgba(250,204,21,0.35)]'
+                      : 'text-white/60 hover:text-white bg-white/10'
+                  }`}
+                >
+                  <ListMusic className="w-3 h-3" />
+                  <span>UP NEXT ({queue.length})</span>
+                </button>
+              </div>
+
+              {leftListTab === 'recommendations' && onRefreshRecommendations && (
+                <button
+                  onClick={onRefreshRecommendations}
+                  disabled={isRecommendationsLoading}
+                  className="flex items-center gap-1 text-[10px] font-mono font-bold text-white/50 hover:text-yellow-400 transition-colors px-2 py-0.5 rounded-lg hover:bg-white/10"
+                  title="Shuffle fresh random recommendations"
+                >
+                  <Shuffle className={`w-3 h-3 ${isRecommendationsLoading ? 'animate-spin' : ''}`} />
+                  <span className="hidden sm:inline">RANDOMIZE</span>
+                </button>
+              )}
+            </div>
+
             {/* Track list (matches reference track items) */}
-            <div className="flex-1 overflow-y-auto no-scrollbar space-y-1.5 my-4 pr-2 min-h-0">
-              {queue.slice(0, 7).map((track, idx) => {
+            <div className="flex-1 overflow-y-auto no-scrollbar space-y-1.5 my-2 pr-2 min-h-0">
+              {displayedTracks.map((track, idx) => {
                 const isCurrent = track.id === currentTrack.id;
                 const { title: t, artistFromTitle: a } = cleanTrackTitle(track.title);
                 const itemArtist = a || track.artist || 'Artist';
@@ -610,12 +666,19 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
                       )}
                     </div>
 
-                    {/* Small square thumbnail */}
+                    {/* Small square thumbnail with reliable onError fallback */}
                     <div className="w-10 h-10 rounded-md overflow-hidden bg-black/40 shrink-0 border border-white/10 shadow-sm">
                       <img
                         src={track.thumbnail}
                         alt={t}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        onError={(e) => {
+                          const target = e.currentTarget;
+                          if (!target.dataset.fallback) {
+                            target.dataset.fallback = '1';
+                            target.src = 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=300&auto=format&fit=crop&q=80';
+                          }
+                        }}
                       />
                     </div>
 
@@ -628,6 +691,20 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
                         {itemArtist}
                       </p>
                     </div>
+
+                    {/* Quick Add to Queue Button */}
+                    {onAddToQueue && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onAddToQueue(track);
+                        }}
+                        className="opacity-0 group-hover:opacity-100 p-1.5 rounded-full hover:bg-white/20 text-white/60 hover:text-white transition-all shrink-0"
+                        title="Add to Up Next queue"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                      </button>
+                    )}
                   </div>
                 );
               })}
@@ -636,7 +713,9 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
             {/* Bottom Meta Stats (Dynamic in real time) */}
             <div className="flex items-center justify-between pt-4 border-t border-white/10 text-xs text-white/50 font-normal">
               <span>
-                {queue.length} songs · {totalMin} min
+                {leftListTab === 'recommendations'
+                  ? `${displayedTracks.length} recommendations · Dynamic Vibe`
+                  : `${queue.length} songs · ${totalMin} min`}
               </span>
               <span>Audio Stream · {displayArtist}</span>
             </div>

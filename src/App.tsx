@@ -16,14 +16,93 @@ import { SleepTimerModal } from './components/SleepTimerModal';
 import { getNextTrackIndex, getPrevTrackIndex, extractYouTubeId, cleanTrackTitle, getDynamicTrackTag } from './utils/playerUtils';
 import { Compass, AlertCircle, X } from 'lucide-react';
 
-const DEFAULT_INITIAL_TRACK: Track = {
-  id: 'raiQjmyZMC0',
-  title: 'Someone Like You',
-  artist: 'Adele',
-  duration: '4:45',
-  durationSec: 285,
-  views: '2.2B views',
-  thumbnail: 'https://i.ytimg.com/vi/hLQl3WQQoQ0/hqdefault.jpg',
+const INITIAL_STARTER_POOL: Track[] = [
+  {
+    id: '2Vv-BfVoq4g',
+    title: 'Perfect',
+    artist: 'Ed Sheeran',
+    duration: '4:23',
+    durationSec: 263,
+    views: '3.6B views',
+    thumbnail: 'https://is1-ssl.mzstatic.com/image/thumb/Music115/v4/15/e6/e8/15e6e8a4-4190-6a8b-86c3-ab4a51b88288/190295851286.jpg/1200x1200bb.jpg',
+  },
+  {
+    id: '4NRXx6U8ABQ',
+    title: 'Blinding Lights',
+    artist: 'The Weeknd',
+    duration: '4:22',
+    durationSec: 262,
+    views: '800M views',
+    thumbnail: 'https://is1-ssl.mzstatic.com/image/thumb/Music115/v4/61/e7/3f/61e73f94-018d-5f50-50ec-8521952bc72e/20UM1IM11629.rgb.jpg/1200x1200bb.jpg',
+  },
+  {
+    id: 'yKNxeF4KMsY',
+    title: 'Yellow',
+    artist: 'Coldplay',
+    duration: '4:33',
+    durationSec: 273,
+    views: '1.3B views',
+    thumbnail: 'https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/f5/93/8c/f5938c49-964c-31d1-4b33-78b634f71fb7/190295978075.jpg/1200x1200bb.jpg',
+  },
+  {
+    id: 'gGdGFtwCNBE',
+    title: 'Mr. Brightside',
+    artist: 'The Killers',
+    duration: '3:48',
+    durationSec: 228,
+    views: '560M views',
+    thumbnail: 'https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/11/64/9c/11649c80-2066-dba8-77a9-df7eecae26c1/17UM1IM06937.rgb.jpg/1200x1200bb.jpg',
+  },
+  {
+    id: 'H5v3kku4y6Q',
+    title: 'As It Was',
+    artist: 'Harry Styles',
+    duration: '2:47',
+    durationSec: 167,
+    views: '850M views',
+    thumbnail: 'https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/2a/19/fb/2a19fb85-2f70-9e44-f2a9-82abe679b88e/886449990061.jpg/1200x1200bb.jpg',
+  },
+  {
+    id: 'TUVcZfQe-Kw',
+    title: 'Levitating',
+    artist: 'Dua Lipa',
+    duration: '3:50',
+    durationSec: 230,
+    views: '920M views',
+    thumbnail: 'https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/6c/11/d6/6c11d681-aa3a-d59e-4c2e-f77e181026ab/190295092665.jpg/1200x1200bb.jpg',
+  },
+  {
+    id: 'fJ9rUzIMcZQ',
+    title: 'Bohemian Rhapsody',
+    artist: 'Queen',
+    duration: '6:00',
+    durationSec: 360,
+    views: '1.7B views',
+    thumbnail: 'https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/8b/0a/ea/8b0aea60-6f4a-195b-5958-cdf459c2333b/602527644271.jpg/1200x1200bb.jpg',
+  },
+  {
+    id: 'bpOSxM0rNPM',
+    title: 'Do I Wanna Know?',
+    artist: 'Arctic Monkeys',
+    duration: '4:26',
+    durationSec: 266,
+    views: '1.6B views',
+    thumbnail: 'https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/69/9c/b5/699cb5d6-115c-ff73-9d26-e57ea4350d72/887828031795.png/1200x1200bb.jpg',
+  },
+  {
+    id: 'IcrbM1l_BoI',
+    title: 'Wake Me Up',
+    artist: 'Avicii',
+    duration: '4:32',
+    durationSec: 272,
+    views: '2.3B views',
+    thumbnail: 'https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/18/5b/1e/185b1ef5-5d97-19d8-aebf-8e29e41874ef/13UAAIM59255.rgb.jpg/1200x1200bb.jpg',
+  },
+];
+
+const getRandomStarterTrack = (): Track => {
+  const idx = Math.floor(Math.random() * INITIAL_STARTER_POOL.length);
+  return INITIAL_STARTER_POOL[idx];
 };
 
 export default function App() {
@@ -39,8 +118,8 @@ export default function App() {
     }
   });
 
-  // Core Player State
-  const [currentTrack, setCurrentTrack] = useState<Track>(DEFAULT_INITIAL_TRACK);
+  // Core Player State (Randomized startup track - never fixed!)
+  const [currentTrack, setCurrentTrack] = useState<Track>(getRandomStarterTrack);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [isBuffering, setIsBuffering] = useState<boolean>(false);
   const [currentTime, setCurrentTime] = useState<number>(0);
@@ -75,8 +154,8 @@ export default function App() {
   const [isSleepTimerOpen, setIsSleepTimerOpen] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // Playlists, Favorites, and Queue
-  const [queue, setQueue] = useState<Track[]>([DEFAULT_INITIAL_TRACK]);
+  // Playlists, Favorites, and Queue (Random Starter Pool)
+  const [queue, setQueue] = useState<Track[]>(() => [getRandomStarterTrack()]);
   const [playedHistory, setPlayedHistory] = useState<number[]>([]);
   const [favorites, setFavorites] = useState<Track[]>(() => {
     try {
@@ -148,19 +227,71 @@ export default function App() {
     return () => clearInterval(timer);
   }, [sleepTimerRemaining]);
 
-  // Fetch Initial Curated Soundscapes
+  // Dynamic Recommendations State
+  const [recommendations, setRecommendations] = useState<Track[]>([]);
+  const [isRecommendationsLoading, setIsRecommendationsLoading] = useState<boolean>(false);
+
+  const fetchRecommendations = useCallback(async (targetTrack?: Track) => {
+    const track = targetTrack || currentTrack;
+    if (!track) return;
+
+    setIsRecommendationsLoading(true);
+    try {
+      const { title: cleanT, artistFromTitle } = cleanTrackTitle(track.title);
+      const artist = artistFromTitle || track.artist || '';
+      const res = await fetch(
+        `/api/recommendations?trackId=${encodeURIComponent(track.id)}&artist=${encodeURIComponent(artist)}&limit=10`
+      );
+      if (res.ok) {
+        const data = await res.json();
+        if (data.recommendations && data.recommendations.length > 0) {
+          setRecommendations(data.recommendations);
+        }
+      }
+    } catch (err) {
+      console.warn('Failed to fetch recommendations:', err);
+    } finally {
+      setIsRecommendationsLoading(false);
+    }
+  }, [currentTrack]);
+
+  // Fetch Initial Curated Soundscapes (Random Flexible Starter — Never Fixed!)
   useEffect(() => {
     fetch('/api/curated')
       .then((res) => res.json())
       .then((data) => {
         if (data.genres && data.genres.length > 0) {
           setGenres(data.genres);
-          const initialCol = data.genres.find((g: any) => g.id === 'love-2k20') || data.genres[0];
-          setSelectedCollectionId(initialCol.id);
-          if (initialCol.tracks && initialCol.tracks.length > 0) {
-            setQueue(initialCol.tracks);
-            setCurrentTrack(initialCol.tracks[0]);
+
+          // Flatten all tracks across all soundscapes
+          const allCurated = data.genres
+            .flatMap((g: GenreCollection) => g.tracks || [])
+            .filter((t: Track) => !restrictedVideoIds.has(t.id));
+
+          if (allCurated.length > 0) {
+            // Pick a randomized starter track from the pool
+            const starter: Track =
+              data.randomStarter && !restrictedVideoIds.has(data.randomStarter.id)
+                ? data.randomStarter
+                : allCurated[Math.floor(Math.random() * allCurated.length)];
+
+            setCurrentTrack(starter);
+
+            // Sync parent soundscape collection
+            const parentGenre = data.genres.find((g: GenreCollection) =>
+              g.tracks?.some((t: Track) => t.id === starter.id)
+            );
+            if (parentGenre) setSelectedCollectionId(parentGenre.id);
+
+            // Build diverse initial queue
+            const otherTracks = allCurated.filter((t: Track) => t.id !== starter.id);
+            const shuffled = [...otherTracks].sort(() => 0.5 - Math.random());
+            setQueue([starter, ...shuffled.slice(0, 9)]);
+
+            // Immediately load recommendations for this starter track
+            fetchRecommendations(starter);
           }
+
           if (data.genres[0]?.tracks) {
             setSearchResults(data.genres[0].tracks);
           }
@@ -170,6 +301,13 @@ export default function App() {
         console.error('Failed to load curated tracks:', err);
       });
   }, []);
+
+  // Refetch recommendations whenever currentTrack changes
+  useEffect(() => {
+    if (currentTrack?.id) {
+      fetchRecommendations(currentTrack);
+    }
+  }, [currentTrack?.id]);
 
   // Search YouTube
   const handleSearch = async (q: string) => {
@@ -588,6 +726,10 @@ export default function App() {
                 onToggleLyrics={() => setIsLyricsOpen(!isLyricsOpen)}
                 isVisualizerOpen={isVisualizerOpen}
                 onToggleVisualizer={() => setIsVisualizerOpen(!isVisualizerOpen)}
+                recommendations={recommendations.filter((t) => !restrictedVideoIds.has(t.id))}
+                isRecommendationsLoading={isRecommendationsLoading}
+                onRefreshRecommendations={() => fetchRecommendations(currentTrack)}
+                onAddToQueue={handleAddToQueue}
               />
             </div>
 
