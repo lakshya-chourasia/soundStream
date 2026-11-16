@@ -17,7 +17,7 @@ import { getNextTrackIndex, getPrevTrackIndex, extractYouTubeId, cleanTrackTitle
 import { Compass, AlertCircle, X } from 'lucide-react';
 
 const DEFAULT_INITIAL_TRACK: Track = {
-  id: '22c3_LoIfZQ',
+  id: 'raiQjmyZMC0',
   title: 'Someone Like You',
   artist: 'Adele',
   duration: '4:45',
