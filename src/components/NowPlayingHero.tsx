@@ -370,14 +370,11 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
               </div>
             </div>
 
-            {/* Center Right: Song Title + Artist + Yellow Genre Tag */}
+            {/* Center Right: Song Title + Yellow Genre Tag */}
             <div className="text-right my-auto py-4">
               <h2 className="font-display font-black text-4xl sm:text-5xl lg:text-6xl uppercase tracking-wide text-white leading-none drop-shadow-lg">
                 {title}
               </h2>
-              <p className="text-sm sm:text-base font-normal text-white/70 mt-1">
-                {displayArtist}
-              </p>
 
               {/* Dynamic Genre Tag Badge */}
               <div className="mt-3 flex justify-end">
