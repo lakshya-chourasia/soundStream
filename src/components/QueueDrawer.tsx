@@ -45,16 +45,16 @@ export const QueueDrawer: React.FC<QueueDrawerProps> = ({
   };
 
   return (
-    <div className="w-full max-w-3xl mx-auto space-y-4 select-none">
+    <div className="w-full max-w-3xl mx-auto space-y-4">
       {/* Sub-header Navigation Tabs */}
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 pb-3">
         <div className="flex items-center gap-2 overflow-x-auto">
           <button
             onClick={() => setTab('queue')}
-            className={`px-3.5 py-1.5 text-xs font-semibold rounded-full transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
+            className={`px-3.5 py-1.5 text-xs font-black uppercase tracking-wider rounded-full transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 font-mono ${
               tab === 'queue'
-                ? 'bg-white text-black shadow-md'
-                : 'bg-white/[0.04] border border-white/10 text-zinc-400 hover:text-white hover:bg-white/[0.08]'
+                ? 'bg-gradient-to-r from-cyan-500 via-pink-500 to-amber-400 text-white shadow-[0_0_12px_rgba(236,72,153,0.5)] border border-white/20'
+                : 'glass-pill text-slate-300 hover:text-white'
             }`}
           >
             <ListMusic className="w-3.5 h-3.5" />
@@ -63,10 +63,10 @@ export const QueueDrawer: React.FC<QueueDrawerProps> = ({
 
           <button
             onClick={() => setTab('favorites')}
-            className={`px-3.5 py-1.5 text-xs font-semibold rounded-full transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
+            className={`px-3.5 py-1.5 text-xs font-black uppercase tracking-wider rounded-full transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 font-mono ${
               tab === 'favorites'
-                ? 'bg-white text-black shadow-md'
-                : 'bg-white/[0.04] border border-white/10 text-zinc-400 hover:text-white hover:bg-white/[0.08]'
+                ? 'bg-gradient-to-r from-cyan-500 via-pink-500 to-amber-400 text-white shadow-[0_0_12px_rgba(236,72,153,0.5)] border border-white/20'
+                : 'glass-pill text-slate-300 hover:text-white'
             }`}
           >
             <Heart className="w-3.5 h-3.5" />
@@ -75,10 +75,10 @@ export const QueueDrawer: React.FC<QueueDrawerProps> = ({
 
           <button
             onClick={() => setTab('playlists')}
-            className={`px-3.5 py-1.5 text-xs font-semibold rounded-full transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
+            className={`px-3.5 py-1.5 text-xs font-black uppercase tracking-wider rounded-full transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 font-mono ${
               tab === 'playlists'
-                ? 'bg-white text-black shadow-md'
-                : 'bg-white/[0.04] border border-white/10 text-zinc-400 hover:text-white hover:bg-white/[0.08]'
+                ? 'bg-gradient-to-r from-cyan-500 via-pink-500 to-amber-400 text-white shadow-[0_0_12px_rgba(236,72,153,0.5)] border border-white/20'
+                : 'glass-pill text-slate-300 hover:text-white'
             }`}
           >
             <FolderPlus className="w-3.5 h-3.5" />
@@ -89,7 +89,7 @@ export const QueueDrawer: React.FC<QueueDrawerProps> = ({
         {tab === 'queue' && queue.length > 0 && (
           <button
             onClick={onClearQueue}
-            className="flex items-center gap-1 text-xs font-medium text-zinc-500 hover:text-white transition-colors ml-auto sm:ml-0"
+            className="flex items-center gap-1 text-xs font-bold tracking-wider text-slate-400 hover:text-rose-400 transition-colors ml-auto sm:ml-0"
           >
             <Trash2 className="w-3.5 h-3.5" />
             <span>Clear Queue</span>
@@ -101,10 +101,10 @@ export const QueueDrawer: React.FC<QueueDrawerProps> = ({
       {tab === 'queue' && (
         <div className="space-y-1">
           {queue.length === 0 ? (
-            <div className="py-16 text-center text-zinc-500">
-              <p className="text-sm font-semibold text-zinc-300">Queue is empty</p>
-              <p className="text-xs text-zinc-500 mt-1">
-                Add tracks from discover or curated collections.
+            <div className="py-12 text-center text-slate-500">
+              <p className="text-sm font-bold text-white">Telemetry queue is empty</p>
+              <p className="text-xs text-slate-400 mt-1 font-serif italic">
+                Add tracks from curated soundscapes to sequence them on the deck.
               </p>
             </div>
           ) : (
@@ -129,11 +129,11 @@ export const QueueDrawer: React.FC<QueueDrawerProps> = ({
       {tab === 'favorites' && (
         <div className="space-y-1">
           {favorites.length === 0 ? (
-            <div className="py-16 text-center text-zinc-500">
-              <Heart className="w-7 h-7 opacity-30 mx-auto mb-2 text-zinc-400" />
-              <p className="text-sm font-semibold text-zinc-300">No favorite recordings saved</p>
-              <p className="text-xs text-zinc-500 mt-1">
-                Tag songs with the heart icon to catalog them in your library.
+            <div className="py-12 text-center text-slate-500">
+              <Heart className="w-8 h-8 stroke-[1.2] opacity-30 mx-auto mb-2 text-pink-400" />
+              <p className="text-sm font-bold text-white">No favorite recordings saved</p>
+              <p className="text-xs text-slate-400 mt-1 font-serif italic">
+                Tag recordings with the heart icon to catalog them in your library.
               </p>
             </div>
           ) : (
@@ -157,11 +157,11 @@ export const QueueDrawer: React.FC<QueueDrawerProps> = ({
       {tab === 'playlists' && (
         <div className="space-y-4">
           <div className="flex justify-between items-center">
-            <span className="text-xs font-mono font-medium text-zinc-400 uppercase tracking-wider">Playlists Directory</span>
+            <span className="text-xs font-mono font-bold uppercase tracking-wider text-slate-400">// PLAYLIST DIRECTORY //</span>
             {!isCreatingPlaylist && (
               <button
                 onClick={() => setIsCreatingPlaylist(true)}
-                className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold bg-white text-black hover:bg-zinc-200 rounded-full shadow-sm transition-colors"
+                className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-black uppercase tracking-wider glass-aether-button rounded-full shadow-sm transition-colors"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>New Playlist</span>
@@ -177,19 +177,19 @@ export const QueueDrawer: React.FC<QueueDrawerProps> = ({
                 onChange={(e) => setNewPlaylistName(e.target.value)}
                 placeholder="Playlist name..."
                 autoFocus
-                className="flex-1 px-4 py-2 text-xs font-medium rounded-full bg-[#18181b] border border-white/15 text-white placeholder:text-zinc-500 focus:outline-none focus:border-white/40"
+                className="flex-1 px-4 py-2 text-xs font-bold glass-panel rounded-full text-white placeholder:text-slate-500 focus:outline-none focus:border-pink-500/50"
               />
               <button
                 type="submit"
                 disabled={!newPlaylistName.trim()}
-                className="px-4 py-2 text-xs font-semibold bg-white text-black hover:bg-zinc-200 rounded-full disabled:opacity-40"
+                className="px-4 py-2 text-xs font-black uppercase tracking-wider glass-aether-button rounded-full disabled:opacity-40"
               >
                 Create
               </button>
               <button
                 type="button"
                 onClick={() => setIsCreatingPlaylist(false)}
-                className="px-3 py-2 text-xs font-medium text-zinc-400 hover:text-white"
+                className="px-3 py-2 text-xs font-bold text-slate-400 hover:text-white"
               >
                 Cancel
               </button>
@@ -197,9 +197,9 @@ export const QueueDrawer: React.FC<QueueDrawerProps> = ({
           )}
 
           {playlists.length === 0 ? (
-            <div className="py-16 text-center text-zinc-500">
-              <p className="text-sm font-semibold text-zinc-300">No custom playlists yet</p>
-              <p className="text-xs text-zinc-500 mt-1">
+            <div className="py-12 text-center text-slate-500">
+              <p className="text-sm font-bold text-white">No custom playlists yet</p>
+              <p className="text-xs text-slate-400 mt-1 font-serif italic">
                 Organize your listening sessions into custom collections.
               </p>
             </div>
@@ -208,13 +208,13 @@ export const QueueDrawer: React.FC<QueueDrawerProps> = ({
               {playlists.map((pl) => (
                 <div
                   key={pl.id}
-                  className="p-4 bg-[#121214] hover:bg-[#18181c] rounded-2xl flex items-center justify-between gap-3 shadow-md transition-all border border-white/10"
+                  className="p-4 glass-panel glass-panel-hover rounded-xl flex items-center justify-between gap-3 shadow-md transition-all border border-white/10"
                 >
                   <div className="min-w-0 flex-1">
                     <h4 className="text-sm font-bold text-white truncate">
                       {pl.name}
                     </h4>
-                    <p className="text-xs font-mono text-zinc-400 mt-0.5">
+                    <p className="text-xs font-mono font-medium text-slate-400 mt-0.5">
                       {pl.tracks.length} {pl.tracks.length === 1 ? 'track' : 'tracks'}
                     </p>
                   </div>
@@ -222,16 +222,16 @@ export const QueueDrawer: React.FC<QueueDrawerProps> = ({
                     {pl.tracks.length > 0 && (
                       <button
                         onClick={() => onPlayPlaylist(pl)}
-                        className="p-2 rounded-full bg-white text-black hover:bg-zinc-200 transition-colors"
+                        className="p-2 rounded-full glass-aether-button"
                         title="Play playlist"
                         aria-label={`Play ${pl.name}`}
                       >
-                        <Play className="w-3.5 h-3.5 fill-black ml-0.5" />
+                        <Play className="w-3.5 h-3.5 fill-white ml-0.5" />
                       </button>
                     )}
                     <button
                       onClick={() => onDeletePlaylist(pl.id)}
-                      className="p-2 text-zinc-400 hover:text-white hover:bg-white/10 rounded-full transition-colors"
+                      className="p-2 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-full transition-colors"
                       title="Delete playlist"
                       aria-label={`Delete ${pl.name}`}
                     >

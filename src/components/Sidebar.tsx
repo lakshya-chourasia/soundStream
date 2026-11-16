@@ -1,12 +1,11 @@
 import React from 'react';
-import { ActiveView, Playlist, StreamQuality } from '../types/player';
+import { ActiveView } from '../types/player';
 import {
-  Disc,
-  Compass,
-  Sparkles,
-  ListMusic,
-  PlusCircle,
-  Moon,
+  Film,
+  Radio,
+  Music2,
+  BookOpen,
+  Menu,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -14,190 +13,131 @@ interface SidebarProps {
   onSelectView: (view: ActiveView) => void;
   queueCount: number;
   favoritesCount: number;
-  playlists: Playlist[];
+  isVideoVisible: boolean;
+  onToggleVideo: () => void;
+  isLyricsOpen: boolean;
+  onToggleLyrics: () => void;
+  isVisualizerOpen: boolean;
+  onToggleVisualizer: () => void;
   onOpenQuickImport: () => void;
   sleepTimerRemaining: number | null;
   onOpenSleepTimer: () => void;
-  playbackQuality: StreamQuality;
   isPlaying: boolean;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
   activeView,
   onSelectView,
-  queueCount,
-  playlists,
-  onOpenQuickImport,
-  sleepTimerRemaining,
-  onOpenSleepTimer,
-  playbackQuality,
+  isVideoVisible,
+  onToggleVideo,
+  isLyricsOpen,
+  onToggleLyrics,
+  isVisualizerOpen,
+  onToggleVisualizer,
   isPlaying,
 }) => {
   return (
-    <aside className="hidden md:flex flex-col w-64 lg:w-72 h-full bg-[#0a0a0c] border-r border-white/10 select-none shrink-0 z-30">
-      {/* Brand Header */}
-      <div className="p-6 pb-4 border-b border-white/10">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-white/[0.08] border border-white/15 flex items-center justify-center">
-            <Disc className={`w-4 h-4 text-white ${isPlaying ? 'animate-spin-slow' : ''}`} />
-          </div>
-          <div>
-            <h1 className="text-sm font-bold tracking-wider text-white uppercase">
-              SOUNDSTREAM
-            </h1>
-            <p className="text-[10px] font-mono tracking-widest text-zinc-500 uppercase">Audio Engine</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Navigation Links */}
-      <div className="px-3 py-4 space-y-1">
-        <div className="px-3 pb-2 text-[10px] font-mono font-medium tracking-widest uppercase text-zinc-500">
-          Menu
-        </div>
-
-        {/* 1. Now Playing */}
+    <aside className="w-16 h-full bg-black/60 backdrop-blur-xl border-r border-white/10 flex flex-col items-center justify-between py-6 select-none shrink-0 z-40">
+      {/* Top: Logo & Hamburger Menu */}
+      <div className="flex flex-col items-center gap-6">
+        {/* Monogram Logo (double rectangle / M logo like ref) */}
         <button
           onClick={() => onSelectView('now-playing')}
-          className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${
-            activeView === 'now-playing'
-              ? 'bg-white text-black font-bold shadow-md'
-              : 'text-zinc-400 hover:text-white hover:bg-white/[0.05]'
-          }`}
+          className="group flex items-center justify-center p-1.5 focus:outline-none"
+          title="SoundStream Home"
         >
-          <div className="flex items-center gap-3">
-            <Disc className={`w-4 h-4 ${activeView === 'now-playing' ? 'text-black' : 'text-zinc-400'}`} />
-            <span>Now Playing</span>
+          <div className="flex items-center gap-0.5 text-white">
+            <span className="w-1.5 h-6 bg-white rounded-xs transition-transform group-hover:scale-y-110" />
+            <span className="font-display font-black text-2xl tracking-tighter leading-none ml-0.5">
+              M
+            </span>
           </div>
-          {activeView === 'now-playing' && (
-            <span className="w-1.5 h-1.5 rounded-full bg-black" />
-          )}
         </button>
 
-        {/* 2. Search & Discover */}
+        {/* Menu Hamburger Icon */}
         <button
           onClick={() => onSelectView('discover')}
-          className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${
-            activeView === 'discover'
-              ? 'bg-white text-black font-bold shadow-md'
-              : 'text-zinc-400 hover:text-white hover:bg-white/[0.05]'
-          }`}
+          className="rail-btn"
+          title="Open Library & Menu"
+          aria-label="Menu"
         >
-          <div className="flex items-center gap-3">
-            <Compass className={`w-4 h-4 ${activeView === 'discover' ? 'text-black' : 'text-zinc-400'}`} />
-            <span>Search & Discover</span>
-          </div>
-          {activeView === 'discover' && (
-            <span className="w-1.5 h-1.5 rounded-full bg-black" />
-          )}
-        </button>
-
-        {/* 3. Curated Vibes */}
-        <button
-          onClick={() => onSelectView('genres')}
-          className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${
-            activeView === 'genres'
-              ? 'bg-white text-black font-bold shadow-md'
-              : 'text-zinc-400 hover:text-white hover:bg-white/[0.05]'
-          }`}
-        >
-          <div className="flex items-center gap-3">
-            <Sparkles className={`w-4 h-4 ${activeView === 'genres' ? 'text-black' : 'text-zinc-400'}`} />
-            <span>Curated Collections</span>
-          </div>
-          {activeView === 'genres' && (
-            <span className="w-1.5 h-1.5 rounded-full bg-black" />
-          )}
-        </button>
-
-        {/* 4. Queue & Library */}
-        <button
-          onClick={() => onSelectView('queue')}
-          className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${
-            activeView === 'queue'
-              ? 'bg-white text-black font-bold shadow-md'
-              : 'text-zinc-400 hover:text-white hover:bg-white/[0.05]'
-          }`}
-        >
-          <div className="flex items-center gap-3">
-            <ListMusic className={`w-4 h-4 ${activeView === 'queue' ? 'text-black' : 'text-zinc-400'}`} />
-            <span>Queue & Library</span>
-          </div>
-          <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full font-bold ${
-            activeView === 'queue' ? 'bg-black/20 text-black' : 'bg-white/10 text-white'
-          }`}>
-            {queueCount}
-          </span>
+          <Menu className="w-5 h-5" />
         </button>
       </div>
 
-      {/* Library & Quick Actions */}
-      <div className="px-3 py-3 border-t border-white/10 space-y-1">
-        <div className="px-3 pb-2 text-[10px] font-mono font-medium tracking-widest uppercase text-zinc-500">
-          Tools
-        </div>
-
+      {/* Center: Iconic Navigation Stack from Reference */}
+      <div className="flex flex-col items-center gap-5 my-auto">
+        {/* 1. Film / Video Reel Icon */}
         <button
-          onClick={onOpenQuickImport}
-          className="w-full flex items-center gap-3 px-3.5 py-2 rounded-xl text-xs font-medium text-zinc-400 hover:text-white hover:bg-white/[0.05] transition-all text-left"
+          onClick={onToggleVideo}
+          className={`rail-btn relative ${isVideoVisible ? 'active' : ''}`}
+          title={isVideoVisible ? 'Hide Video' : 'Watch Official Video'}
+          aria-label="Toggle Video"
         >
-          <PlusCircle className="w-4 h-4 text-zinc-300" />
-          <span>Import YouTube Link</span>
+          <Film className="w-5 h-5" />
+          {isVideoVisible && (
+            <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-yellow-400 rounded-r-full" />
+          )}
         </button>
 
+        {/* 2. Broadcast / Podcast / Audio Waves Icon */}
         <button
-          onClick={onOpenSleepTimer}
-          className="w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-xs font-medium text-zinc-400 hover:text-white hover:bg-white/[0.05] transition-all text-left"
+          onClick={onToggleVisualizer}
+          className={`rail-btn relative ${isVisualizerOpen ? 'active' : ''}`}
+          title="Toggle Audio Visualizer"
+          aria-label="Visualizer"
         >
-          <div className="flex items-center gap-3">
-            <Moon className="w-4 h-4 text-zinc-300" />
-            <span>Sleep Timer</span>
-          </div>
-          {sleepTimerRemaining !== null && (
-            <span className="text-[10px] font-mono font-medium text-zinc-300">
-              {Math.floor(sleepTimerRemaining / 60)}m left
-            </span>
+          <Radio className="w-5 h-5" />
+          {isVisualizerOpen && (
+            <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-yellow-400 rounded-r-full" />
+          )}
+        </button>
+
+        {/* 3. Music Note Icon (Now Playing / Queue) */}
+        <button
+          onClick={() => onSelectView('now-playing')}
+          className={`rail-btn relative ${activeView === 'now-playing' ? 'active' : ''}`}
+          title="Now Playing Player"
+          aria-label="Now Playing"
+        >
+          <Music2 className="w-5 h-5" />
+          {activeView === 'now-playing' && (
+            <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-yellow-400 rounded-r-full" />
+          )}
+        </button>
+
+        {/* 4. Book / Lyrics / Journal Icon */}
+        <button
+          onClick={onToggleLyrics}
+          className={`rail-btn relative ${isLyricsOpen ? 'active' : ''}`}
+          title="Synchronized Lyrics"
+          aria-label="Lyrics"
+        >
+          <BookOpen className="w-5 h-5" />
+          {isLyricsOpen && (
+            <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-yellow-400 rounded-r-full" />
           )}
         </button>
       </div>
 
-      {/* User Playlists List */}
-      <div className="flex-1 overflow-y-auto px-3 py-2 border-t border-white/10 min-h-0 space-y-1">
-        <div className="flex items-center justify-between px-3 pb-1 text-[10px] font-mono font-medium tracking-widest uppercase text-zinc-500">
-          <span>Playlists ({playlists.length})</span>
-        </div>
-        {playlists.length === 0 ? (
-          <p className="px-3 text-xs text-zinc-600 italic py-1">No custom playlists</p>
-        ) : (
-          playlists.map((pl) => (
-            <button
-              key={pl.id}
-              onClick={() => onSelectView('queue')}
-              className="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-xs text-zinc-400 hover:text-white hover:bg-white/[0.05] truncate transition-colors text-left"
-            >
-              <span className="w-1.5 h-1.5 rounded-full bg-zinc-600" />
-              <span className="truncate">{pl.name}</span>
-              <span className="text-[10px] font-mono text-zinc-600 ml-auto">{pl.tracks.length}</span>
-            </button>
-          ))
-        )}
-      </div>
-
-      {/* Audiophile Telemetry Footer Card */}
-      <div className="p-4 border-t border-white/10 bg-black">
-        <div className="p-3 rounded-xl border border-white/10 bg-white/[0.02]">
-          <div className="flex items-center justify-between text-[10px] font-mono text-zinc-400 pb-1.5 border-b border-white/10">
-            <span className="flex items-center gap-1.5">
-              <span className={`w-1.5 h-1.5 rounded-full ${isPlaying ? 'bg-white' : 'bg-zinc-600'}`} />
-              Audio Output
-            </span>
-            <span className="font-semibold text-zinc-200">Lossless</span>
-          </div>
-          <div className="pt-1.5 flex items-center justify-between text-[11px] font-mono">
-            <span className="text-white font-bold">24-Bit / 192 kHz</span>
-            <span className="text-zinc-400 uppercase">{playbackQuality}</span>
-          </div>
-        </div>
+      {/* Bottom: 3 Status Dots (Amber, Yellow, Outline Ring - from reference) */}
+      <div className="flex flex-col items-center gap-2">
+        <span
+          className={`w-2 h-2 rounded-full ${
+            isPlaying ? 'bg-amber-500 shadow-[0_0_8px_#f59e0b]' : 'bg-amber-500/50'
+          }`}
+          title="Playback Status"
+        />
+        <span
+          className={`w-2 h-2 rounded-full ${
+            isPlaying ? 'bg-yellow-400 shadow-[0_0_8px_#facc15]' : 'bg-yellow-400/50'
+          }`}
+          title="Audio Engine Live"
+        />
+        <span
+          className="w-2.5 h-2.5 rounded-full border border-white/50 bg-transparent"
+          title="Audiophile Mode"
+        />
       </div>
     </aside>
   );

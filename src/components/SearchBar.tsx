@@ -106,19 +106,19 @@ export const SearchBar: React.FC<SearchBarProps> = ({
 
   return (
     <div className="w-full max-w-2xl mx-auto space-y-3" ref={containerRef}>
-      {/* Search Input Box */}
+      {/* Search Input Box (Uiverse Telemetry Field with Ambient Cyan/Pink Glow) */}
       <div className="relative">
         <div
-          className={`relative flex items-center w-full px-4 py-2 rounded-full bg-[#121214] transition-all duration-200 ${
+          className={`relative flex items-center w-full px-4 py-2 rounded-full glass-panel transition-all duration-200 ${
             isFocused
-              ? 'border border-white/40 ring-1 ring-white/20 shadow-lg'
-              : 'border border-white/10 hover:border-white/20'
+              ? 'border-pink-500/60 ring-2 ring-pink-500/20 shadow-[0_0_24px_rgba(236,72,153,0.3)]'
+              : 'border-white/10 hover:border-white/20'
           }`}
         >
           {isLoading ? (
-            <Loader2 className="w-4 h-4 text-white animate-spin shrink-0 mr-3" />
+            <Loader2 className="w-4 h-4 text-cyan-400 animate-spin shrink-0 mr-3" />
           ) : (
-            <Search className="w-4 h-4 text-zinc-400 shrink-0 mr-3" />
+            <Search className="w-4 h-4 text-slate-400 shrink-0 mr-3" />
           )}
 
           <input
@@ -129,7 +129,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
             onBlur={() => setTimeout(() => setIsFocused(false), 200)}
             onKeyDown={handleKeyDown}
             placeholder="Search catalog, artists, or paste YouTube link..."
-            className="w-full bg-transparent text-sm font-medium text-white placeholder:text-zinc-500 focus:outline-none"
+            className="w-full bg-transparent text-sm font-semibold text-[#f4f5f8] placeholder:text-slate-500 focus:outline-none"
             aria-label="Search YouTube music"
           />
 
@@ -139,7 +139,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
                 setQuery('');
                 setSuggestions([]);
               }}
-              className="p-1 text-zinc-400 hover:text-white rounded-full transition-colors mr-1.5"
+              className="p-1 text-slate-400 hover:text-white rounded-full transition-colors mr-1.5"
               aria-label="Clear search input"
             >
               <X className="w-4 h-4" />
@@ -149,7 +149,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
           <button
             onClick={() => handleSubmit(query)}
             disabled={!query.trim()}
-            className="px-4 py-1.5 text-xs font-semibold bg-white text-black hover:bg-zinc-200 disabled:opacity-30 rounded-full transition-all whitespace-nowrap shrink-0 shadow-sm"
+            className="px-4 py-1.5 text-xs font-black uppercase tracking-wider glass-aether-button disabled:opacity-40 rounded-full transition-all whitespace-nowrap shrink-0"
           >
             Search
           </button>
@@ -157,14 +157,14 @@ export const SearchBar: React.FC<SearchBarProps> = ({
 
         {/* Direct YouTube Link Detection Banner */}
         {directVideoId && query.includes('http') && (
-          <div className="mt-2 p-3 bg-[#161619] border border-white/15 rounded-xl flex items-center justify-between text-xs animate-in fade-in shadow-lg">
+          <div className="mt-2 p-3 glass-panel border-pink-500/30 rounded-xl flex items-center justify-between text-xs animate-in fade-in shadow-lg">
             <div className="flex items-center gap-2 truncate pr-2">
-              <Link2 className="w-4 h-4 shrink-0 text-white" />
-              <span className="truncate text-zinc-300 font-mono">Detected YouTube ID: <strong className="text-white font-mono">{directVideoId}</strong></span>
+              <Link2 className="w-4 h-4 shrink-0 text-pink-400" />
+              <span className="truncate text-slate-300 font-mono">DETECTED YOUTUBE ID: <strong className="text-cyan-300 font-mono">{directVideoId}</strong></span>
             </div>
             <button
               onClick={() => onDirectPlay(directVideoId)}
-              className="px-3.5 py-1.5 text-xs font-semibold bg-white text-black rounded-full hover:bg-zinc-200 transition-all whitespace-nowrap shrink-0"
+              className="px-3.5 py-1.5 text-xs font-black uppercase tracking-wider glass-aether-button rounded-full transition-all whitespace-nowrap shrink-0"
             >
               Play Video
             </button>
@@ -173,7 +173,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
 
         {/* Autocomplete Dropdown */}
         {isFocused && suggestions.length > 0 && (
-          <div className="absolute top-full left-0 right-0 mt-2 py-1.5 bg-[#141416] border border-white/15 rounded-2xl shadow-2xl z-50 overflow-hidden">
+          <div className="absolute top-full left-0 right-0 mt-2 py-1.5 glass-panel border-white/15 rounded-2xl shadow-2xl z-50 overflow-hidden">
             {suggestions.map((item, idx) => (
               <button
                 key={item}
@@ -181,33 +181,35 @@ export const SearchBar: React.FC<SearchBarProps> = ({
                   setQuery(item);
                   handleSubmit(item);
                 }}
-                className={`w-full text-left px-4 py-2.5 text-xs md:text-sm font-medium flex items-center justify-between transition-colors ${
+                className={`w-full text-left px-4 py-2.5 text-xs md:text-sm font-semibold flex items-center justify-between transition-colors ${
                   idx === selectedIndex
-                    ? 'bg-white/15 text-white font-semibold'
-                    : 'text-zinc-300 hover:bg-white/[0.06] hover:text-white'
+                    ? 'bg-gradient-to-r from-cyan-500/80 to-pink-500/80 text-white font-bold shadow-sm'
+                    : 'text-slate-300 hover:bg-white/10 hover:text-white'
                 }`}
               >
                 <div className="flex items-center gap-3 truncate">
-                  <Search className={`w-3.5 h-3.5 shrink-0 ${idx === selectedIndex ? 'text-white' : 'text-zinc-500'}`} />
+                  <Search className={`w-3.5 h-3.5 shrink-0 ${idx === selectedIndex ? 'text-white' : 'text-slate-400'}`} />
                   <span className="truncate">{item}</span>
                 </div>
+                <Sparkles className={`w-3.5 h-3.5 opacity-60 shrink-0 ${idx === selectedIndex ? 'text-amber-300' : 'text-pink-400'}`} />
               </button>
             ))}
           </div>
         )}
       </div>
 
-      {/* Genre shortcut filter tabs */}
+      {/* Genre shortcut filter tabs (Aether Telemetry Chips) */}
       {onSelectGenre && (
         <div className="flex items-center gap-2 overflow-x-auto pb-1 pt-1 no-scrollbar">
+          <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-slate-500 shrink-0 mr-1 hidden sm:inline">ARCHIVE //</span>
           {GENRE_SHORTCUTS.map((g) => (
             <button
               key={g.id}
               onClick={() => onSelectGenre(g.id)}
-              className={`px-3.5 py-1.5 text-xs rounded-full transition-all whitespace-nowrap shrink-0 font-medium ${
+              className={`px-3.5 py-1.5 text-xs font-bold rounded-full transition-all whitespace-nowrap shrink-0 font-mono ${
                 activeGenre === g.id
-                  ? 'bg-white text-black font-bold shadow-md'
-                  : 'bg-white/[0.04] border border-white/10 text-zinc-400 hover:text-white hover:bg-white/[0.08]'
+                  ? 'bg-gradient-to-r from-cyan-500 via-pink-500 to-amber-400 text-white font-black shadow-[0_0_12px_rgba(236,72,153,0.5)] border border-white/20'
+                  : 'glass-pill text-slate-300 hover:text-white'
               }`}
             >
               {g.label}

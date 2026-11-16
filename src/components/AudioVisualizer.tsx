@@ -28,8 +28,8 @@ export const AudioVisualizer: React.FC<AudioVisualizerProps> = ({
   volume,
   mode,
   className = '',
-  accentColor = '#ffffff',
-  accentSecondary = '#71717a',
+  accentColor = '#f59e0b',
+  accentSecondary = '#fbbf24',
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const animFrameIdRef = useRef<number | null>(null);
