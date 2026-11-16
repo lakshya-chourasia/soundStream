@@ -5,22 +5,22 @@ import {
   Radio,
   Music2,
   BookOpen,
-  Menu,
 } from 'lucide-react';
 
 interface SidebarProps {
   activeView: ActiveView;
   onSelectView: (view: ActiveView) => void;
-  queueCount: number;
-  favoritesCount: number;
+  queueCount?: number;
+  favoritesCount?: number;
   isVideoVisible: boolean;
   onToggleVideo: () => void;
   isLyricsOpen: boolean;
   onToggleLyrics: () => void;
   isVisualizerOpen: boolean;
   onToggleVisualizer: () => void;
-  sleepTimerRemaining: number | null;
-  onOpenSleepTimer: () => void;
+  onOpenQuickImport?: () => void;
+  sleepTimerRemaining?: number | null;
+  onOpenSleepTimer?: () => void;
   isPlaying: boolean;
 }
 
@@ -36,10 +36,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
   isPlaying,
 }) => {
   return (
-    <aside className="w-16 h-full bg-black/60 backdrop-blur-xl border-r border-white/10 flex flex-col items-center justify-between py-6 select-none shrink-0 z-40">
-      {/* Top: Logo & Hamburger Menu */}
-      <div className="flex flex-col items-center gap-6">
-        {/* Monogram Logo (double rectangle / M logo like ref) */}
+    <aside className="hidden md:flex w-16 h-full bg-black/60 backdrop-blur-xl border-r border-white/10 flex-col items-center justify-between py-6 select-none shrink-0 z-40">
+      {/* Top: Monogram Brand Logo */}
+      <div className="flex flex-col items-center">
         <button
           onClick={() => onSelectView('now-playing')}
           className="group flex items-center justify-center p-1.5 focus:outline-none"
@@ -51,16 +50,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
               M
             </span>
           </div>
-        </button>
-
-        {/* Menu Hamburger Icon (Toggles Queue & Library) */}
-        <button
-          onClick={() => onSelectView(activeView === 'queue' ? 'now-playing' : 'queue')}
-          className={`rail-btn ${activeView === 'queue' ? 'active' : ''}`}
-          title="Open Library & Queue"
-          aria-label="Queue"
-        >
-          <Menu className="w-5 h-5" />
         </button>
       </div>
 
@@ -119,23 +108,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </button>
       </div>
 
-      {/* Bottom: 3 Status Dots (Amber, Yellow, Outline Ring - from reference) */}
+      {/* Bottom: Playback Activity Dot */}
       <div className="flex flex-col items-center gap-2">
         <span
-          className={`w-2 h-2 rounded-full ${
-            isPlaying ? 'bg-amber-500 shadow-[0_0_8px_#f59e0b]' : 'bg-amber-500/50'
+          className={`w-2 h-2 rounded-full transition-all duration-300 ${
+            isPlaying ? 'bg-amber-400 shadow-[0_0_8px_#f59e0b]' : 'bg-white/20'
           }`}
-          title="Playback Status"
-        />
-        <span
-          className={`w-2 h-2 rounded-full ${
-            isPlaying ? 'bg-yellow-400 shadow-[0_0_8px_#facc15]' : 'bg-yellow-400/50'
-          }`}
-          title="Audio Engine Live"
-        />
-        <span
-          className="w-2.5 h-2.5 rounded-full border border-white/50 bg-transparent"
-          title="Audiophile Mode"
+          title={isPlaying ? 'Audio playing' : 'Audio paused'}
         />
       </div>
     </aside>

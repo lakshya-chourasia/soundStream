@@ -11,8 +11,6 @@ import {
   Repeat1,
   Volume2,
   VolumeX,
-  Maximize2,
-  Minimize2,
   Radio,
   X,
   GripHorizontal,
@@ -20,9 +18,11 @@ import {
   Sparkles,
   ListMusic,
   Plus,
+  Film,
 } from 'lucide-react';
 import { AudioVisualizer } from './AudioVisualizer';
 import { LyricsOverlay } from './LyricsOverlay';
+import { ArtworkImage } from './ArtworkImage';
 
 interface NowPlayingHeroProps {
   currentTrack: Track | null;
@@ -92,7 +92,7 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
   onAddToQueue,
 }) => {
   const [leftListTab, setLeftListTab] = useState<'recommendations' | 'queue'>('recommendations');
-  const [isVolumePopoverOpen, setIsVolumePopoverOpen] = useState(false);
+  const [mobileHeroTab, setMobileHeroTab] = useState<'player' | 'tracklist'>('player');
   const [isVideoFullscreen, setIsVideoFullscreen] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [prevVolume, setPrevVolume] = useState(volume);
@@ -155,6 +155,7 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
   // ── Video Drag & Resize Handlers ──
   const handleMouseDownVideoDrag = (e: React.MouseEvent) => {
     if (isVideoFullscreen) return;
+    if ((e.target as HTMLElement).closest('button')) return;
     e.preventDefault();
     setIsDraggingVideo(true);
     videoDragStartRef.current = {
@@ -167,6 +168,7 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
 
   const handleTouchStartVideoDrag = (e: React.TouchEvent) => {
     if (isVideoFullscreen || e.touches.length === 0) return;
+    if ((e.target as HTMLElement).closest('button')) return;
     setIsDraggingVideo(true);
     const touch = e.touches[0];
     videoDragStartRef.current = {
@@ -199,6 +201,7 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
 
   // ── Lyrics Drag & Resize Handlers ──
   const handleMouseDownLyricsDrag = (e: React.MouseEvent) => {
+    if ((e.target as HTMLElement).closest('button')) return;
     e.preventDefault();
     setIsDraggingLyrics(true);
     lyricsDragStartRef.current = {
@@ -211,6 +214,7 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
 
   const handleTouchStartLyricsDrag = (e: React.TouchEvent) => {
     if (e.touches.length === 0) return;
+    if ((e.target as HTMLElement).closest('button')) return;
     setIsDraggingLyrics(true);
     lyricsDragStartRef.current = {
       startX: e.touches[0].clientX,
@@ -390,6 +394,9 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
     ? genreTag
     : getDynamicTrackTag(title, displayArtist, currentTrack.views);
 
+  const currentYear = new Date().getFullYear();
+  const dynamicCopyright = `© ${currentYear} ${displayArtist} · Streamed via SoundStream Hi-Fi Engine · ${currentTrack.views ? `${currentTrack.views} · ` : ''}24-bit / 48kHz Master`;
+
   const toggleMute = () => {
     if (isMuted) {
       setIsMuted(false);
@@ -400,6 +407,10 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
       onChangeVolume(0);
     }
   };
+
+  const totalMin = Math.round(
+    queue.reduce((acc, t) => acc + (t.durationSec || 210), 0) / 60
+  );
 
   const displayedTracks = leftListTab === 'recommendations'
     ? (recommendations.length > 0 ? recommendations : queue.filter((t) => t.id !== currentTrack.id))
@@ -468,29 +479,28 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
             className="w-full h-9 px-3 bg-black/90 backdrop-blur-xl border-b border-white/15 flex items-center justify-between cursor-grab active:cursor-grabbing select-none z-50 text-white/80 hover:text-white"
             title="Drag to reposition video player"
           >
-            <div className="flex items-center gap-2">
-              <GripHorizontal className="w-4 h-4 text-white/50" />
-              <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-              <span className="font-mono text-[10px] font-bold tracking-widest uppercase text-white/90">
-                LIVE VIDEO
-              </span>
+            <div className="flex items-center gap-2 pointer-events-none text-white/40">
+              <GripHorizontal className="w-4 h-4" />
             </div>
 
-            {/* Window Controls: Fullscreen + Close */}
-            <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+            {/* Window Controls: Close Button Only */}
+            <div
+              className="flex items-center gap-1.5 z-20"
+              onClick={(e) => e.stopPropagation()}
+              onMouseDown={(e) => e.stopPropagation()}
+              onTouchStart={(e) => e.stopPropagation()}
+            >
               <button
-                onClick={() => setIsVideoFullscreen(!isVideoFullscreen)}
-                className="p-1 rounded hover:bg-white/10 text-white/70 hover:text-white transition-colors"
-                title="Fullscreen"
-              >
-                <Maximize2 className="w-3.5 h-3.5" />
-              </button>
-              <button
-                onClick={() => {
+                onClick={(e) => {
+                  e.stopPropagation();
                   onToggleVideo();
                 }}
-                className="p-1 rounded hover:bg-rose-500/20 text-white/70 hover:text-rose-400 transition-colors"
+                onMouseDown={(e) => e.stopPropagation()}
+                onTouchStart={(e) => e.stopPropagation()}
+                className="p-1.5 rounded-lg hover:bg-rose-500/20 text-white/70 hover:text-rose-400 transition-colors cursor-pointer"
                 title="Close Video"
+                aria-label="Close Video"
+                data-testid="close-video-btn"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
@@ -511,20 +521,13 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
                 onClick={(e) => {
                   e.stopPropagation();
                   setIsVideoFullscreen(false);
-                }}
-                className="p-2 rounded-xl bg-black/80 backdrop-blur-md border border-white/20 text-white hover:bg-white/20 transition-all"
-                title="Exit Fullscreen"
-              >
-                <Minimize2 className="w-4 h-4" />
-              </button>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setIsVideoFullscreen(false);
                   onToggleVideo();
                 }}
-                className="p-2 rounded-xl bg-black/80 backdrop-blur-md border border-white/20 text-white hover:bg-rose-500/20 transition-all"
+                onMouseDown={(e) => e.stopPropagation()}
+                onTouchStart={(e) => e.stopPropagation()}
+                className="p-2 rounded-xl bg-black/80 backdrop-blur-md border border-white/20 text-white hover:bg-rose-500/20 transition-all cursor-pointer"
                 title="Close Video"
+                aria-label="Close Video"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -572,20 +575,48 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
         </div>
       )}
 
-      {/* ── 6. MAIN TWO-COLUMN CINEMATIC CONTENT ── */}
-      <div className="relative z-10 w-full h-full flex flex-col justify-between px-6 sm:px-12 lg:px-16 pt-4 pb-8">
-        <div className="flex-1 flex flex-col lg:flex-row items-stretch justify-between gap-8 lg:gap-16 min-h-0">
+      {/* ── 6. MAIN RESPONSIVE CINEMATIC CONTENT ── */}
+      <div className="relative z-10 w-full h-full flex flex-col justify-between px-4 sm:px-10 lg:px-16 pt-2 sm:pt-4 pb-6 sm:pb-8">
+        {/* Mobile View Tab Switcher (< lg) */}
+        <div className="lg:hidden flex items-center justify-center p-1 bg-black/60 backdrop-blur-md rounded-xl border border-white/10 mx-auto mb-3 w-full max-w-xs shrink-0 z-20">
+          <button
+            data-testid="mobile-nowplaying-btn"
+            onClick={() => setMobileHeroTab('player')}
+            className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${
+              mobileHeroTab === 'player'
+                ? 'bg-yellow-400 text-black font-black shadow-md'
+                : 'text-white/60 hover:text-white'
+            }`}
+          >
+            Now Playing
+          </button>
+          <button
+            data-testid="mobile-upnext-btn"
+            onClick={() => setMobileHeroTab('tracklist')}
+            className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${
+              mobileHeroTab === 'tracklist'
+                ? 'bg-yellow-400 text-black font-black shadow-md'
+                : 'text-white/60 hover:text-white'
+            }`}
+          >
+            Up Next ({queue.length})
+          </button>
+        </div>
+
+        <div className="flex-1 flex flex-col lg:flex-row items-stretch justify-between gap-6 lg:gap-16 min-h-0">
 
           {/* ══════════════════════════════════════════════════
-              LEFT COLUMN: NOW PLAYING & TRACKLIST
+              LEFT COLUMN: NOW PLAYING HEADLINE & TRACKLIST
              ══════════════════════════════════════════════════ */}
-          <div className="w-full lg:w-[420px] xl:w-[460px] flex flex-col justify-between shrink-0 min-h-0 pt-2 lg:pt-8">
-            {/* Header info (Realtime Updates) */}
+          <div className={`w-full lg:w-[420px] xl:w-[460px] flex-col justify-between shrink-0 min-h-0 pt-2 lg:pt-8 ${
+            mobileHeroTab === 'tracklist' ? 'flex' : 'hidden lg:flex'
+          }`}>
+            {/* Header info (Realtime Updates, fluid non-truncated typography) */}
             <div>
-              <p className="font-display tracking-[0.25em] text-xs font-bold uppercase text-white/60 mb-1">
+              <p className="font-display tracking-[0.25em] text-xs font-bold uppercase text-white/50 mb-1">
                 NOW PLAYING
               </p>
-              <h1 className="font-display font-black text-6xl sm:text-7xl lg:text-8xl tracking-tight uppercase text-white leading-none drop-shadow-md truncate">
+              <h1 className="font-display font-black text-3xl sm:text-4xl lg:text-5xl xl:text-5.5xl tracking-tight uppercase text-white leading-[0.95] drop-shadow-md break-words">
                 {headlineTitle}
               </h1>
             </div>
@@ -630,7 +661,7 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
               )}
             </div>
 
-            {/* Track list (matches reference track items) */}
+            {/* Track list */}
             <div className="flex-1 overflow-y-auto no-scrollbar space-y-1.5 my-2 pr-2 min-h-0">
               {displayedTracks.map((track, idx) => {
                 const isCurrent = track.id === currentTrack.id;
@@ -641,7 +672,10 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
                 return (
                   <div
                     key={`${track.id}-${idx}`}
-                    onClick={() => onPlayTrack?.(track)}
+                    onClick={() => {
+                      onPlayTrack?.(track);
+                      setMobileHeroTab('player');
+                    }}
                     className={`ref-track-row group ${isCurrent ? 'ref-track-row active' : ''}`}
                   >
                     {/* Play / Pause / Equalizer indicator */}
@@ -661,23 +695,16 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
                       )}
                     </div>
 
-                    {/* Small square thumbnail with reliable onError fallback */}
+                    {/* Small square thumbnail */}
                     <div className="w-10 h-10 rounded-md overflow-hidden bg-black/40 shrink-0 border border-white/10 shadow-sm">
-                      <img
-                        src={track.thumbnail}
+                      {/* Album artwork provided by Apple / iTunes Search API */}
+                      <ArtworkImage
+                        title={t}
+                        artist={itemArtist}
+                        trackId={track.id}
+                        initialSrc={track.thumbnail}
                         alt={t}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        onError={(e) => {
-                          const target = e.currentTarget;
-                          const ytHq = track.id ? `https://i.ytimg.com/vi/${track.id}/hqdefault.jpg` : '';
-                          if (!target.dataset.fallback && ytHq && target.src !== ytHq) {
-                            target.dataset.fallback = '1';
-                            target.src = ytHq;
-                          } else {
-                            target.dataset.fallback = '2';
-                            target.src = 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=300&auto=format&fit=crop&q=80';
-                          }
-                        }}
+                        className="w-full h-full group-hover:scale-105 transition-transform duration-300"
                       />
                     </div>
 
@@ -708,97 +735,120 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
                 );
               })}
             </div>
+
+            {/* Bottom Meta Stats */}
+            <div className="flex items-center justify-between pt-3 border-t border-white/10 text-xs text-white/50 font-normal">
+              <span>
+                {leftListTab === 'recommendations'
+                  ? `${displayedTracks.length} recommendations`
+                  : `${queue.length} songs · ${totalMin} min`}
+              </span>
+            </div>
           </div>
 
           {/* ══════════════════════════════════════════════════
-              RIGHT COLUMN: NOW PLAYING HERO (from Reference)
+              RIGHT COLUMN: NOW PLAYING HERO / PLAYER CONSOLE
              ══════════════════════════════════════════════════ */}
-          <div className="w-full lg:w-[480px] xl:w-[520px] flex flex-col justify-between shrink-0 pt-2 lg:pt-8">
+          <div className={`w-full lg:w-[480px] xl:w-[520px] flex-col justify-between shrink-0 pt-2 lg:pt-8 ${
+            mobileHeroTab === 'player' ? 'flex' : 'hidden lg:flex'
+          }`}>
 
-            {/* Top Right: Floating Album Art (Playlist label removed) */}
-            <div className="flex flex-col items-end">
-              {/* Floating Album Art (High resolution portrait like Adele B&W in ref) */}
-              <div className="relative group w-48 sm:w-56 md:w-64 aspect-square rounded-xl overflow-hidden shadow-2xl border border-white/15 bg-black/60">
-                <img
-                  src={currentTrack.thumbnail}
+            {/* Top / Center: Floating Album Art */}
+            <div className="flex flex-col items-center lg:items-end">
+              <div className="relative group w-44 sm:w-56 md:w-64 aspect-square rounded-2xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.85)] border border-white/15 bg-black/60">
+                {/* Album artwork provided by Apple / iTunes Search API */}
+                <ArtworkImage
+                  title={title}
+                  artist={displayArtist}
+                  trackId={currentTrack.id}
+                  initialSrc={currentTrack.thumbnail}
                   alt={title}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  onError={(e) => {
-                    const target = e.currentTarget;
-                    const ytHq = currentTrack.id ? `https://i.ytimg.com/vi/${currentTrack.id}/hqdefault.jpg` : '';
-                    if (!target.dataset.fallback && ytHq && target.src !== ytHq) {
-                      target.dataset.fallback = '1';
-                      target.src = ytHq;
-                    } else {
-                      target.dataset.fallback = '2';
-                      target.src = 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=600&auto=format&fit=crop&q=80';
-                    }
-                  }}
+                  priority
+                  className="w-full h-full group-hover:scale-105 transition-transform duration-500"
                 />
 
-                {/* Sub-artwork utility buttons (Expand video & Audio visualizer) */}
-                <div className="absolute inset-x-0 bottom-3 flex items-center justify-center gap-3 z-20">
+                {/* Sub-artwork utility buttons (Expand video & Audio visualizer & Lyrics) */}
+                <div className="absolute inset-x-0 bottom-3 flex items-center justify-center gap-2.5 z-20">
                   <button
                     onClick={onToggleVideo}
-                    className={`w-8 h-8 rounded-full bg-black/60 backdrop-blur-md border border-white/20 flex items-center justify-center transition-all hover:scale-105 ${
-                      isVideoVisible ? 'text-yellow-400 border-yellow-400/50' : 'text-white/80 hover:text-white'
+                    className={`w-8 h-8 rounded-full bg-black/70 backdrop-blur-md border border-white/20 flex items-center justify-center transition-all hover:scale-105 ${
+                      isVideoVisible ? 'text-yellow-400 border-yellow-400/50 bg-black/90' : 'text-white/80 hover:text-white'
                     }`}
                     title={isVideoVisible ? 'Hide Video' : 'Open Movable Video'}
                     aria-label="Toggle Video"
                   >
-                    <Maximize2 className="w-3.5 h-3.5" />
+                    <Film className="w-3.5 h-3.5" />
                   </button>
                   <button
                     onClick={onToggleVisualizer}
-                    className={`w-8 h-8 rounded-full bg-black/60 backdrop-blur-md border border-white/20 flex items-center justify-center transition-all hover:scale-105 ${
-                      isVisualizerOpen ? 'text-yellow-400 border-yellow-400/50' : 'text-white/80 hover:text-white'
+                    className={`w-8 h-8 rounded-full bg-black/70 backdrop-blur-md border border-white/20 flex items-center justify-center transition-all hover:scale-105 ${
+                      isVisualizerOpen ? 'text-yellow-400 border-yellow-400/50 bg-black/90' : 'text-white/80 hover:text-white'
                     }`}
                     title="Audio Waves / Visualizer"
                     aria-label="Toggle Visualizer"
                   >
                     <Radio className="w-3.5 h-3.5" />
                   </button>
+                  {onToggleLyrics && (
+                    <button
+                      onClick={onToggleLyrics}
+                      className={`w-8 h-8 rounded-full bg-black/70 backdrop-blur-md border border-white/20 flex items-center justify-center transition-all hover:scale-105 ${
+                        isLyricsOpen ? 'text-yellow-400 border-yellow-400/50 bg-black/90' : 'text-white/80 hover:text-white'
+                      }`}
+                      title="Synchronized Lyrics"
+                      aria-label="Toggle Lyrics"
+                    >
+                      <BookOpen className="w-3.5 h-3.5" />
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
 
-            {/* Center Right: Song Title + Yellow Genre Tag (Unclickable) */}
-            <div className="text-right my-auto py-4">
-              <h2 className="font-display font-black text-4xl sm:text-5xl lg:text-6xl uppercase tracking-wide text-white leading-none drop-shadow-lg">
+            {/* Song Title + Artist (All small unwanted text below music name removed) */}
+            <div className="text-center lg:text-right my-auto py-3">
+              <h2 className="font-display font-black text-3xl sm:text-4xl lg:text-5xl uppercase tracking-wide text-white leading-tight drop-shadow-lg line-clamp-2">
                 {title}
               </h2>
-
-              {/* Dynamic Genre Tag Badge (Unclickable as explicitly requested) */}
-              <div className="mt-3 flex justify-end">
-                <div className="ref-genre-tag select-none cursor-default pointer-events-none">
-                  <span>{dynamicTag}</span>
-                </div>
-              </div>
+              <p className="text-sm sm:text-base font-semibold text-white/80 mt-1">
+                {displayArtist}
+              </p>
             </div>
 
-            {/* Bottom Right: Scrubber + Controls + Volume + Copyright */}
-            <div className="w-full flex flex-col gap-4 mt-auto">
+            {/* Bottom: Scrubber + Controls + Inline Volume */}
+            <div className="w-full flex flex-col gap-3.5 mt-auto">
 
-              {/* Progress Slider (with white thumb at 2:30/4:45 like reference) */}
+              {/* Progress Slider with Colored Line up to the Slider Thumb */}
               <div className="w-full">
-                <input
-                  type="range"
-                  min={0}
-                  max={effectiveDuration || 100}
-                  step={0.5}
-                  value={currentTime}
-                  onChange={(e) => onSeek(parseFloat(e.target.value))}
-                  className="ref-slider"
-                  aria-label="Seek track"
-                />
+                {(() => {
+                  const progressPercent = effectiveDuration > 0
+                    ? Math.min(100, Math.max(0, (currentTime / effectiveDuration) * 100))
+                    : 0;
+
+                  return (
+                    <input
+                      type="range"
+                      min={0}
+                      max={effectiveDuration || 100}
+                      step={0.5}
+                      value={currentTime}
+                      onChange={(e) => onSeek(parseFloat(e.target.value))}
+                      className="ref-slider"
+                      style={{
+                        '--track-bg': `linear-gradient(to right, #facc15 0%, #facc15 ${progressPercent}%, rgba(255, 255, 255, 0.25) ${progressPercent}%, rgba(255, 255, 255, 0.25) 100%)`,
+                      } as React.CSSProperties}
+                      aria-label="Seek track"
+                    />
+                  );
+                })()}
                 <div className="flex justify-between items-center text-xs font-mono text-white/50 mt-1">
                   <span>{formatTime(currentTime)}</span>
                   <span>{formatTime(effectiveDuration)}</span>
                 </div>
               </div>
 
-              {/* Transport Controls (Repeat, Prev, Play/Pause Circle, Next, Shuffle) */}
-              <div className="flex items-center justify-between px-2">
+              {/* Transport Controls (Repeat, Prev, Big Circular Play/Pause, Next, Shuffle) */}
+              <div className="flex items-center justify-between px-2 sm:px-6">
                 {/* Repeat */}
                 <button
                   onClick={onToggleRepeat}
@@ -860,44 +910,37 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
                 </button>
               </div>
 
-              {/* VOLUME UP Pill Button (Matches Reference) */}
-              <div className="flex flex-col items-center justify-center relative mt-1">
+              {/* Inline Volume Control Bar with Colored Line */}
+              <div className="flex items-center justify-center gap-3 px-4 py-2 bg-black/40 backdrop-blur-md rounded-xl border border-white/10 max-w-xs mx-auto w-full">
                 <button
-                  onClick={() => setIsVolumePopoverOpen(!isVolumePopoverOpen)}
-                  className="volume-pill-btn"
-                  title="Adjust Volume"
+                  onClick={toggleMute}
+                  className="text-white/70 hover:text-white transition-colors"
+                  title={isMuted ? 'Unmute' : 'Mute'}
                 >
-                  <Volume2 className="w-4 h-4 text-white/80" />
-                  <span>VOLUME {isMuted ? 'MUTED' : `${volume}%`}</span>
+                  {isMuted || volume === 0 ? (
+                    <VolumeX className="w-4 h-4 text-rose-400" />
+                  ) : (
+                    <Volume2 className="w-4 h-4" />
+                  )}
                 </button>
-
-                {/* Volume Slider Popover */}
-                {isVolumePopoverOpen && (
-                  <div className="absolute bottom-full mb-3 p-3 rounded-2xl bg-black/90 backdrop-blur-2xl border border-white/20 shadow-2xl flex items-center gap-3 w-56 z-50 animate-in">
-                    <button onClick={toggleMute} className="text-white/80 hover:text-white">
-                      {isMuted || volume === 0 ? (
-                        <VolumeX className="w-4 h-4 text-rose-400" />
-                      ) : (
-                        <Volume2 className="w-4 h-4" />
-                      )}
-                    </button>
-                    <input
-                      type="range"
-                      min={0}
-                      max={100}
-                      value={isMuted ? 0 : volume}
-                      onChange={(e) => {
-                        if (isMuted) setIsMuted(false);
-                        onChangeVolume(Number(e.target.value));
-                      }}
-                      className="ref-slider flex-1"
-                      aria-label="Volume"
-                    />
-                    <span className="text-[10px] font-mono text-white/70 w-8 text-right">
-                      {isMuted ? '0%' : `${volume}%`}
-                    </span>
-                  </div>
-                )}
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  value={isMuted ? 0 : volume}
+                  onChange={(e) => {
+                    if (isMuted) setIsMuted(false);
+                    onChangeVolume(Number(e.target.value));
+                  }}
+                  className="ref-slider flex-1"
+                  style={{
+                    '--track-bg': `linear-gradient(to right, #facc15 0%, #facc15 ${isMuted ? 0 : volume}%, rgba(255, 255, 255, 0.25) ${isMuted ? 0 : volume}%, rgba(255, 255, 255, 0.25) 100%)`,
+                  } as React.CSSProperties}
+                  aria-label="Volume"
+                />
+                <span className="text-[10px] font-mono text-white/70 w-8 text-right">
+                  {isMuted ? '0%' : `${volume}%`}
+                </span>
               </div>
             </div>
           </div>

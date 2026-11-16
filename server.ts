@@ -18,13 +18,40 @@ const CURATED_GENRES = [
     tag: '#RELATIONSHIPS',
     tracks: [
       {
-        id: '2Vv-BfVoq4g',
-        title: 'Perfect',
-        artist: 'Edward Christopher Sheeran',
-        duration: '4:23',
-        durationSec: 263,
-        views: '3.6B views',
-        thumbnail: 'https://is1-ssl.mzstatic.com/image/thumb/Music115/v4/15/e6/e8/15e6e8a4-4190-6a8b-86c3-ab4a51b88288/190295851286.jpg/1200x1200bb.jpg',
+        id: 'raiQjmyZMC0',
+        title: 'Someone Like You',
+        artist: 'Adele Adkins',
+        duration: '4:45',
+        durationSec: 285,
+        views: '2.2B views',
+        thumbnail: 'https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/eb/ca/25/ebca2596-cd1e-b295-91a3-771c868d0a79/191404113868.png/1200x1200bb.jpg',
+      },
+      {
+        id: 'zmsS_6sP5c4',
+        title: 'If I Could Change You',
+        artist: 'Danielle Haim (HAIM)',
+        duration: '3:50',
+        durationSec: 230,
+        views: '45M views',
+        thumbnail: 'https://is1-ssl.mzstatic.com/image/thumb/Music114/v4/f1/0c/21/f10c2105-fed1-b727-fb61-b0c96cc73eea/886444152648.jpg/1200x1200bb.jpg',
+      },
+      {
+        id: 'kYFjF3v1U7c',
+        title: 'Go slow',
+        artist: 'Gorgon City ft. Kaskade (Ryan Raddon)',
+        duration: '3:45',
+        durationSec: 225,
+        views: '28M views',
+        thumbnail: 'https://is1-ssl.mzstatic.com/image/thumb/Music113/v4/fb/c9/72/fbc972b5-3b37-058a-6818-63604315bf22/19UMGIM36996.rgb.jpg/1200x1200bb.jpg',
+      },
+      {
+        id: 'XXYlFuWEuKI',
+        title: 'Save Your Tears',
+        artist: 'Abel Tesfaye (The Weeknd)',
+        duration: '3:35',
+        durationSec: 215,
+        views: '1.2B views',
+        thumbnail: 'https://is1-ssl.mzstatic.com/image/thumb/Music115/v4/61/e7/3f/61e73f94-018d-5f50-50ec-8521952bc72e/20UM1IM11629.rgb.jpg/1200x1200bb.jpg',
       },
       {
         id: 'yKNxeF4KMsY',
@@ -36,40 +63,13 @@ const CURATED_GENRES = [
         thumbnail: 'https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/f5/93/8c/f5938c49-964c-31d1-4b33-78b634f71fb7/190295978075.jpg/1200x1200bb.jpg',
       },
       {
-        id: '4NRXx6U8ABQ',
-        title: 'Blinding Lights',
-        artist: 'Abel Tesfaye (The Weeknd)',
-        duration: '4:22',
-        durationSec: 262,
-        views: '800M views',
-        thumbnail: 'https://is1-ssl.mzstatic.com/image/thumb/Music115/v4/61/e7/3f/61e73f94-018d-5f50-50ec-8521952bc72e/20UM1IM11629.rgb.jpg/1200x1200bb.jpg',
-      },
-      {
-        id: 'fJ9rUzIMcZQ',
-        title: 'Bohemian Rhapsody',
-        artist: 'Freddie Mercury (Queen)',
-        duration: '6:00',
-        durationSec: 360,
-        views: '1.7B views',
-        thumbnail: 'https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/8b/0a/ea/8b0aea60-6f4a-195b-5958-cdf459c2333b/602527644271.jpg/1200x1200bb.jpg',
-      },
-      {
-        id: 'gGdGFtwCNBE',
-        title: 'Mr. Brightside',
-        artist: 'Brandon Flowers (The Killers)',
-        duration: '3:48',
-        durationSec: 228,
-        views: '560M views',
-        thumbnail: 'https://i.ytimg.com/vi/gGdGFtwCNBE/hqdefault.jpg',
-      },
-      {
-        id: 'wXhTHyIgQ_U',
-        title: 'Circles',
-        artist: 'Austin Richard Post (Post Malone)',
-        duration: '3:35',
-        durationSec: 215,
-        views: '540M views',
-        thumbnail: 'https://i.ytimg.com/vi/wXhTHyIgQ_U/hqdefault.jpg',
+        id: '2Vv-BfVoq4g',
+        title: 'Perfect',
+        artist: 'Edward Christopher Sheeran',
+        duration: '4:23',
+        durationSec: 263,
+        views: '3.6B views',
+        thumbnail: 'https://is1-ssl.mzstatic.com/image/thumb/Music115/v4/15/e6/e8/15e6e8a4-4190-6a8b-86c3-ab4a51b88288/190295851286.jpg/1200x1200bb.jpg',
       },
     ],
   },
@@ -77,7 +77,6 @@ const CURATED_GENRES = [
     id: 'official-hits',
     name: 'Top Global Official Music Videos',
     description: 'Master studio official music videos from top worldwide artists',
-    tag: '#GLOBAL-HIT',
     tracks: [
       {
         id: 'kJQP7kiw5Fk',
@@ -157,7 +156,6 @@ const CURATED_GENRES = [
     id: 'synthwave',
     name: 'Synthwave & Retrowave (Official Videos)',
     description: 'Neon horizons, analog synthesizers, and midnight expressway nostalgia',
-    tag: '#SYNTHWAVE',
     tracks: [
       {
         id: 'a6P40S5K4c4',
@@ -192,7 +190,6 @@ const CURATED_GENRES = [
     id: 'indie-rock',
     name: 'Indie & Alt Rock (Official Music Videos)',
     description: 'Iconic anthems and guitar driven official videos',
-    tag: '#ALT-ROCK',
     tracks: [
       {
         id: 'gGdGFtwCNBE',
@@ -227,7 +224,6 @@ const CURATED_GENRES = [
     id: 'pop-dance',
     name: 'Electronic & Pop Dance (Official Videos)',
     description: 'High energy dance visuals and festival anthems',
-    tag: '#DANCE',
     tracks: [
       {
         id: 'YykjpeuMNEk',
@@ -288,7 +284,7 @@ function parseDurationSec(durationStr: string): number {
 }
 
 // In-memory blacklist for known playback-restricted videos (disallowed embedding)
-const KNOWN_RESTRICTED_IDS = new Set<string>(['hLQl3WQQoQ0']);
+const KNOWN_RESTRICTED_IDS = new Set<string>(['hLQl3WQQoQ0', 'f-X8f_d1n3Y']);
 
 async function startServer() {
   const app = express();
@@ -320,42 +316,27 @@ async function startServer() {
     });
   });
 
-  // API 2: Dynamic Vibe Smart Recommendations (Auto-matches Genre & Vibe)
+  // API 2: Dynamic Smart Recommendations (Flexible, Shuffled Mix)
   app.get('/api/recommendations', async (req: Request, res: Response) => {
     const trackId = (req.query.trackId as string || '').trim();
     const artist = (req.query.artist as string || '').trim().toLowerCase();
-    const tag = (req.query.tag as string || '').trim().toUpperCase();
-    const limit = Math.min(20, Math.max(4, parseInt(req.query.limit as string || '10', 10)));
+    const limit = Math.min(20, Math.max(4, parseInt(req.query.limit as string || '8', 10)));
 
     try {
-      // Find parent genre/vibe of the requested track or tag
-      const currentGenre = CURATED_GENRES.find((g) =>
-        (tag && g.tag === tag) || g.tracks.some((t) => t.id === trackId)
-      );
-
-      const allTracks = CURATED_GENRES.flatMap((g) =>
-        g.tracks.map((t) => ({ ...t, vibe: g.tag, collectionName: g.name }))
-      ).filter((t) => !KNOWN_RESTRICTED_IDS.has(t.id) && t.id !== trackId);
-
+      const allTracks = CURATED_GENRES.flatMap((g) => g.tracks).filter((t) => !KNOWN_RESTRICTED_IDS.has(t.id));
       const uniqueMap = new Map<string, any>();
       for (const t of allTracks) {
-        if (!uniqueMap.has(t.id)) {
+        if (!uniqueMap.has(t.id) && t.id !== trackId) {
           uniqueMap.set(t.id, t);
         }
       }
 
       const pool = Array.from(uniqueMap.values());
-      const sameVibeTracks: any[] = [];
       const artistMatches: any[] = [];
       const others: any[] = [];
 
       for (const t of pool) {
-        const isSameVibe = currentGenre && (t.vibe === currentGenre.tag || (tag && t.vibe === tag));
-        const isArtistMatch = artist && (t.artist.toLowerCase().includes(artist) || artist.includes(t.artist.toLowerCase()));
-
-        if (isSameVibe) {
-          sameVibeTracks.push(t);
-        } else if (isArtistMatch) {
+        if (artist && (t.artist.toLowerCase().includes(artist) || artist.includes(t.artist.toLowerCase()))) {
           artistMatches.push(t);
         } else {
           others.push(t);
@@ -372,17 +353,10 @@ async function startServer() {
         return a;
       };
 
-      // Prioritize same vibe tracks first, then same artist, then diverse pool
-      const combined = [
-        ...shuffle(sameVibeTracks),
-        ...shuffle(artistMatches),
-        ...shuffle(others),
-      ].slice(0, limit);
+      const shuffledOthers = shuffle(others);
+      const combined = [...artistMatches, ...shuffledOthers].slice(0, limit);
 
-      res.json({
-        recommendations: combined,
-        activeVibe: currentGenre?.tag || tag || '#NOW-PLAYING',
-      });
+      res.json({ recommendations: combined });
     } catch (err: any) {
       console.error('Error generating recommendations:', err);
       res.status(500).json({ error: 'Failed to generate recommendations' });
@@ -707,42 +681,118 @@ async function startServer() {
     }
   });
 
-  // API 6: Fetch ultra-high-resolution 1200x1200bb studio master artwork for any track
+  // API 6: Multi-Source Ultra-High-Resolution Poster Discovery (iTunes + Deezer + maxres)
+  const artworkCacheFile = path.resolve(__dirname, '.artwork-cache.json');
   const artworkCache = new Map<string, string>();
-  app.get('/api/highres-artwork', async (req: Request, res: Response) => {
-    const rawTrack = (req.query.track as string || '').trim();
-    const rawArtist = (req.query.artist as string || '').trim();
-    const cacheKey = `${rawTrack}::${rawArtist}`.toLowerCase();
 
+  // Hydrate server disk cache on startup
+  try {
+    if (fs.existsSync(artworkCacheFile)) {
+      const data = JSON.parse(fs.readFileSync(artworkCacheFile, 'utf-8'));
+      Object.entries(data).forEach(([k, v]) => {
+        if (typeof v === 'string') artworkCache.set(k.toLowerCase(), v);
+      });
+      console.log(`[Server ArtworkCache] Loaded ${artworkCache.size} persistent posters from disk`);
+    }
+  } catch {}
+
+  let saveArtworkDiskTimer: any = null;
+  function persistArtworkToDisk() {
+    if (saveArtworkDiskTimer) clearTimeout(saveArtworkDiskTimer);
+    saveArtworkDiskTimer = setTimeout(() => {
+      try {
+        const obj = Object.fromEntries(artworkCache.entries());
+        fs.writeFileSync(artworkCacheFile, JSON.stringify(obj, null, 2), 'utf-8');
+      } catch {}
+    }, 2000);
+  }
+
+  async function resolveArtwork(trackTitle: string, artistName: string, videoId?: string): Promise<string | null> {
+    const cleanTrack = (trackTitle || '')
+      .replace(/\s*[\(\[]\s*(?:Official\s*(?:Music\s*)?)?(?:Video|Audio|Lyric\s*Video|HD|4K|Visualizer|Lyrics?)\s*[\)\]]/gi, '')
+      .replace(/\s*\|.*$/, '')
+      .trim();
+    const cleanArtist = (artistName || '')
+      .replace(/ - Topic$/i, '')
+      .replace(/VEVO$/i, '')
+      .replace(/Official$/i, '')
+      .trim();
+
+    const cacheKey = `${cleanTrack}::${cleanArtist}`.toLowerCase();
     if (artworkCache.has(cacheKey)) {
-      return res.json({ artworkUrl: artworkCache.get(cacheKey) });
+      return artworkCache.get(cacheKey)!;
     }
 
-    try {
-      const cleanTrack = rawTrack
-        .replace(/\s*[\(\[]\s*(?:Official\s*(?:Music\s*)?)?(?:Video|Audio|Lyric\s*Video|HD|4K|Visualizer|Lyrics?)\s*[\)\]]/gi, '')
-        .replace(/\s*\|.*$/, '')
-        .trim();
-      const cleanArtist = rawArtist
-        .replace(/ - Topic$/i, '')
-        .replace(/VEVO$/i, '')
-        .replace(/Official$/i, '')
-        .trim();
+    const query = `${cleanTrack} ${cleanArtist}`.trim();
+    if (!query) return null;
 
-      const query = `${cleanTrack} ${cleanArtist}`.trim();
+    // Source 1: Apple Music / iTunes Store Search (Lossless 1200x1200bb)
+    try {
       const itunesUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&entity=song&limit=1`;
-      const itunesRes = await fetch(itunesUrl);
+      const itunesRes = await fetch(itunesUrl, { signal: AbortSignal.timeout(3500) });
       if (itunesRes.ok) {
         const data = await itunesRes.json();
         if (data.results && data.results.length > 0 && data.results[0].artworkUrl100) {
           const highRes = data.results[0].artworkUrl100.replace(/\/\d+x\d+bb\./, '/1200x1200bb.');
           artworkCache.set(cacheKey, highRes);
-          return res.json({ artworkUrl: highRes });
+          persistArtworkToDisk();
+          return highRes;
         }
       }
     } catch {}
 
-    res.json({ artworkUrl: null });
+    // Source 2: Deezer API Search (Official studio master cover_xl 1000x1000)
+    try {
+      const deezerUrl = `https://api.deezer.com/search?q=${encodeURIComponent(query)}&limit=1`;
+      const deezerRes = await fetch(deezerUrl, { signal: AbortSignal.timeout(3500) });
+      if (deezerRes.ok) {
+        const data = await deezerRes.json();
+        const item = data.data?.[0];
+        const cover = item?.album?.cover_xl || item?.album?.cover_big;
+        if (cover) {
+          artworkCache.set(cacheKey, cover);
+          persistArtworkToDisk();
+          return cover;
+        }
+      }
+    } catch {}
+
+    // Source 3: High-Resolution YouTube Poster fallback
+    if (videoId) {
+      const maxresUrl = `https://i.ytimg.com/vi/${videoId}/maxresdefault.jpg`;
+      artworkCache.set(cacheKey, maxresUrl);
+      persistArtworkToDisk();
+      return maxresUrl;
+    }
+
+    return null;
+  }
+
+  // Single track highres artwork (with 7-day browser Cache-Control)
+  app.get('/api/highres-artwork', async (req: Request, res: Response) => {
+    res.setHeader('Cache-Control', 'public, max-age=604800, stale-while-revalidate=86400');
+    const rawTrack = (req.query.track as string || '').trim();
+    const rawArtist = (req.query.artist as string || '').trim();
+    const videoId = (req.query.videoId as string || '').trim();
+    const artworkUrl = await resolveArtwork(rawTrack, rawArtist, videoId);
+    res.json({ artworkUrl });
+  });
+
+  // Batch highres artwork resolution for lists (with 7-day browser Cache-Control)
+  app.post('/api/batch-artwork', async (req: Request, res: Response) => {
+    res.setHeader('Cache-Control', 'public, max-age=604800, stale-while-revalidate=86400');
+    const items = Array.isArray(req.body.items) ? req.body.items.slice(0, 20) : [];
+    const results: Record<string, string> = {};
+
+    await Promise.all(
+      items.map(async (item: any) => {
+        if (!item || !item.id) return;
+        const art = await resolveArtwork(item.title, item.artist, item.id);
+        if (art) results[item.id] = art;
+      })
+    );
+
+    res.json({ artworks: results });
   });
 
   // Download Native Mobile Android APK

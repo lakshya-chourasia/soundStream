@@ -11,8 +11,11 @@ import { CuratedVibes } from './components/CuratedVibes';
 import { PlayerBottomBar } from './components/PlayerBottomBar';
 import { MobileBottomNav } from './components/MobileBottomNav';
 import { YouTubePlayer, YouTubePlayerHandle } from './components/YouTubePlayer';
+import { QuickImportModal } from './components/QuickImportModal';
 import { SleepTimerModal } from './components/SleepTimerModal';
+import { SpotifyLayout } from './components/SpotifyLayout';
 import { getNextTrackIndex, getPrevTrackIndex, extractYouTubeId, cleanTrackTitle, getDynamicTrackTag, getFullSingerName } from './utils/playerUtils';
+import { prefetchArtwork } from './services/artworkService';
 import { Compass, AlertCircle, X } from 'lucide-react';
 
 const INITIAL_STARTER_POOL: Track[] = [
@@ -149,6 +152,7 @@ export default function App() {
   // Navigation & Modals State
   const [activeView, setActiveView] = useState<ActiveView>('now-playing');
   const [selectedCollectionId, setSelectedCollectionId] = useState<string>('love-2k20');
+  const [isQuickImportOpen, setIsQuickImportOpen] = useState<boolean>(false);
   const [isSleepTimerOpen, setIsSleepTimerOpen] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
@@ -236,11 +240,9 @@ export default function App() {
     setIsRecommendationsLoading(true);
     try {
       const { title: cleanT, artistFromTitle } = cleanTrackTitle(track.title);
-      const rawArtist = artistFromTitle || track.artist || '';
-      const displayArtist = getFullSingerName(rawArtist, cleanT);
-      const vibeTag = getDynamicTrackTag(cleanT, displayArtist, track.views);
+      const artist = artistFromTitle || track.artist || '';
       const res = await fetch(
-        `/api/recommendations?trackId=${encodeURIComponent(track.id)}&artist=${encodeURIComponent(displayArtist)}&tag=${encodeURIComponent(vibeTag)}&limit=12`
+        `/api/recommendations?trackId=${encodeURIComponent(track.id)}&artist=${encodeURIComponent(artist)}&limit=10`
       );
       if (res.ok) {
         const data = await res.json();
@@ -308,6 +310,19 @@ export default function App() {
       fetchRecommendations(currentTrack);
     }
   }, [currentTrack?.id]);
+
+  // Prefetch artwork for upcoming tracks in the queue and recommendations
+  useEffect(() => {
+    if (queue.length > 0) {
+      prefetchArtwork(queue.slice(0, 6));
+    }
+  }, [queue]);
+
+  useEffect(() => {
+    if (recommendations.length > 0) {
+      prefetchArtwork(recommendations.slice(0, 4));
+    }
+  }, [recommendations]);
 
   // Search YouTube
   const handleSearch = async (q: string) => {
@@ -392,6 +407,14 @@ export default function App() {
       })
       .catch(() => {});
   }, [currentTrack?.id]);
+
+  // Aggressively prefetch and cache artwork for queue and recommendations
+  useEffect(() => {
+    const candidateTracks = [...queue, ...recommendations];
+    if (candidateTracks.length > 0) {
+      prefetchArtwork(candidateTracks, 25);
+    }
+  }, [queue, recommendations]);
 
   // Handle and filter playback-restricted videos automatically
   const handlePlaybackRestricted = useCallback(
@@ -494,71 +517,20 @@ export default function App() {
   };
 
   const handleNext = useCallback(() => {
-    if (!currentTrack) return;
-
-    // 1. Loop current track if repeat mode is 'one'
-    if (repeatMode === 'one') {
-      playerRef.current?.seekTo(0);
-      playerRef.current?.play();
-      setIsPlaying(true);
-      return;
-    }
-
+    if (!currentTrack || queue.length === 0) return;
     const currentIndex = queue.findIndex((t) => t.id === currentTrack.id);
-
-    // 2. If there are manually queued / up-next tracks ahead in the queue, play them
-    if (currentIndex >= 0 && currentIndex < queue.length - 1) {
-      setPlayedHistory((prev) => [...prev, currentIndex]);
-      const nextTrack = queue[currentIndex + 1];
-      if (nextTrack) {
-        handlePlayTrack(nextTrack);
-        return;
-      }
-    }
-
-    // 3. Autoplay according to Vibe:
-    // Select the next unplayed track from recommendations matching the vibe
-    const playedIdSet = new Set<string>([
-      currentTrack.id,
-      ...playedHistory.map((idx) => queue[idx]?.id).filter(Boolean),
-    ]);
-
-    const unplayedVibeTrack = recommendations.find(
-      (t) => !playedIdSet.has(t.id) && !restrictedVideoIds.has(t.id)
-    );
-
-    if (unplayedVibeTrack) {
-      if (!queue.some((t) => t.id === unplayedVibeTrack.id)) {
-        setQueue((prev) => [...prev, unplayedVibeTrack]);
-      }
-      setPlayedHistory((prev) => [...prev, currentIndex]);
-      handlePlayTrack(unplayedVibeTrack);
-      const { title: nextT } = cleanTrackTitle(unplayedVibeTrack.title);
-      showToast(`Autoplaying vibe: "${nextT}"`);
-      return;
-    }
-
-    // 4. Fallback to standard shuffle or repeat-all if all vibe recommendations have been played
     const nextIndex = getNextTrackIndex(currentIndex, queue.length, repeatMode, isShuffle, playedHistory);
-    if (nextIndex !== null && nextIndex !== -1 && queue[nextIndex]) {
-      setPlayedHistory((prev) => [...prev, currentIndex]);
-      handlePlayTrack(queue[nextIndex]);
+
+    if (nextIndex === null || nextIndex === -1) {
+      setIsPlaying(false);
+      setCurrentTime(0);
       return;
     }
 
-    // 5. Continual flow: fetch new vibe recommendations so music never stops
-    fetchRecommendations(currentTrack);
-  }, [
-    currentTrack,
-    queue,
-    repeatMode,
-    playedHistory,
-    recommendations,
-    restrictedVideoIds,
-    handlePlayTrack,
-    isShuffle,
-    fetchRecommendations,
-  ]);
+    setPlayedHistory((prev) => [...prev, currentIndex]);
+    const nextTrack = queue[nextIndex];
+    if (nextTrack) handlePlayTrack(nextTrack);
+  }, [currentTrack, isShuffle, playedHistory, queue, repeatMode]);
 
   const handlePrev = useCallback(() => {
     if (!currentTrack || queue.length === 0) return;
@@ -679,284 +651,97 @@ export default function App() {
   const dynamicGenreTag = (activeCollection as any)?.tag || getDynamicTrackTag(cleanCurrentTitle, currentArtist, currentTrack?.views);
 
   return (
-    <div className="h-screen w-screen text-white flex flex-col font-sans relative overflow-hidden bg-[#0d0f12] select-none">
-
-      {/* Main Layout: Left Slim Rail + Dynamic Center Canvas */}
-      <div className="flex-1 flex overflow-hidden relative z-10 min-h-0">
-        {/* Left Slim Rail (from Reference) */}
-        <Sidebar
-          activeView={activeView}
-          onSelectView={setActiveView}
-          queueCount={queue.length}
-          favoritesCount={favorites.length}
-          isVideoVisible={isVideoVisible}
-          onToggleVideo={() => setIsVideoVisible(!isVideoVisible)}
-          isLyricsOpen={isLyricsOpen}
-          onToggleLyrics={() => setIsLyricsOpen(!isLyricsOpen)}
-          isVisualizerOpen={isVisualizerOpen}
-          onToggleVisualizer={() => setIsVisualizerOpen(!isVisualizerOpen)}
-          sleepTimerRemaining={sleepTimerRemaining}
-          onOpenSleepTimer={() => setIsSleepTimerOpen(true)}
-          isPlaying={isPlaying}
-        />
-
-        {/* Dynamic Center Canvas */}
-        <div className="flex-1 flex flex-col overflow-hidden min-h-0 relative">
-          {/* Top Header Bar (from Reference) */}
-          <Header
-            activeView={activeView}
-            onSelectView={setActiveView}
-            curatedGenres={genres}
-            selectedCollectionId={selectedCollectionId}
-            onSelectCollection={handleSelectCollection}
-            onOpenSleepTimer={() => setIsSleepTimerOpen(true)}
-            sleepTimerRemaining={sleepTimerRemaining}
-            onOpenSearch={() => setActiveView(activeView === 'discover' ? 'now-playing' : 'discover')}
-            activeContextName={dynamicPlaylistTitle}
+    <div className="h-screen w-screen text-white flex flex-col font-sans relative overflow-hidden bg-black select-none">
+      <SpotifyLayout
+        currentTrack={currentTrack}
+        isPlaying={isPlaying}
+        isBuffering={isBuffering}
+        currentTime={currentTime}
+        duration={duration}
+        volume={volume}
+        repeatMode={repeatMode}
+        isShuffle={isShuffle}
+        isVideoVisible={isVideoVisible}
+        videoSlot={
+          <YouTubePlayer
+            ref={playerRef}
+            currentTrack={currentTrack}
+            isPlaying={isPlaying}
+            volume={volume}
+            playbackRate={playbackRate}
+            playbackQuality={playbackQuality}
+            isVideoVisible={isVideoVisible}
+            onTimeUpdate={(cur, dur) => {
+              setCurrentTime(cur);
+              if (dur > 0) setDuration(dur);
+            }}
+            onStateChange={(playing, buffering) => {
+              setIsPlaying(playing);
+              setIsBuffering(buffering);
+            }}
+            onTrackEnded={handleNext}
+            onError={(err) => {
+              showToast(err);
+            }}
+            onPlaybackRestricted={handlePlaybackRestricted}
           />
-
-          {/* Center Stage Canvas */}
-          <main className="flex-1 overflow-hidden relative min-h-0">
-
-            {/* VIEW 1: CINEMATIC NOW PLAYING (Direct from Reference) */}
-            <div className={activeView === 'now-playing' ? 'w-full h-full' : 'fixed -left-[99999px] top-0 opacity-0 pointer-events-none h-0 w-0 overflow-hidden'}>
-              <NowPlayingHero
-                currentTrack={currentTrack}
-                isPlaying={isPlaying}
-                isBuffering={isBuffering}
-                currentTime={currentTime}
-                duration={duration}
-                volume={volume}
-                repeatMode={repeatMode}
-                isShuffle={isShuffle}
-                visualizerMode={visualizerMode}
-                isVideoVisible={isVideoVisible}
-                themeConfig={currentTheme}
-                videoSlot={
-                  <YouTubePlayer
-                    ref={playerRef}
-                    currentTrack={currentTrack}
-                    isPlaying={isPlaying}
-                    volume={volume}
-                    playbackRate={playbackRate}
-                    playbackQuality={playbackQuality}
-                    isVideoVisible={isVideoVisible}
-                    onTimeUpdate={(cur, dur) => {
-                      setCurrentTime(cur);
-                      if (dur > 0) setDuration(dur);
-                    }}
-                    onStateChange={(playing, buffering) => {
-                      setIsPlaying(playing);
-                      setIsBuffering(buffering);
-                    }}
-                    onTrackEnded={handleNext}
-                    onError={(err) => {
-                      showToast(err);
-                    }}
-                    onPlaybackRestricted={handlePlaybackRestricted}
-                  />
-                }
-                onTogglePlay={handleTogglePlay}
-                onSeek={(time) => {
-                  playerRef.current?.seekTo(time);
-                  setCurrentTime(time);
-                }}
-                onPrev={handlePrev}
-                onNext={handleNext}
-                onToggleShuffle={() => setIsShuffle(!isShuffle)}
-                onToggleRepeat={() => {
-                  setRepeatMode((prev) => (prev === 'off' ? 'all' : prev === 'all' ? 'one' : 'off'));
-                }}
-                onChangeVolume={setVolume}
-                onToggleVideo={() => setIsVideoVisible(!isVideoVisible)}
-                queue={queue.filter((t) => !restrictedVideoIds.has(t.id))}
-                onPlayTrack={handlePlayTrack}
-                genreTag={dynamicGenreTag}
-                isLyricsOpen={isLyricsOpen}
-                onToggleLyrics={() => setIsLyricsOpen(!isLyricsOpen)}
-                isVisualizerOpen={isVisualizerOpen}
-                onToggleVisualizer={() => setIsVisualizerOpen(!isVisualizerOpen)}
-                recommendations={recommendations.filter((t) => !restrictedVideoIds.has(t.id))}
-                isRecommendationsLoading={isRecommendationsLoading}
-                onRefreshRecommendations={() => fetchRecommendations(currentTrack)}
-                onAddToQueue={handleAddToQueue}
-              />
-            </div>
-
-            {/* VIEW 2: SEARCH & DISCOVER (Sleek Glass Drawer/View) */}
-            {activeView === 'discover' && (
-              <div className="absolute inset-0 z-30 bg-black/85 backdrop-blur-2xl p-6 sm:p-10 overflow-y-auto animate-in">
-                <div className="max-w-5xl mx-auto space-y-6">
-                  <div className="flex items-center justify-between">
-                    <h2 className="font-display font-black text-3xl sm:text-4xl uppercase tracking-tight text-white flex items-center gap-3">
-                      <Compass className="w-6 h-6 text-yellow-400" />
-                      <span>SEARCH & DISCOVER</span>
-                    </h2>
-                    <button
-                      onClick={() => setActiveView('now-playing')}
-                      className="p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
-                      title="Back to Player"
-                    >
-                      <X className="w-5 h-5" />
-                    </button>
-                  </div>
-
-                  <SearchBar
-                    onSearch={handleSearch}
-                    onDirectPlay={handleDirectPlay}
-                    isLoading={isSearching}
-                    activeGenre={activeGenreFilter}
-                    onSelectGenre={handleSelectGenreFilter}
-                  />
-
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between pb-2 border-b border-white/10">
-                      <span className="text-xs font-mono font-bold tracking-widest text-white/50 uppercase">
-                        {searchQuery ? `SEARCH: "${searchQuery}"` : 'RECOMMENDED TRACKS'}
-                      </span>
-                      <span className="text-xs font-mono text-yellow-400">
-                        {searchResults.length} RESULTS
-                      </span>
-                    </div>
-
-                    {isSearching ? (
-                      <div className="py-24 text-center text-white/50 space-y-3">
-                        <div className="w-8 h-8 border-2 border-yellow-400 border-t-transparent rounded-full animate-spin mx-auto" />
-                        <p className="text-xs font-mono uppercase tracking-wider text-yellow-400 font-bold">Searching YouTube...</p>
-                      </div>
-                    ) : searchResults.length === 0 ? (
-                      <div className="py-24 text-center text-white/50">
-                        <AlertCircle className="w-8 h-8 opacity-40 mx-auto mb-2 text-yellow-400" />
-                        <p className="text-sm font-bold uppercase tracking-wider text-white">No tracks found</p>
-                        <p className="text-xs text-white/40 mt-1 font-mono">Try searching artist name or song title</p>
-                      </div>
-                    ) : (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pb-8">
-                        {searchResults.filter((t) => !restrictedVideoIds.has(t.id)).map((track) => (
-                          <TrackCard
-                            key={`search-${track.id}`}
-                            track={track}
-                            isCurrent={currentTrack?.id === track.id}
-                            isPlaying={isPlaying && currentTrack?.id === track.id}
-                            isQueued={queue.some((q) => q.id === track.id)}
-                            onPlay={handlePlayTrack}
-                            onAddToQueue={handleAddToQueue}
-                            onToggleFavorite={handleToggleFavorite}
-                            isFavorite={favorites.some((f) => f.id === track.id)}
-                          />
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* VIEW 3: CURATED VIBES */}
-            {activeView === 'genres' && (
-              <div className="absolute inset-0 z-30 bg-black/85 backdrop-blur-2xl p-6 sm:p-10 overflow-y-auto animate-in">
-                <div className="max-w-5xl mx-auto space-y-6">
-                  <div className="flex items-center justify-between">
-                    <h2 className="font-display font-black text-3xl sm:text-4xl uppercase tracking-tight text-white">
-                      CURATED SOUNDSCAPES
-                    </h2>
-                    <button
-                      onClick={() => setActiveView('now-playing')}
-                      className="p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
-                      title="Back to Player"
-                    >
-                      <X className="w-5 h-5" />
-                    </button>
-                  </div>
-                  <CuratedVibes
-                    genres={genres}
-                    currentTrack={currentTrack}
-                    isPlaying={isPlaying}
-                    favorites={favorites}
-                    onPlayTrack={handlePlayTrack}
-                    onPlayGenre={handlePlayGenre}
-                    onAddToQueue={handleAddToQueue}
-                    onToggleFavorite={handleToggleFavorite}
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* VIEW 4: QUEUE & LIBRARY */}
-            {activeView === 'queue' && (
-              <div className="absolute inset-0 z-30 bg-black/85 backdrop-blur-2xl p-6 sm:p-10 overflow-y-auto animate-in">
-                <div className="max-w-4xl mx-auto space-y-6">
-                  <div className="flex items-center justify-between">
-                    <h2 className="font-display font-black text-3xl sm:text-4xl uppercase tracking-tight text-white">
-                      YOUR LIBRARY & QUEUE
-                    </h2>
-                    <button
-                      onClick={() => setActiveView('now-playing')}
-                      className="p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
-                      title="Back to Player"
-                    >
-                      <X className="w-5 h-5" />
-                    </button>
-                  </div>
-                  <QueueDrawer
-                    queue={queue.filter((t) => !restrictedVideoIds.has(t.id))}
-                    currentTrack={currentTrack}
-                    isPlaying={isPlaying}
-                    favorites={favorites}
-                    onPlayTrack={handlePlayTrack}
-                    onRemoveFromQueue={handleRemoveFromQueue}
-                    onClearQueue={handleClearQueue}
-                    onToggleFavorite={handleToggleFavorite}
-                  />
-                </div>
-              </div>
-            )}
-          </main>
-        </div>
-      </div>
-
-      {/* Persistent Bottom Bar only on non-now-playing views */}
-      {activeView !== 'now-playing' && (
-        <PlayerBottomBar
-          currentTrack={currentTrack}
-          isPlaying={isPlaying}
-          isBuffering={isBuffering}
-          currentTime={currentTime}
-          duration={duration}
-          volume={volume}
-          repeatMode={repeatMode}
-          isShuffle={isShuffle}
-          isFavorite={currentTrack ? favorites.some((f) => f.id === currentTrack.id) : false}
-          isVideoVisible={isVideoVisible}
-          onTogglePlay={handleTogglePlay}
-          onPrev={handlePrev}
-          onNext={handleNext}
-          onSeek={(time) => {
-            playerRef.current?.seekTo(time);
-            setCurrentTime(time);
-          }}
-          onToggleShuffle={() => setIsShuffle(!isShuffle)}
-          onToggleRepeat={() => {
-            setRepeatMode((prev) => (prev === 'off' ? 'all' : prev === 'all' ? 'one' : 'off'));
-          }}
-          onChangeVolume={setVolume}
-          onToggleFavorite={() => {
-            if (currentTrack) handleToggleFavorite(currentTrack);
-          }}
-          onToggleVideo={() => setIsVideoVisible(!isVideoVisible)}
-          onToggleLyrics={() => setIsLyricsOpen(!isLyricsOpen)}
-          onExpandNowPlaying={() => setActiveView('now-playing')}
-          onToggleQueue={() => setActiveView(activeView === 'queue' ? 'now-playing' : 'queue')}
-        />
-      )}
+        }
+        queue={queue.filter((t) => !restrictedVideoIds.has(t.id))}
+        recommendations={recommendations.filter((t) => !restrictedVideoIds.has(t.id))}
+        favorites={favorites}
+        searchQuery={searchQuery}
+        searchResults={searchResults.filter((t) => !restrictedVideoIds.has(t.id))}
+        isSearching={isSearching}
+        sleepTimerRemaining={sleepTimerRemaining}
+        onTogglePlay={handleTogglePlay}
+        onSeek={(time) => {
+          playerRef.current?.seekTo(time);
+          setCurrentTime(time);
+        }}
+        onPrev={handlePrev}
+        onNext={handleNext}
+        onToggleShuffle={() => setIsShuffle(!isShuffle)}
+        onToggleRepeat={() => {
+          setRepeatMode((prev) => (prev === 'off' ? 'all' : prev === 'all' ? 'one' : 'off'));
+        }}
+        onChangeVolume={setVolume}
+        onToggleVideo={() => setIsVideoVisible(!isVideoVisible)}
+        onPlayTrack={handlePlayTrack}
+        onAddToQueue={handleAddToQueue}
+        onToggleFavorite={handleToggleFavorite}
+        onSearch={handleSearch}
+        onClearSearch={() => {
+          setSearchQuery('');
+          setSearchResults([]);
+        }}
+        onOpenSleepTimer={() => setIsSleepTimerOpen(true)}
+        onOpenQuickImport={() => setIsQuickImportOpen(true)}
+      />
 
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed top-20 right-8 z-50 bg-black/90 backdrop-blur-xl text-white text-xs font-bold px-4 py-2.5 rounded-xl border border-white/20 shadow-2xl flex items-center gap-2.5 animate-in">
-          <span className="w-2 h-2 rounded-full bg-yellow-400 shadow-[0_0_8px_#facc15] shrink-0" />
-          <span>{toastMessage}</span>
+        <div className="fixed top-16 left-4 right-4 sm:left-auto sm:right-8 z-50 bg-black/95 backdrop-blur-xl text-white text-xs font-bold px-4 py-2.5 rounded-xl border border-white/20 shadow-2xl flex items-center justify-between sm:justify-start gap-2.5 animate-in">
+          <div className="flex items-center gap-2.5 truncate">
+            <span className="w-2 h-2 rounded-full bg-yellow-400 shadow-[0_0_8px_#facc15] shrink-0" />
+            <span className="truncate">{toastMessage}</span>
+          </div>
+          <button
+            onClick={() => setToastMessage(null)}
+            className="p-1 hover:text-white/60 text-white/40 sm:hidden shrink-0"
+            aria-label="Dismiss notification"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
         </div>
       )}
+
+      {/* Quick Import Modal */}
+      <QuickImportModal
+        isOpen={isQuickImportOpen}
+        onClose={() => setIsQuickImportOpen(false)}
+        onPlayTrack={handlePlayTrack}
+        onAddToQueue={handleAddToQueue}
+      />
 
       {/* Sleep Timer Modal */}
       <SleepTimerModal
@@ -972,13 +757,6 @@ export default function App() {
             showToast(`Sleep timer set for ${mins} minutes.`);
           }
         }}
-      />
-
-      {/* Mobile Nav */}
-      <MobileBottomNav
-        activeView={activeView}
-        onSelectView={setActiveView}
-        queueCount={queue.length}
       />
     </div>
   );

@@ -18,6 +18,7 @@ import {
   ListMusic,
   Maximize2,
 } from 'lucide-react';
+import { ArtworkImage } from './ArtworkImage';
 
 interface PlayerBottomBarProps {
   currentTrack: Track | null;
@@ -95,11 +96,11 @@ export const PlayerBottomBar: React.FC<PlayerBottomBarProps> = ({
   const VolumeIcon = isMuted || volume === 0 ? VolumeX : volume < 50 ? Volume1 : Volume2;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-40 select-none bg-[#181818] border-t border-white/5">
-      {/* Progress bar — full width, sits at the very top of the bar */}
+    <div className="fixed bottom-14 md:bottom-0 left-0 right-0 z-40 select-none bg-[#0a0c10]/95 backdrop-blur-2xl border-t border-white/10">
+      {/* Progress bar — Spotify dark gray track, white fill, green on hover */}
       <div className="seek-group relative h-1 bg-[#4d4d4d] group cursor-pointer">
         <div
-          className="absolute inset-y-0 left-0 bg-white group-hover:bg-green-400 transition-colors pointer-events-none"
+          className="absolute inset-y-0 left-0 bg-white group-hover:bg-[#1db954] transition-colors pointer-events-none rounded-full"
           style={{ width: `${progressPercent}%` }}
         />
         <input
@@ -129,8 +130,12 @@ export const PlayerBottomBar: React.FC<PlayerBottomBarProps> = ({
               className="relative w-14 h-14 rounded shrink-0 cursor-pointer group overflow-hidden bg-[#282828]"
               onClick={onExpandNowPlaying}
             >
-              <img
-                src={currentTrack.thumbnail}
+              {/* Album artwork provided by Apple / iTunes Search API */}
+              <ArtworkImage
+                title={title}
+                artist={displayArtist}
+                trackId={currentTrack.id}
+                initialSrc={currentTrack.thumbnail}
                 alt={title}
                 className="w-full h-full object-cover"
               />
@@ -277,10 +282,14 @@ export const PlayerBottomBar: React.FC<PlayerBottomBarProps> = ({
             <div className="seek-group relative flex items-center w-24">
               <div className="w-full h-1 rounded-full bg-[#4d4d4d] overflow-hidden">
                 <div
-                  className="h-full bg-white group-hover:bg-green-400 transition-colors"
+                  className="h-full bg-white group-hover:bg-[#1db954] transition-colors"
                   style={{ width: `${isMuted ? 0 : volume}%` }}
                 />
               </div>
+              <div
+                className="absolute top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full shadow opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
+                style={{ left: `calc(${isMuted ? 0 : volume}% - 6px)` }}
+              />
               <input
                 type="range"
                 min={0}

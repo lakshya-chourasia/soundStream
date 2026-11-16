@@ -159,7 +159,7 @@ export const LyricsOverlay: React.FC<LyricsOverlayProps> = ({
         className="relative z-10 px-4 py-2.5 border-b border-white/10 flex items-center justify-between gap-3 bg-black/90 backdrop-blur-xl cursor-grab active:cursor-grabbing select-none"
         title="Drag to reposition lyrics"
       >
-        <div className="flex items-center gap-2 min-w-0 flex-1">
+        <div className="flex items-center gap-2 min-w-0 flex-1 pointer-events-none">
           <GripHorizontal className="w-4 h-4 text-white/50 shrink-0" />
           <span className="w-2 h-2 rounded-full bg-yellow-400 shadow-[0_0_8px_#facc15] shrink-0 animate-pulse" />
           <div className="min-w-0">
@@ -173,10 +173,19 @@ export const LyricsOverlay: React.FC<LyricsOverlayProps> = ({
         </div>
 
         {/* Action Controls */}
-        <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="flex items-center gap-1.5 shrink-0 relative z-20"
+          onClick={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
+          onTouchStart={(e) => e.stopPropagation()}
+        >
           {hasSynced && (
             <button
-              onClick={() => setAutoScroll(!autoScroll)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setAutoScroll(!autoScroll);
+              }}
+              onMouseDown={(e) => e.stopPropagation()}
               className={`px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold tracking-wider uppercase transition-all ${
                 autoScroll
                   ? 'bg-yellow-400 text-black font-black shadow-[0_0_8px_rgba(250,204,21,0.4)]'
@@ -190,7 +199,11 @@ export const LyricsOverlay: React.FC<LyricsOverlayProps> = ({
 
           {(lyricsData?.plainLyrics || hasSynced) && (
             <button
-              onClick={handleCopy}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleCopy();
+              }}
+              onMouseDown={(e) => e.stopPropagation()}
               className="p-1.5 rounded-full text-white/50 hover:text-white hover:bg-white/10 transition-colors"
               title="Copy lyrics to clipboard"
               aria-label="Copy lyrics"
@@ -200,10 +213,16 @@ export const LyricsOverlay: React.FC<LyricsOverlayProps> = ({
           )}
 
           <button
-            onClick={onClose}
-            className="p-1.5 rounded-full text-white/50 hover:text-rose-400 hover:bg-white/10 transition-colors"
+            onClick={(e) => {
+              e.stopPropagation();
+              onClose();
+            }}
+            onMouseDown={(e) => e.stopPropagation()}
+            onTouchStart={(e) => e.stopPropagation()}
+            className="p-1.5 rounded-full text-white/50 hover:text-rose-400 hover:bg-white/10 transition-colors cursor-pointer"
             title="Close lyrics"
             aria-label="Close lyrics"
+            data-testid="close-lyrics-btn"
           >
             <X className="w-3.5 h-3.5" />
           </button>

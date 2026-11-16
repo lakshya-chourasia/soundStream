@@ -2,6 +2,7 @@ import React from 'react';
 import { Track } from '../types/player';
 import { Play, Pause, Plus, Check, Heart, Music } from 'lucide-react';
 import { cleanTrackTitle, getFullSingerName } from '../utils/playerUtils';
+import { ArtworkImage } from './ArtworkImage';
 
 interface TrackCardProps {
   track: Track;
@@ -34,28 +35,21 @@ export const TrackCard: React.FC<TrackCardProps> = ({
     <div
       className={`group relative flex items-center justify-between gap-3 p-2.5 rounded-xl transition-all duration-200 ${
         isCurrent
-          ? 'glass-panel bg-[#141620] border-pink-500/50 shadow-[0_0_24px_rgba(236,72,153,0.25)] ring-1 ring-cyan-400/40'
-          : 'glass-panel glass-panel-hover border-white/5 hover:border-pink-500/30'
+          ? 'bg-yellow-400/10 border border-yellow-400/40 shadow-[0_0_20px_rgba(250,204,21,0.15)] ring-1 ring-yellow-400/30'
+          : 'bg-white/[0.03] hover:bg-white/[0.08] border border-white/5 hover:border-white/15'
       }`}
     >
       {/* Thumbnail + Play Overlay */}
       <div className="relative w-12 h-12 md:w-13 md:h-13 rounded-lg overflow-hidden bg-black shrink-0 border border-white/10 shadow-inner">
-        {track.thumbnail ? (
-          <img
-            src={track.thumbnail}
-            alt={title}
-            referrerPolicy="no-referrer"
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-            onError={(e) => {
-              (e.target as HTMLElement).style.display = 'none';
-            }}
-          />
-        ) : null}
-
-        {/* Fallback icon container */}
-        <div className="absolute inset-0 -z-10 flex items-center justify-center bg-[#10121a] text-slate-500">
-          <Music className="w-5 h-5" />
-        </div>
+        {/* Album artwork provided by Apple / iTunes Search API */}
+        <ArtworkImage
+          title={title}
+          artist={displayArtist}
+          trackId={track.id}
+          initialSrc={track.thumbnail}
+          alt={title}
+          className="w-full h-full group-hover:scale-105 transition-transform duration-300"
+        />
 
         {/* Play / Equalizer Overlay */}
         <button
@@ -69,12 +63,12 @@ export const TrackCard: React.FC<TrackCardProps> = ({
         >
           {isCurrent && isPlaying ? (
             <div className="flex items-end gap-1 h-4">
-              <span className="w-1 bg-[#38bdf8] rounded-full animate-audio-bar-1 h-3 shadow-[0_0_6px_#38bdf8]" />
-              <span className="w-1 bg-[#ec4899] rounded-full animate-audio-bar-2 h-4 shadow-[0_0_8px_#ec4899]" />
-              <span className="w-1 bg-[#f59e0b] rounded-full animate-audio-bar-3 h-2.5 shadow-[0_0_6px_#f59e0b]" />
+              <span className="w-1 bg-yellow-400 rounded-full animate-bar-1 h-3 shadow-[0_0_6px_#facc15]" />
+              <span className="w-1 bg-yellow-400 rounded-full animate-bar-2 h-4 shadow-[0_0_8px_#facc15]" />
+              <span className="w-1 bg-yellow-400 rounded-full animate-bar-3 h-2.5 shadow-[0_0_6px_#facc15]" />
             </div>
           ) : (
-            <Play className="w-5 h-5 text-cyan-300 fill-cyan-300 ml-0.5 filter drop-shadow-[0_0_6px_rgba(56,189,248,0.7)]" />
+            <Play className="w-5 h-5 text-yellow-300 fill-yellow-300 ml-0.5 filter drop-shadow-[0_0_6px_rgba(250,204,21,0.7)]" />
           )}
         </button>
       </div>
@@ -88,8 +82,8 @@ export const TrackCard: React.FC<TrackCardProps> = ({
           <h4
             className={`text-sm truncate tracking-tight transition-colors ${
               isCurrent
-                ? 'font-black bg-gradient-to-r from-cyan-300 via-pink-400 to-amber-300 bg-clip-text text-transparent drop-shadow-[0_0_8px_rgba(236,72,153,0.3)]'
-                : 'font-bold text-[#f4f5f8] group-hover:text-white'
+                ? 'font-black text-yellow-300 drop-shadow-[0_0_8px_rgba(250,204,21,0.3)]'
+                : 'font-bold text-white group-hover:text-yellow-100'
             }`}
           >
             {title}
@@ -97,14 +91,14 @@ export const TrackCard: React.FC<TrackCardProps> = ({
         </button>
 
         {/* Unboxed Metadata with dot separators */}
-        <div className="flex items-center gap-1.5 text-xs text-slate-400 mt-0.5 truncate font-mono">
-          <span className="truncate max-w-[130px] md:max-w-[190px] font-serif italic text-slate-300">{displayArtist}</span>
+        <div className="flex items-center gap-1.5 text-xs text-white/50 mt-0.5 truncate font-mono">
+          <span className="truncate max-w-[130px] md:max-w-[190px] text-white/70">{displayArtist}</span>
           <span aria-hidden="true" className="text-white/20 font-bold">•</span>
-          <span className="font-mono font-bold tabular-nums text-slate-400 shrink-0">{track.duration}</span>
+          <span className="font-mono font-bold tabular-nums text-white/50 shrink-0">{track.duration}</span>
           {track.isOfficial && (
             <>
               <span aria-hidden="true" className="text-white/20 font-bold">•</span>
-              <span className="text-[9px] font-black tracking-wider uppercase text-cyan-300 bg-cyan-500/15 border border-cyan-400/30 px-1.5 py-0.2 rounded-xs">
+              <span className="text-[9px] font-bold tracking-wider uppercase text-yellow-400">
                 OFFICIAL
               </span>
             </>
@@ -112,7 +106,7 @@ export const TrackCard: React.FC<TrackCardProps> = ({
           {track.views && (
             <>
               <span aria-hidden="true" className="text-white/20 font-bold hidden sm:inline">•</span>
-              <span className="truncate hidden sm:inline text-[11px] font-medium text-slate-500">{track.views}</span>
+              <span className="truncate hidden sm:inline text-[11px] font-medium text-white/40">{track.views}</span>
             </>
           )}
         </div>
@@ -125,8 +119,8 @@ export const TrackCard: React.FC<TrackCardProps> = ({
             onClick={() => onToggleFavorite(track)}
             className={`p-1.5 rounded-full transition-all ${
               isFavorite
-                ? 'text-pink-400 bg-pink-500/20 shadow-[0_0_8px_rgba(236,72,153,0.35)]'
-                : 'text-slate-400 hover:text-pink-300 hover:bg-pink-500/10 opacity-0 group-hover:opacity-100 sm:opacity-70'
+                ? 'text-rose-400 bg-rose-500/20 shadow-[0_0_8px_rgba(244,63,94,0.35)]'
+                : 'text-white/40 hover:text-rose-300 hover:bg-rose-500/10 opacity-0 group-hover:opacity-100 sm:opacity-70'
             }`}
             aria-label={isFavorite ? `Remove ${title} from favorites` : `Save ${title} to favorites`}
           >
@@ -137,7 +131,7 @@ export const TrackCard: React.FC<TrackCardProps> = ({
         {onRemoveFromQueue ? (
           <button
             onClick={() => onRemoveFromQueue(track)}
-            className="p-1.5 rounded-full text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+            className="p-1.5 rounded-full text-white/40 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
             title="Remove from queue"
             aria-label={`Remove ${title} from queue`}
           >
@@ -148,8 +142,8 @@ export const TrackCard: React.FC<TrackCardProps> = ({
             onClick={() => onAddToQueue(track)}
             className={`p-1.5 rounded-full transition-all ${
               isQueued
-                ? 'text-cyan-300 bg-cyan-500/20 border border-cyan-400/40 shadow-[0_0_8px_rgba(56,189,248,0.35)]'
-                : 'text-slate-400 hover:text-cyan-300 hover:bg-cyan-500/10 opacity-80 sm:opacity-0 sm:group-hover:opacity-100'
+                ? 'text-yellow-400 bg-yellow-400/20 border border-yellow-400/40 shadow-[0_0_8px_rgba(250,204,21,0.25)]'
+                : 'text-white/40 hover:text-yellow-300 hover:bg-yellow-400/10 opacity-80 sm:opacity-0 sm:group-hover:opacity-100'
             }`}
             title={isQueued ? 'In queue' : 'Add to queue'}
             aria-label={`Add ${title} to queue`}
