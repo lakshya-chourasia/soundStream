@@ -165,15 +165,6 @@ export const Header: React.FC<HeaderProps> = ({
                   </span>
                 )}
               </button>
-              <button
-                onClick={() => {
-                  onSelectView('queue');
-                  setIsUserMenuOpen(false);
-                }}
-                className="w-full px-3 py-2 text-left text-xs rounded-lg text-white/80 hover:bg-white/10"
-              >
-                Playlists & History
-              </button>
             </div>
           )}
         </div>

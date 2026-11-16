@@ -13,7 +13,6 @@ import {
   VolumeX,
   Maximize2,
   Minimize2,
-  MoreHorizontal,
   Radio,
   X,
   GripHorizontal,
@@ -644,13 +643,6 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
                         {itemArtist}
                       </p>
                     </div>
-
-                    {/* Options indicator on current track only */}
-                    {isCurrent && (
-                      <div className="p-1 text-white/40">
-                        <MoreHorizontal className="w-4 h-4" />
-                      </div>
-                    )}
                   </div>
                 );
               })}
@@ -680,7 +672,7 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                 />
 
-                {/* Sub-artwork utility buttons (Expand video & Audio visualizer & Lyrics) */}
+                {/* Sub-artwork utility buttons (Expand video & Audio visualizer) */}
                 <div className="absolute inset-x-0 bottom-3 flex items-center justify-center gap-3 z-20">
                   <button
                     onClick={onToggleVideo}
@@ -701,16 +693,6 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
                     aria-label="Toggle Visualizer"
                   >
                     <Radio className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    onClick={onToggleLyrics}
-                    className={`w-8 h-8 rounded-full bg-black/60 backdrop-blur-md border border-white/20 flex items-center justify-center transition-all hover:scale-105 ${
-                      isLyricsOpen ? 'text-yellow-400 border-yellow-400/50' : 'text-white/80 hover:text-white'
-                    }`}
-                    title="Movable Synchronized Lyrics"
-                    aria-label="Toggle Synchronized Lyrics"
-                  >
-                    <BookOpen className="w-3.5 h-3.5" />
                   </button>
                 </div>
               </div>
