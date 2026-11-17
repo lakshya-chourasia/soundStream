@@ -541,15 +541,6 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
               </span>
             )}
           </button>
-
-          {/* Fullscreen Cinema / Immersion Mode */}
-          <button
-            onClick={() => setIsCinemaMode(true)}
-            className="p-2 rounded-full bg-white/[0.06] hover:bg-white/[0.12] text-white/70 hover:text-white border border-white/[0.08] transition-all cursor-pointer hidden sm:flex"
-            title="Fullscreen Cinema Mode"
-          >
-            <Maximize2 className="w-4 h-4" />
-          </button>
         </div>
       </header>
 
@@ -1065,37 +1056,23 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
               </div>
             </div>
 
-            {/* Visual Media Box: Album Poster OR Pure Clean 16:9 Video Player (Click to open Cinema Mode) */}
+            {/* Visual Media Box: Album Poster OR Pure Clean 16:9 Video Player */}
             <div className="w-full aspect-video rounded-2xl overflow-hidden bg-black shadow-2xl relative border border-white/[0.08] shrink-0">
-              {isVideoVisible ? (
+              {isVideoVisible && !isCinemaMode ? (
                 /* Pure Video: Zero options, zero overlays, zero text */
-                <div
-                  onClick={() => {
-                    setMaximizeViewMode('video');
-                    setIsCinemaMode(true);
-                  }}
-                  className="w-full h-full relative flex items-center justify-center bg-black cursor-pointer group"
-                  title="Click to expand video in cinema mode"
-                >
+                <div className="w-full h-full relative flex items-center justify-center bg-black">
                   {videoSlot}
                 </div>
               ) : (
                 /* High-Resolution Album Artwork Poster */
-                <div
-                  onClick={() => {
-                    setMaximizeViewMode('poster');
-                    setIsCinemaMode(true);
-                  }}
-                  className="w-full h-full relative cursor-pointer group"
-                  title="Click to view full poster in cinema mode"
-                >
+                <div className="w-full h-full relative">
                   <ArtworkImage
                     title={cleanTrackTitle(currentTrack.title).title}
                     artist={getFullSingerName(currentTrack.artist || '', currentTrack.title)}
                     trackId={currentTrack.id}
                     initialSrc={currentTrack.thumbnail}
                     alt={cleanTrackTitle(currentTrack.title).title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    className="w-full h-full object-cover"
                   />
                 </div>
               )}
@@ -1104,13 +1081,7 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
             {/* Track Info & Actions */}
             <div className="flex items-center justify-between pt-1 shrink-0">
               <div className="min-w-0 pr-2">
-                <h4
-                  onClick={() => {
-                    setMaximizeViewMode('poster');
-                    setIsCinemaMode(true);
-                  }}
-                  className="font-extrabold text-xl text-white tracking-tight truncate hover:text-yellow-400 transition-colors cursor-pointer"
-                >
+                <h4 className="font-extrabold text-xl text-white tracking-tight truncate">
                   {cleanTrackTitle(currentTrack.title).title}
                 </h4>
                 <p className="text-xs text-white/60 truncate mt-0.5 font-medium">
@@ -1234,32 +1205,22 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
 
           {/* Left: Mini Artwork + Track Info + Favorite */}
           <div className="flex items-center gap-2.5 sm:gap-3 w-1/2 sm:w-1/4 min-w-[160px] max-w-[320px]">
-            <div
-              onClick={() => setIsCinemaMode(true)}
-              className="relative w-11 h-11 sm:w-14 sm:h-14 rounded-xl overflow-hidden bg-[#202020] shrink-0 cursor-pointer group shadow-md border border-white/10"
-              title="Click to view poster artwork"
-            >
+            <div className="relative w-11 h-11 sm:w-14 sm:h-14 rounded-xl overflow-hidden bg-[#202020] shrink-0 shadow-md border border-white/10">
               <ArtworkImage
                 title={cleanTrackTitle(currentTrack.title).title}
                 artist={getFullSingerName(currentTrack.artist || '', currentTrack.title)}
                 trackId={currentTrack.id}
                 initialSrc={currentTrack.thumbnail}
                 alt={cleanTrackTitle(currentTrack.title).title}
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                className="w-full h-full object-cover"
               />
-              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                <Maximize2 className="w-4 h-4 text-white" />
-              </div>
             </div>
 
             <div className="min-w-0 pr-1">
-              <p
-                onClick={() => setIsCinemaMode(true)}
-                className="text-xs sm:text-sm font-bold text-white truncate hover:text-yellow-400 transition-colors cursor-pointer"
-              >
+              <p className="text-xs sm:text-sm font-bold text-white truncate">
                 {cleanTrackTitle(currentTrack.title).title}
               </p>
-              <p className="text-[11px] text-white/50 truncate hover:text-white transition-colors cursor-pointer mt-0.5 font-medium">
+              <p className="text-[11px] text-white/50 truncate mt-0.5 font-medium">
                 {getFullSingerName(currentTrack.artist || '', currentTrack.title)}
               </p>
             </div>
@@ -1613,29 +1574,22 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
           <div className="relative z-10 w-full h-20 sm:h-22 bg-black/85 backdrop-blur-2xl border-t border-white/[0.08] px-4 sm:px-8 flex items-center justify-between shrink-0 select-none">
             {/* Left: Mini Thumbnail, Track Info, Plus / Favorite */}
             <div className="flex items-center gap-3 w-1/4 min-w-[160px] max-w-[320px]">
-              <div
-                onClick={() => setMaximizeViewMode('poster')}
-                className="relative w-12 h-12 sm:w-14 sm:h-14 rounded-xl overflow-hidden bg-[#202020] shrink-0 cursor-pointer shadow-md border border-white/10 group"
-                title="Cover Art Mode"
-              >
+              <div className="relative w-12 h-12 sm:w-14 sm:h-14 rounded-xl overflow-hidden bg-[#202020] shrink-0 shadow-md border border-white/10">
                 <ArtworkImage
                   title={cleanTrackTitle(currentTrack.title).title}
                   artist={getFullSingerName(currentTrack.artist || '', currentTrack.title)}
                   trackId={currentTrack.id}
                   initialSrc={currentTrack.thumbnail}
                   alt={cleanTrackTitle(currentTrack.title).title}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                  className="w-full h-full object-cover"
                 />
               </div>
 
               <div className="min-w-0 pr-1">
-                <p
-                  onClick={() => setMaximizeViewMode('poster')}
-                  className="text-xs sm:text-sm font-bold text-white truncate hover:underline hover:text-yellow-400 transition-colors cursor-pointer"
-                >
+                <p className="text-xs sm:text-sm font-bold text-white truncate">
                   {cleanTrackTitle(currentTrack.title).title}
                 </p>
-                <p className="text-[11px] sm:text-xs text-white/50 truncate hover:underline cursor-pointer mt-0.5 font-medium">
+                <p className="text-[11px] sm:text-xs text-white/50 truncate mt-0.5 font-medium">
                   {getFullSingerName(currentTrack.artist || '', currentTrack.title)}
                 </p>
               </div>
@@ -1745,57 +1699,16 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
               </div>
             </div>
 
-            {/* Right: Mode Icons (Mic with yellow dot, Video with yellow dot, Queue, Devices, Volume, Miniplayer, Minimize) */}
-            <div className="flex items-center justify-end gap-1.5 sm:gap-2.5 w-1/4 min-w-[80px] max-w-[320px]">
-              {/* Lyrics Mode Button */}
-              <button
-                onClick={() => setMaximizeViewMode('lyrics')}
-                className="relative p-1.5 flex flex-col items-center justify-center transition-colors cursor-pointer"
-                title="Lyrics Mode"
-              >
-                <Mic2 className={`w-4.5 h-4.5 transition-colors ${maximizeViewMode === 'lyrics' ? 'text-yellow-400' : 'text-white/60 hover:text-white'}`} />
-                {maximizeViewMode === 'lyrics' && (
-                  <span className="w-1.5 h-1.5 rounded-full bg-yellow-400 shadow-[0_0_6px_#facc15] mt-0.5" />
-                )}
-              </button>
-
-              {/* Video Mode Button */}
-              <button
-                onClick={() => {
-                  if (!isVideoVisible) onToggleVideo();
-                  setMaximizeViewMode('video');
-                }}
-                className="relative p-1.5 flex flex-col items-center justify-center transition-colors cursor-pointer"
-                title="Video Mode"
-              >
-                <Film className={`w-4.5 h-4.5 transition-colors ${maximizeViewMode === 'video' ? 'text-yellow-400' : 'text-white/60 hover:text-white'}`} />
-                {maximizeViewMode === 'video' && (
-                  <span className="w-1.5 h-1.5 rounded-full bg-yellow-400 shadow-[0_0_6px_#facc15] mt-0.5" />
-                )}
-              </button>
-
-              {/* Queue Button */}
-              <button
-                onClick={() => {
-                  setIsCinemaMode(false);
-                  setCenterViewMode('queue');
-                }}
-                className="p-1.5 text-white/60 hover:text-white transition-colors cursor-pointer hidden md:block"
-                title="Queue"
-              >
-                <ListMusic className="w-4.5 h-4.5" />
-              </button>
-
-              {/* Devices / Connect */}
-              <button
-                className="p-1.5 text-white/60 hover:text-white transition-colors cursor-pointer hidden md:block"
-                title="Devices"
-              >
-                <Laptop2 className="w-4.5 h-4.5" />
-              </button>
+            {/* Right: SoundStream Audio Quality + Volume Slider */}
+            <div className="flex items-center justify-end gap-2.5 sm:gap-4 w-1/4 min-w-[80px] max-w-[320px]">
+              {/* SoundStream Lossless HD Audio Badge */}
+              <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full bg-yellow-400/10 border border-yellow-400/25 text-yellow-400 text-[11px] font-bold tracking-wider">
+                <Radio className="w-3.5 h-3.5 text-yellow-400" />
+                <span className="hidden md:inline">Lossless • 320kbps</span>
+              </div>
 
               {/* Volume Slider */}
-              <div className="hidden lg:flex items-center gap-1.5 select-none">
+              <div className="flex items-center gap-1.5 select-none">
                 <button
                   onClick={() => onChangeVolume(volume === 0 ? 80 : 0)}
                   className="p-1 text-white/60 hover:text-white transition-colors cursor-pointer"
@@ -1809,28 +1722,10 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
                   max={100}
                   value={volume}
                   onChange={(e) => onChangeVolume(Number(e.target.value))}
-                  className="w-20 accent-yellow-400 cursor-pointer h-1 rounded-full bg-white/20"
+                  className="w-16 sm:w-20 accent-yellow-400 cursor-pointer h-1 rounded-full bg-white/20"
                   aria-label="Volume"
                 />
               </div>
-
-              {/* Miniplayer */}
-              <button
-                onClick={() => setIsCinemaMode(false)}
-                className="p-1.5 text-white/60 hover:text-white transition-colors cursor-pointer hidden sm:block"
-                title="Miniplayer"
-              >
-                <PictureInPicture className="w-4.5 h-4.5" />
-              </button>
-
-              {/* Exit Fullscreen Cinema */}
-              <button
-                onClick={() => setIsCinemaMode(false)}
-                className="p-1.5 text-white/60 hover:text-white transition-colors cursor-pointer"
-                title="Exit Fullscreen (Esc)"
-              >
-                <Minimize2 className="w-4.5 h-4.5" />
-              </button>
             </div>
           </div>
         </div>
