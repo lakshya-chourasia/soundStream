@@ -365,7 +365,7 @@ export const YouTubePlayer = forwardRef<YouTubePlayerHandle, YouTubePlayerProps>
       >
         <div
           ref={containerRef}
-          className="w-full h-full flex items-center justify-center pointer-events-none [&>iframe]:w-full [&>iframe]:h-full [&>iframe]:object-contain"
+          className="w-full h-full flex items-center justify-center pointer-events-none scale-[1.45] origin-[50%_46%] [&>iframe]:w-full [&>iframe]:h-full [&>iframe]:object-cover"
         />
       </div>
     );
