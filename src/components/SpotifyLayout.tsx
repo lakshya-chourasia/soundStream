@@ -46,6 +46,7 @@ import {
   Flame,
   Music2,
   Layers,
+  Disc,
 } from 'lucide-react';
 import { ArtworkImage } from './ArtworkImage';
 import { extractColorFromImage, RGBColor } from '../utils/colorUtils';
@@ -813,6 +814,8 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
                           onClick={() => {
                             if (activeHeroItem.actionType === 'video') {
                               if (!isVideoVisible) onToggleVideo();
+                              setMaximizeViewMode('video');
+                              setIsCinemaMode(true);
                             } else if (activeHeroItem.actionType === 'lyrics') {
                               setMaximizeViewMode('lyrics');
                               setIsCinemaMode(true);
@@ -990,6 +993,8 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
                             onClick={() => {
                               onPlayTrack(track);
                               if (!isVideoVisible) onToggleVideo();
+                              setMaximizeViewMode('video');
+                              setIsCinemaMode(true);
                             }}
                             className="group relative rounded-2xl overflow-hidden bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.06] hover:border-yellow-400/40 transition-all cursor-pointer shadow-lg"
                           >
@@ -1060,19 +1065,29 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
               </div>
             </div>
 
-            {/* Visual Media Box: Album Poster OR Pure Clean 16:9 Video Player (Zero Options/Overlays) */}
+            {/* Visual Media Box: Album Poster OR Pure Clean 16:9 Video Player (Click to open Cinema Mode) */}
             <div className="w-full aspect-video rounded-2xl overflow-hidden bg-black shadow-2xl relative border border-white/[0.08] shrink-0">
               {isVideoVisible ? (
                 /* Pure Video: Zero options, zero overlays, zero text */
-                <div className="w-full h-full relative flex items-center justify-center bg-black">
+                <div
+                  onClick={() => {
+                    setMaximizeViewMode('video');
+                    setIsCinemaMode(true);
+                  }}
+                  className="w-full h-full relative flex items-center justify-center bg-black cursor-pointer group"
+                  title="Click to expand video in cinema mode"
+                >
                   {videoSlot}
                 </div>
               ) : (
                 /* High-Resolution Album Artwork Poster */
                 <div
-                  onClick={() => setIsCinemaMode(true)}
-                  className="w-full h-full relative cursor-pointer"
-                  title="Click to view full poster"
+                  onClick={() => {
+                    setMaximizeViewMode('poster');
+                    setIsCinemaMode(true);
+                  }}
+                  className="w-full h-full relative cursor-pointer group"
+                  title="Click to view full poster in cinema mode"
                 >
                   <ArtworkImage
                     title={cleanTrackTitle(currentTrack.title).title}
@@ -1080,7 +1095,7 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
                     trackId={currentTrack.id}
                     initialSrc={currentTrack.thumbnail}
                     alt={cleanTrackTitle(currentTrack.title).title}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   />
                 </div>
               )}
@@ -1356,15 +1371,19 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
 
           {/* Right: Video, Lyrics, Sidebar Toggle, Volume Slider */}
           <div className="flex items-center justify-end gap-1 sm:gap-2 w-auto sm:w-1/4 min-w-[80px] max-w-[300px]">
-            {/* Toggle Video */}
+            {/* Toggle Video (Directly Opens Cinema Mode in Video view) */}
             <button
-              onClick={onToggleVideo}
-              className={`p-1.5 sm:p-2 rounded-xl transition-all cursor-pointer ${
+              onClick={() => {
+                if (!isVideoVisible) onToggleVideo();
+                setMaximizeViewMode('video');
+                setIsCinemaMode(true);
+              }}
+              className={`p-1.5 sm:p-2 rounded-xl transition-all cursor-pointer relative flex flex-col items-center justify-center ${
                 isVideoVisible
                   ? 'bg-yellow-400/20 text-yellow-400 border border-yellow-400/40 shadow-[0_0_8px_rgba(250,204,21,0.3)]'
                   : 'text-white/60 hover:text-white hover:bg-white/[0.08]'
               }`}
-              title="Toggle Video Player"
+              title="Watch Video (Cinema Mode)"
             >
               <Film className="w-4 h-4" />
             </button>
@@ -1426,164 +1445,391 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
       )}
 
       {/* ══════════════════════════════════════════════════
-          5. FULLSCREEN CINEMA MODE MODAL (Poster, Video, Synced Lyrics)
+          5. FULLSCREEN CINEMA MODE (Matching screenshot placement & SoundStream Theme)
          ══════════════════════════════════════════════════ */}
       {isCinemaMode && currentTrack && (
-        <div className="fixed inset-0 z-50 bg-[#080808]/98 backdrop-blur-2xl flex flex-col justify-between overflow-y-auto animate-in fade-in duration-200">
-          {/* Ambient Glow */}
+        <div
+          className="fixed inset-0 z-50 flex flex-col justify-between overflow-hidden animate-in fade-in duration-200 select-none"
+          style={{
+            backgroundColor: `rgb(${Math.max(16, Math.round(posterColor.r * 0.16 + 12))}, ${Math.max(16, Math.round(posterColor.g * 0.16 + 12))}, ${Math.max(18, Math.round(posterColor.b * 0.16 + 15))})`,
+          }}
+        >
+          {/* Subtle Ambient Radial Lighting */}
           <div
-            className="absolute inset-0 opacity-20 pointer-events-none blur-3xl"
+            className="absolute inset-0 opacity-25 pointer-events-none blur-3xl"
             style={{
-              background: `radial-gradient(circle at 50% 40%, rgb(${posterColor.r}, ${posterColor.g}, ${posterColor.b}) 0%, transparent 70%)`,
+              background: `radial-gradient(circle at 50% 30%, rgb(${posterColor.r}, ${posterColor.g}, ${posterColor.b}) 0%, transparent 70%)`,
             }}
           />
 
-          {/* Top Bar */}
-          <div className="relative z-10 w-full px-6 py-4 flex items-center justify-between border-b border-white/[0.08]">
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-yellow-400 shadow-[0_0_8px_#facc15]" />
-              <span className="text-xs font-bold text-yellow-400 uppercase tracking-widest">
-                SOUNDSTREAM CINEMA MODE
+          {/* ── TOP BAR (Track title left, controls right) ── */}
+          <div className="relative z-10 w-full px-6 sm:px-10 py-5 flex items-center justify-between shrink-0">
+            {/* Left: Track Title */}
+            <div className="flex items-center min-w-0 pr-4">
+              <span className="text-sm sm:text-base font-bold text-white/90 truncate tracking-tight">
+                {cleanTrackTitle(currentTrack.title).title}
               </span>
             </div>
 
-            {/* Mode Switcher: Poster | Video | Lyrics */}
-            <div className="flex items-center gap-1 bg-white/[0.08] p-1 rounded-full border border-white/10">
+            {/* Right: Mode Switchers & Utility Icons */}
+            <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+              {/* Disc / Poster Mode */}
               <button
                 onClick={() => setMaximizeViewMode('poster')}
-                className={`px-3 py-1 rounded-full text-xs font-bold transition-all ${
-                  maximizeViewMode === 'poster' ? 'bg-yellow-400 text-black' : 'text-white/70 hover:text-white'
+                className={`p-2 rounded-full transition-colors cursor-pointer ${
+                  maximizeViewMode === 'poster'
+                    ? 'text-yellow-400 drop-shadow-[0_0_8px_#facc15]'
+                    : 'text-white/60 hover:text-white'
                 }`}
+                title="Cover Art Mode"
               >
-                Poster
+                <Disc className="w-4.5 h-4.5" />
               </button>
+
+              {/* Video Mode */}
               <button
-                onClick={() => setMaximizeViewMode('video')}
-                className={`px-3 py-1 rounded-full text-xs font-bold transition-all ${
-                  maximizeViewMode === 'video' ? 'bg-yellow-400 text-black' : 'text-white/70 hover:text-white'
+                onClick={() => {
+                  if (!isVideoVisible) onToggleVideo();
+                  setMaximizeViewMode('video');
+                }}
+                className={`p-2 rounded-full transition-colors cursor-pointer ${
+                  maximizeViewMode === 'video'
+                    ? 'text-yellow-400 drop-shadow-[0_0_8px_#facc15]'
+                    : 'text-white/60 hover:text-white'
                 }`}
+                title="Video Mode"
               >
-                Video
+                <Film className="w-4.5 h-4.5" />
               </button>
+
+              {/* Lyrics Mode */}
               <button
                 onClick={() => setMaximizeViewMode('lyrics')}
-                className={`px-3 py-1 rounded-full text-xs font-bold transition-all ${
-                  maximizeViewMode === 'lyrics' ? 'bg-yellow-400 text-black' : 'text-white/70 hover:text-white'
+                className={`p-2 rounded-full transition-colors cursor-pointer ${
+                  maximizeViewMode === 'lyrics'
+                    ? 'text-yellow-400 drop-shadow-[0_0_8px_#facc15]'
+                    : 'text-white/60 hover:text-white'
                 }`}
+                title="Lyrics Mode"
               >
-                Lyrics
+                <Mic2 className="w-4.5 h-4.5" />
               </button>
-            </div>
 
-            <button
-              onClick={() => setIsCinemaMode(false)}
-              className="p-2 rounded-full bg-white/[0.08] hover:bg-white/[0.15] text-white/80 hover:text-white transition-colors cursor-pointer"
-              title="Close Cinema Mode (Esc)"
-            >
-              <Minimize2 className="w-4 h-4" />
-            </button>
+              {/* More Options */}
+              <button
+                className="p-2 rounded-full text-white/60 hover:text-white transition-colors cursor-pointer"
+                title="More Options"
+              >
+                <MoreHorizontal className="w-4.5 h-4.5" />
+              </button>
+
+              {/* Exit Cinema Mode */}
+              <button
+                onClick={() => setIsCinemaMode(false)}
+                className="p-2 rounded-full text-white/60 hover:text-white transition-colors cursor-pointer"
+                title="Exit Fullscreen (Esc)"
+              >
+                <Minimize2 className="w-4.5 h-4.5" />
+              </button>
+
+              {/* SoundStream Signature Sparkle Widget */}
+              <div
+                className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-yellow-400/20 border border-yellow-400/40 flex items-center justify-center text-yellow-400 shadow-[0_0_12px_rgba(250,204,21,0.3)] ml-1 shrink-0"
+                title="SoundStream Pure Audio"
+              >
+                <Sparkles className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+              </div>
+            </div>
           </div>
 
-          {/* Center Stage Media Box */}
-          <div className="relative z-10 flex-1 flex flex-col items-center justify-center p-4 sm:p-8 max-w-5xl mx-auto w-full">
+          {/* ── CENTER STAGE (Left-aligned lyrics / clean 16:9 video / poster) ── */}
+          <div className="relative z-10 flex-1 w-full overflow-hidden flex flex-col justify-center">
+            {maximizeViewMode === 'lyrics' && (
+              <div className="w-full h-full overflow-y-auto no-scrollbar flex flex-col justify-start px-6 sm:px-14 md:px-20 lg:px-28 xl:px-36 py-10 sm:py-16">
+                <div className="max-w-4xl space-y-6 sm:space-y-8 select-text">
+                  {lyricsData.isLoading ? (
+                    <div className="flex items-center gap-3 text-yellow-400 text-xl font-bold animate-pulse text-left">
+                      <Mic2 className="w-6 h-6 animate-spin" />
+                      <span>Fetching synchronized lyrics...</span>
+                    </div>
+                  ) : lyricsData.parsedLines.length > 0 ? (
+                    lyricsData.parsedLines.map((line, idx) => {
+                      const isActive = idx === activeLyricIndex;
+                      return (
+                        <p
+                          key={idx}
+                          ref={isActive ? activeCenterLineRef : null}
+                          onClick={() => onSeek(line.time)}
+                          className={`cursor-pointer transition-all duration-300 font-black text-left leading-tight sm:leading-snug ${
+                            isActive
+                              ? 'text-yellow-400 text-2xl sm:text-4xl lg:text-5xl drop-shadow-[0_0_18px_rgba(250,204,21,0.45)]'
+                              : 'text-white/35 hover:text-white/80 text-xl sm:text-3xl lg:text-4xl'
+                          }`}
+                        >
+                          {line.text}
+                        </p>
+                      );
+                    })
+                  ) : lyricsData.plainLyrics ? (
+                    <div className="text-white/80 text-xl sm:text-3xl font-bold leading-relaxed whitespace-pre-line text-left">
+                      {lyricsData.plainLyrics}
+                    </div>
+                  ) : (
+                    <p className="text-white/50 text-xl font-bold text-left">
+                      No synchronized lyrics found for this track.
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {maximizeViewMode === 'video' && (
+              /* Pure Clean 16:9 Video Frame: Zero overlay badges, zero options, completely responsive */
+              <div className="w-full h-full flex items-center justify-center p-4 sm:p-8">
+                <div className="w-full max-w-5xl aspect-video rounded-3xl overflow-hidden shadow-[0_25px_80px_rgba(0,0,0,0.95)] bg-black border border-white/10 relative">
+                  {videoSlot}
+                </div>
+              </div>
+            )}
+
             {maximizeViewMode === 'poster' && (
-              <div className="w-72 sm:w-96 md:w-[460px] aspect-square rounded-3xl overflow-hidden shadow-[0_30px_90px_rgba(0,0,0,0.9)] border border-white/20 bg-black my-4">
+              <div className="w-full h-full flex items-center justify-center p-4 sm:p-8">
+                <div className="w-72 sm:w-96 md:w-[460px] aspect-square rounded-3xl overflow-hidden shadow-[0_30px_90px_rgba(0,0,0,0.9)] border border-white/20 bg-black">
+                  <ArtworkImage
+                    title={cleanTrackTitle(currentTrack.title).title}
+                    artist={getFullSingerName(currentTrack.artist || '', currentTrack.title)}
+                    trackId={currentTrack.id}
+                    initialSrc={currentTrack.thumbnail}
+                    alt={cleanTrackTitle(currentTrack.title).title}
+                    priority
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* ── CINEMA MODE DOCKED BOTTOM PLAYBACK BAR ── */}
+          <div className="relative z-10 w-full h-20 sm:h-22 bg-black/85 backdrop-blur-2xl border-t border-white/[0.08] px-4 sm:px-8 flex items-center justify-between shrink-0 select-none">
+            {/* Left: Mini Thumbnail, Track Info, Plus / Favorite */}
+            <div className="flex items-center gap-3 w-1/4 min-w-[160px] max-w-[320px]">
+              <div
+                onClick={() => setMaximizeViewMode('poster')}
+                className="relative w-12 h-12 sm:w-14 sm:h-14 rounded-xl overflow-hidden bg-[#202020] shrink-0 cursor-pointer shadow-md border border-white/10 group"
+                title="Cover Art Mode"
+              >
                 <ArtworkImage
                   title={cleanTrackTitle(currentTrack.title).title}
                   artist={getFullSingerName(currentTrack.artist || '', currentTrack.title)}
                   trackId={currentTrack.id}
                   initialSrc={currentTrack.thumbnail}
                   alt={cleanTrackTitle(currentTrack.title).title}
-                  priority
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                 />
               </div>
-            )}
 
-            {maximizeViewMode === 'video' && (
-              /* Clean 16:9 Video Box with Object-Contain (NO Cropping, NO Zoom) */
-              <div className="w-full max-w-4xl aspect-video rounded-3xl overflow-hidden shadow-[0_30px_90px_rgba(0,0,0,0.95)] border border-yellow-400/30 bg-black my-4 relative">
-                {videoSlot}
+              <div className="min-w-0 pr-1">
+                <p
+                  onClick={() => setMaximizeViewMode('poster')}
+                  className="text-xs sm:text-sm font-bold text-white truncate hover:underline hover:text-yellow-400 transition-colors cursor-pointer"
+                >
+                  {cleanTrackTitle(currentTrack.title).title}
+                </p>
+                <p className="text-[11px] sm:text-xs text-white/50 truncate hover:underline cursor-pointer mt-0.5 font-medium">
+                  {getFullSingerName(currentTrack.artist || '', currentTrack.title)}
+                </p>
               </div>
-            )}
 
-            {maximizeViewMode === 'lyrics' && (
-              <div className="max-w-3xl w-full py-8 text-center space-y-5 max-h-[65vh] overflow-y-auto no-scrollbar">
-                {lyricsData.isLoading ? (
-                  <p className="text-yellow-400 font-bold text-xl animate-pulse">
-                    Fetching synchronized lyrics...
-                  </p>
-                ) : lyricsData.parsedLines.length > 0 ? (
-                  lyricsData.parsedLines.map((line, idx) => {
-                    const isActive = idx === activeLyricIndex;
-                    return (
-                      <p
-                        key={idx}
-                        ref={isActive ? activeCenterLineRef : null}
-                        onClick={() => onSeek(line.time)}
-                        className={`transition-all duration-300 cursor-pointer ${
-                          isActive
-                            ? 'text-yellow-400 font-black text-2xl sm:text-4xl scale-105 drop-shadow-[0_0_15px_rgba(250,204,21,0.5)]'
-                            : 'text-white/40 hover:text-white/80 font-bold text-lg sm:text-2xl'
-                        }`}
-                      >
-                        {line.text}
-                      </p>
-                    );
-                  })
-                ) : lyricsData.plainLyrics ? (
-                  <div className="text-white/90 text-xl font-bold leading-relaxed whitespace-pre-line">
-                    {lyricsData.plainLyrics}
-                  </div>
-                ) : (
-                  <p className="text-white/50 text-base">No synchronized lyrics available for this track.</p>
-                )}
-              </div>
-            )}
-
-            {/* Track Title & Artist */}
-            <div className="text-center mt-3">
-              <h3 className="font-display font-black text-2xl sm:text-3xl text-white tracking-tight">
-                {cleanTrackTitle(currentTrack.title).title}
-              </h3>
-              <p className="text-sm sm:text-base text-yellow-400 font-bold mt-1">
-                {getFullSingerName(currentTrack.artist || '', currentTrack.title)}
-              </p>
-            </div>
-          </div>
-
-          {/* Bottom Controls Bar inside Cinema Mode */}
-          <div className="relative z-10 w-full px-6 py-4 bg-black/80 backdrop-blur-md border-t border-white/[0.08] flex items-center justify-between">
-            <div className="flex items-center gap-3">
               <button
                 onClick={() => onToggleFavorite(currentTrack)}
-                className={`p-2 rounded-full ${isCurrentFavorite ? 'text-yellow-400' : 'text-white/60 hover:text-white'}`}
+                className={`p-1.5 transition-colors shrink-0 ${
+                  isCurrentFavorite ? 'text-yellow-400' : 'text-white/40 hover:text-white'
+                }`}
+                title={isCurrentFavorite ? 'Saved to library' : 'Save to library'}
               >
-                <Heart className={`w-5 h-5 ${isCurrentFavorite ? 'fill-current' : ''}`} />
+                <Plus className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="flex items-center gap-5">
-              <button onClick={onPrev} className="p-2 text-white/80 hover:text-white">
-                <SkipBack className="w-5 h-5 fill-current" />
-              </button>
+            {/* Center: Controls + Timeline Scrubber */}
+            <div className="flex-1 max-w-2xl px-2 sm:px-6 flex flex-col items-center gap-1 sm:gap-1.5">
+              {/* Transport Controls */}
+              <div className="flex items-center gap-4 sm:gap-6">
+                <button
+                  onClick={onToggleShuffle}
+                  className={`p-1.5 transition-colors cursor-pointer hidden sm:block ${
+                    isShuffle ? 'text-yellow-400 shadow-[0_0_8px_#facc15]' : 'text-white/50 hover:text-white'
+                  }`}
+                  title="Shuffle"
+                >
+                  <Shuffle className="w-4 h-4" />
+                </button>
+
+                <button
+                  onClick={onPrev}
+                  className="p-1.5 text-white/80 hover:text-white transition-colors cursor-pointer"
+                  title="Previous track"
+                >
+                  <SkipBack className="w-4.5 h-4.5 sm:w-5 sm:h-5 fill-current" />
+                </button>
+
+                {/* Play / Pause Circular Button */}
+                <button
+                  onClick={onTogglePlay}
+                  className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-yellow-400 hover:bg-yellow-300 text-black flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-[0_0_15px_rgba(250,204,21,0.4)] cursor-pointer shrink-0"
+                  title={isPlaying ? 'Pause' : 'Play'}
+                  aria-label={isPlaying ? 'Pause' : 'Play'}
+                >
+                  {isBuffering ? (
+                    <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin" />
+                  ) : isPlaying ? (
+                    <Pause className="w-5 h-5 fill-black text-black" />
+                  ) : (
+                    <Play className="w-5 h-5 fill-black text-black ml-0.5" />
+                  )}
+                </button>
+
+                <button
+                  onClick={onNext}
+                  className="p-1.5 text-white/80 hover:text-white transition-colors cursor-pointer"
+                  title="Next track"
+                >
+                  <SkipForward className="w-4.5 h-4.5 sm:w-5 sm:h-5 fill-current" />
+                </button>
+
+                <button
+                  onClick={onToggleRepeat}
+                  className={`p-1.5 transition-colors cursor-pointer hidden sm:block ${
+                    repeatMode !== 'off' ? 'text-yellow-400 shadow-[0_0_8px_#facc15]' : 'text-white/50 hover:text-white'
+                  }`}
+                  title={`Repeat: ${repeatMode}`}
+                >
+                  {repeatMode === 'one' ? <Repeat1 className="w-4 h-4" /> : <Repeat className="w-4 h-4" />}
+                </button>
+              </div>
+
+              {/* Timeline Scrubber */}
+              <div className="w-full flex items-center gap-2.5 group/scrubber cursor-pointer select-none">
+                <span className="text-[11px] font-mono text-white/50 min-w-[34px] text-right">
+                  {formatTime(currentTime)}
+                </span>
+
+                <div className="relative flex-1 flex items-center h-4">
+                  <div className="w-full h-1 bg-white/20 rounded-full overflow-hidden relative pointer-events-none">
+                    <div
+                      className="h-full bg-yellow-400 group-hover/scrubber:bg-yellow-300 rounded-full transition-colors"
+                      style={{ width: `${progressPercent}%` }}
+                    />
+                  </div>
+
+                  <div
+                    className="absolute top-1/2 -translate-y-1/2 w-3.5 h-3.5 bg-yellow-400 rounded-full shadow-[0_0_8px_#facc15] opacity-0 group-hover/scrubber:opacity-100 transition-opacity pointer-events-none"
+                    style={{ left: `calc(${progressPercent}% - 7px)` }}
+                  />
+
+                  <input
+                    type="range"
+                    min={0}
+                    max={effectiveDuration || 100}
+                    step={0.5}
+                    value={currentTime}
+                    onChange={(e) => onSeek(parseFloat(e.target.value))}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                    aria-label="Seek track"
+                  />
+                </div>
+
+                <span className="text-[11px] font-mono text-white/50 min-w-[34px]">
+                  {formatTime(effectiveDuration)}
+                </span>
+              </div>
+            </div>
+
+            {/* Right: Mode Icons (Mic with yellow dot, Video with yellow dot, Queue, Devices, Volume, Miniplayer, Minimize) */}
+            <div className="flex items-center justify-end gap-1.5 sm:gap-2.5 w-1/4 min-w-[80px] max-w-[320px]">
+              {/* Lyrics Mode Button */}
               <button
-                onClick={onTogglePlay}
-                className="w-12 h-12 rounded-full bg-yellow-400 text-black flex items-center justify-center shadow-lg hover:scale-105 transition-transform"
+                onClick={() => setMaximizeViewMode('lyrics')}
+                className="relative p-1.5 flex flex-col items-center justify-center transition-colors cursor-pointer"
+                title="Lyrics Mode"
               >
-                {isPlaying ? <Pause className="w-6 h-6 fill-black" /> : <Play className="w-6 h-6 fill-black ml-0.5" />}
+                <Mic2 className={`w-4.5 h-4.5 transition-colors ${maximizeViewMode === 'lyrics' ? 'text-yellow-400' : 'text-white/60 hover:text-white'}`} />
+                {maximizeViewMode === 'lyrics' && (
+                  <span className="w-1.5 h-1.5 rounded-full bg-yellow-400 shadow-[0_0_6px_#facc15] mt-0.5" />
+                )}
               </button>
-              <button onClick={onNext} className="p-2 text-white/80 hover:text-white">
-                <SkipForward className="w-5 h-5 fill-current" />
-              </button>
-            </div>
 
-            <div className="flex items-center gap-2">
+              {/* Video Mode Button */}
+              <button
+                onClick={() => {
+                  if (!isVideoVisible) onToggleVideo();
+                  setMaximizeViewMode('video');
+                }}
+                className="relative p-1.5 flex flex-col items-center justify-center transition-colors cursor-pointer"
+                title="Video Mode"
+              >
+                <Film className={`w-4.5 h-4.5 transition-colors ${maximizeViewMode === 'video' ? 'text-yellow-400' : 'text-white/60 hover:text-white'}`} />
+                {maximizeViewMode === 'video' && (
+                  <span className="w-1.5 h-1.5 rounded-full bg-yellow-400 shadow-[0_0_6px_#facc15] mt-0.5" />
+                )}
+              </button>
+
+              {/* Queue Button */}
+              <button
+                onClick={() => {
+                  setIsCinemaMode(false);
+                  setCenterViewMode('queue');
+                }}
+                className="p-1.5 text-white/60 hover:text-white transition-colors cursor-pointer hidden md:block"
+                title="Queue"
+              >
+                <ListMusic className="w-4.5 h-4.5" />
+              </button>
+
+              {/* Devices / Connect */}
+              <button
+                className="p-1.5 text-white/60 hover:text-white transition-colors cursor-pointer hidden md:block"
+                title="Devices"
+              >
+                <Laptop2 className="w-4.5 h-4.5" />
+              </button>
+
+              {/* Volume Slider */}
+              <div className="hidden lg:flex items-center gap-1.5 select-none">
+                <button
+                  onClick={() => onChangeVolume(volume === 0 ? 80 : 0)}
+                  className="p-1 text-white/60 hover:text-white transition-colors cursor-pointer"
+                  title="Mute / Unmute"
+                >
+                  <VolumeIcon className="w-4.5 h-4.5" />
+                </button>
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  value={volume}
+                  onChange={(e) => onChangeVolume(Number(e.target.value))}
+                  className="w-20 accent-yellow-400 cursor-pointer h-1 rounded-full bg-white/20"
+                  aria-label="Volume"
+                />
+              </div>
+
+              {/* Miniplayer */}
               <button
                 onClick={() => setIsCinemaMode(false)}
-                className="px-4 py-2 rounded-full bg-white/[0.08] hover:bg-white/[0.15] text-xs font-bold text-white transition-colors"
+                className="p-1.5 text-white/60 hover:text-white transition-colors cursor-pointer hidden sm:block"
+                title="Miniplayer"
               >
-                Exit Cinema
+                <PictureInPicture className="w-4.5 h-4.5" />
+              </button>
+
+              {/* Exit Fullscreen Cinema */}
+              <button
+                onClick={() => setIsCinemaMode(false)}
+                className="p-1.5 text-white/60 hover:text-white transition-colors cursor-pointer"
+                title="Exit Fullscreen (Esc)"
+              >
+                <Minimize2 className="w-4.5 h-4.5" />
               </button>
             </div>
           </div>
