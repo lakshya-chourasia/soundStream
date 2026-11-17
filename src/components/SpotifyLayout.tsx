@@ -1027,162 +1027,230 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
         </main>
 
         {/* ──────────────────────────────────────────────
-            RIGHT SIDEBAR: NOW PLAYING POSTER / VIDEO / LYRICS (Docked / Responsive)
+            RIGHT SIDEBAR: NOW PLAYING VIEW (Collapsible to side like Spotify)
            ────────────────────────────────────────────── */}
-        {isRightPanelOpen && currentTrack && (
-          <aside className="w-80 lg:w-96 shrink-0 bg-[#101010] rounded-2xl flex flex-col overflow-y-auto p-4 space-y-4 border border-white/[0.06] hidden xl:flex no-scrollbar">
-            {/* Header: Title + Close & Expand controls */}
-            <div className="flex items-center justify-between pb-1">
-              <div className="flex items-center gap-2 min-w-0 pr-2">
-                <button
-                  onClick={() => setIsRightPanelOpen(false)}
-                  className="p-1 rounded-lg hover:bg-white/10 text-white/70 hover:text-white transition-colors shrink-0"
-                  title="Close side panel"
-                >
-                  <PanelRightClose className="w-4 h-4" />
-                </button>
-                <h3 className="font-bold text-sm text-white truncate">
-                  {cleanTrackTitle(currentTrack.title).title}
-                </h3>
-              </div>
-              <div className="flex items-center gap-1 shrink-0">
-                <button
-                  onClick={() => setIsCinemaMode(true)}
-                  className="p-1.5 rounded-lg hover:bg-white/10 text-white/70 hover:text-white transition-colors"
-                  title="Fullscreen cinema mode"
-                >
-                  <Maximize2 className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-
-            {/* Visual Media Box: Album Poster OR Pure Clean 16:9 Video Player */}
-            <div className="w-full aspect-video rounded-2xl overflow-hidden bg-black shadow-2xl relative border border-white/[0.08] shrink-0">
-              {isVideoVisible && !isCinemaMode ? (
-                /* Pure Video: Zero options, zero overlays, zero text */
-                <div className="w-full h-full relative flex items-center justify-center bg-black">
-                  {videoSlot}
+        {currentTrack && (
+          <aside
+            className={`shrink-0 bg-[#101010] rounded-2xl flex flex-col border border-white/[0.06] transition-all duration-300 hidden xl:flex ${
+              isRightPanelOpen
+                ? 'w-80 lg:w-96 overflow-y-auto p-4 space-y-4 no-scrollbar'
+                : 'w-16 items-center py-4 space-y-4 overflow-hidden'
+            }`}
+          >
+            {isRightPanelOpen ? (
+              /* ── EXPANDED NOW PLAYING PANEL ── */
+              <>
+                {/* Header: Title Left, Fullscreen & Close to side Right */}
+                <div className="flex items-center justify-between pb-1 shrink-0">
+                  <div className="flex items-center gap-2 min-w-0 pr-2">
+                    <h3 className="font-bold text-sm text-white truncate">
+                      {cleanTrackTitle(currentTrack.title).title}
+                    </h3>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button
+                      onClick={() => setIsCinemaMode(true)}
+                      className="p-1.5 rounded-lg hover:bg-white/10 text-white/70 hover:text-white transition-colors cursor-pointer"
+                      title="Fullscreen Cinema Mode"
+                    >
+                      <Maximize2 className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => setIsRightPanelOpen(false)}
+                      className="p-1.5 rounded-lg hover:bg-white/10 text-white/70 hover:text-yellow-400 transition-colors cursor-pointer"
+                      title="Close panel to side"
+                    >
+                      <PanelRightClose className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
-              ) : (
-                /* High-Resolution Album Artwork Poster */
-                <div className="w-full h-full relative">
+
+                {/* Visual Media Box: Album Poster OR Pure Clean 16:9 Video Player */}
+                <div className="w-full aspect-video rounded-2xl overflow-hidden bg-black shadow-2xl relative border border-white/[0.08] shrink-0">
+                  {isVideoVisible && !isCinemaMode ? (
+                    /* Pure Video: Zero options, zero overlays, zero text */
+                    <div className="w-full h-full relative flex items-center justify-center bg-black">
+                      {videoSlot}
+                    </div>
+                  ) : (
+                    /* High-Resolution Album Artwork Poster */
+                    <div className="w-full h-full relative">
+                      <ArtworkImage
+                        title={cleanTrackTitle(currentTrack.title).title}
+                        artist={getFullSingerName(currentTrack.artist || '', currentTrack.title)}
+                        trackId={currentTrack.id}
+                        initialSrc={currentTrack.thumbnail}
+                        alt={cleanTrackTitle(currentTrack.title).title}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* Track Info & Actions */}
+                <div className="flex items-center justify-between pt-1 shrink-0">
+                  <div className="min-w-0 pr-2">
+                    <h4 className="font-extrabold text-xl text-white tracking-tight truncate">
+                      {cleanTrackTitle(currentTrack.title).title}
+                    </h4>
+                    <p className="text-xs text-white/60 truncate mt-0.5 font-medium">
+                      {getFullSingerName(currentTrack.artist || '', currentTrack.title)}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button
+                      onClick={() => onAddToQueue(currentTrack)}
+                      className="p-2 rounded-full hover:bg-white/10 text-white/70 hover:text-yellow-400 transition-colors cursor-pointer"
+                      title="Add to queue"
+                    >
+                      <Plus className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => onToggleFavorite(currentTrack)}
+                      className={`p-2 rounded-full hover:bg-white/10 transition-colors cursor-pointer ${
+                        isCurrentFavorite ? 'text-yellow-400' : 'text-white/70 hover:text-white'
+                      }`}
+                      title={isCurrentFavorite ? 'Saved to library' : 'Save to library'}
+                    >
+                      <Heart className={`w-4 h-4 ${isCurrentFavorite ? 'fill-current' : ''}`} />
+                    </button>
+                  </div>
+                </div>
+
+                {/* SoundStream Signature Lyrics Preview Card */}
+                <div
+                  onClick={() => {
+                    setMaximizeViewMode('lyrics');
+                    setIsCinemaMode(true);
+                  }}
+                  className="rounded-2xl p-4 sm:p-5 flex flex-col justify-between bg-gradient-to-br from-yellow-950/30 via-[#141414] to-black border border-yellow-400/20 hover:border-yellow-400/50 shadow-lg cursor-pointer group transition-all min-h-[150px] shrink-0"
+                  title="Click to view full synchronized lyrics in cinema mode"
+                >
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-1.5">
+                        <Mic2 className="w-3.5 h-3.5 text-yellow-400" />
+                        <h5 className="text-white font-bold text-xs tracking-wider uppercase">
+                          Lyrics Preview
+                        </h5>
+                      </div>
+                      <span className="text-[11px] text-yellow-400 group-hover:translate-x-0.5 font-bold transition-transform">
+                        Full lyrics →
+                      </span>
+                    </div>
+                    <div className="space-y-1 mt-2">
+                      <p className="text-yellow-400 font-extrabold text-base sm:text-lg leading-snug tracking-tight">
+                        {lyricsPreviewLines[0]}
+                      </p>
+                      {lyricsPreviewLines[1] && (
+                        <p className="text-white/50 font-semibold text-sm leading-snug">
+                          {lyricsPreviewLines[1]}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Up Next Preview */}
+                {queue.length > 0 && (
+                  <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/[0.06] space-y-2 shrink-0">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-bold text-white/50 uppercase tracking-wider">
+                        Next in Queue
+                      </span>
+                      <button
+                        onClick={() => setCenterViewMode('queue')}
+                        className="text-[11px] font-bold text-yellow-400 hover:underline cursor-pointer"
+                      >
+                        View All ({queue.length})
+                      </button>
+                    </div>
+                    {queue.slice(0, 2).map((nextT, idx) => (
+                      <div
+                        key={`next-${nextT.id}-${idx}`}
+                        onClick={() => onPlayTrack(nextT)}
+                        className="flex items-center gap-2.5 p-1.5 rounded-xl hover:bg-white/[0.06] cursor-pointer transition-colors"
+                      >
+                        <div className="w-8 h-8 rounded-lg overflow-hidden bg-black shrink-0">
+                          <ArtworkImage
+                            title={nextT.title}
+                            artist={nextT.artist}
+                            trackId={nextT.id}
+                            initialSrc={nextT.thumbnail}
+                            alt={nextT.title}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-bold text-white truncate">
+                            {cleanTrackTitle(nextT.title).title}
+                          </p>
+                          <p className="text-[10px] text-white/50 truncate">
+                            {getFullSingerName(nextT.artist || '', nextT.title)}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            ) : (
+              /* ── COLLAPSED SIDE RAIL (Docked to side like Spotify) ── */
+              <>
+                {/* Top: Expand button */}
+                <button
+                  onClick={() => setIsRightPanelOpen(true)}
+                  className="w-10 h-10 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] text-white/70 hover:text-yellow-400 flex items-center justify-center transition-all cursor-pointer group shadow-sm border border-white/[0.08]"
+                  title="Expand Now Playing panel"
+                >
+                  <PanelRightOpen className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                </button>
+
+                {/* Current Track Artwork with animated visualizer */}
+                <div
+                  onClick={() => setIsRightPanelOpen(true)}
+                  className="w-10 h-10 rounded-xl overflow-hidden bg-black border border-white/10 hover:border-yellow-400/50 cursor-pointer shadow-md group relative transition-all"
+                  title={`Now Playing: ${cleanTrackTitle(currentTrack.title).title} • Click to expand`}
+                >
                   <ArtworkImage
                     title={cleanTrackTitle(currentTrack.title).title}
                     artist={getFullSingerName(currentTrack.artist || '', currentTrack.title)}
                     trackId={currentTrack.id}
                     initialSrc={currentTrack.thumbnail}
                     alt={cleanTrackTitle(currentTrack.title).title}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                   />
-                </div>
-              )}
-            </div>
-
-            {/* Track Info & Actions */}
-            <div className="flex items-center justify-between pt-1 shrink-0">
-              <div className="min-w-0 pr-2">
-                <h4 className="font-extrabold text-xl text-white tracking-tight truncate">
-                  {cleanTrackTitle(currentTrack.title).title}
-                </h4>
-                <p className="text-xs text-white/60 truncate mt-0.5 font-medium">
-                  {getFullSingerName(currentTrack.artist || '', currentTrack.title)}
-                </p>
-              </div>
-              <div className="flex items-center gap-1 shrink-0">
-                <button
-                  onClick={() => onAddToQueue(currentTrack)}
-                  className="p-2 rounded-full hover:bg-white/10 text-white/70 hover:text-yellow-400 transition-colors"
-                  title="Add to queue"
-                >
-                  <Plus className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => onToggleFavorite(currentTrack)}
-                  className={`p-2 rounded-full hover:bg-white/10 transition-colors ${
-                    isCurrentFavorite ? 'text-yellow-400' : 'text-white/70 hover:text-white'
-                  }`}
-                  title="Save to favorites"
-                >
-                  <Heart className={`w-4 h-4 ${isCurrentFavorite ? 'fill-current' : ''}`} />
-                </button>
-              </div>
-            </div>
-
-            {/* SoundStream Signature Lyrics Preview Card (Theme-aligned Amber / Yellow, ZERO fake text) */}
-            <div
-              onClick={() => {
-                setMaximizeViewMode('lyrics');
-                setIsCinemaMode(true);
-              }}
-              className="rounded-2xl p-4 sm:p-5 flex flex-col justify-between bg-gradient-to-br from-yellow-950/30 via-[#141414] to-black border border-yellow-400/20 hover:border-yellow-400/50 shadow-lg cursor-pointer group transition-all min-h-[150px]"
-              title="Click to view full synchronized lyrics in cinema mode"
-            >
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-1.5">
-                    <Mic2 className="w-3.5 h-3.5 text-yellow-400" />
-                    <h5 className="text-white font-bold text-xs tracking-wider uppercase">
-                      Lyrics Preview
-                    </h5>
-                  </div>
-                  <span className="text-[11px] text-yellow-400 group-hover:translate-x-0.5 font-bold transition-transform">
-                    Full lyrics →
-                  </span>
-                </div>
-                <div className="space-y-1 mt-2">
-                  <p className="text-yellow-400 font-extrabold text-base sm:text-lg leading-snug tracking-tight">
-                    {lyricsPreviewLines[0]}
-                  </p>
-                  {lyricsPreviewLines[1] && (
-                    <p className="text-white/50 font-semibold text-sm leading-snug">
-                      {lyricsPreviewLines[1]}
-                    </p>
+                  {isPlaying && (
+                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                      <div className="flex items-end gap-0.5 h-3">
+                        <span className="w-0.5 bg-yellow-400 rounded-full animate-bar-1" />
+                        <span className="w-0.5 bg-yellow-400 rounded-full animate-bar-2" />
+                        <span className="w-0.5 bg-yellow-400 rounded-full animate-bar-3" />
+                      </div>
+                    </div>
                   )}
                 </div>
-              </div>
-            </div>
 
-            {/* Up Next Preview */}
-            {queue.length > 0 && (
-              <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/[0.06] space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-bold text-white/50 uppercase tracking-wider">
-                    Next in Queue
+                {/* Vertical "NOW PLAYING" Label */}
+                <div
+                  onClick={() => setIsRightPanelOpen(true)}
+                  className="flex-1 flex items-center justify-center cursor-pointer group py-6"
+                  title="Click to expand Now Playing panel"
+                >
+                  <span className="text-[10px] font-black tracking-widest text-white/30 group-hover:text-yellow-400 uppercase rotate-90 whitespace-nowrap transition-colors select-none">
+                    NOW PLAYING
                   </span>
-                  <button
-                    onClick={() => setCenterViewMode('queue')}
-                    className="text-[11px] font-bold text-yellow-400 hover:underline"
-                  >
-                    View All ({queue.length})
-                  </button>
                 </div>
-                {queue.slice(0, 2).map((nextT, idx) => (
-                  <div
-                    key={`next-${nextT.id}-${idx}`}
-                    onClick={() => onPlayTrack(nextT)}
-                    className="flex items-center gap-2.5 p-1.5 rounded-xl hover:bg-white/[0.06] cursor-pointer transition-colors"
-                  >
-                    <div className="w-8 h-8 rounded-lg overflow-hidden bg-black shrink-0">
-                      <ArtworkImage
-                        title={nextT.title}
-                        artist={nextT.artist}
-                        trackId={nextT.id}
-                        initialSrc={nextT.thumbnail}
-                        alt={nextT.title}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-bold text-white truncate">
-                        {cleanTrackTitle(nextT.title).title}
-                      </p>
-                      <p className="text-[10px] text-white/50 truncate">
-                        {getFullSingerName(nextT.artist || '', nextT.title)}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
+
+                {/* Bottom: Cinema mode quick expand */}
+                <button
+                  onClick={() => setIsCinemaMode(true)}
+                  className="w-9 h-9 rounded-xl text-white/40 hover:text-white hover:bg-white/[0.06] flex items-center justify-center transition-colors cursor-pointer"
+                  title="Fullscreen Cinema Mode"
+                >
+                  <Maximize2 className="w-4 h-4" />
+                </button>
+              </>
             )}
           </aside>
         )}
@@ -1377,9 +1445,9 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
                   ? 'bg-yellow-400/20 text-yellow-400 border border-yellow-400/40 shadow-[0_0_8px_rgba(250,204,21,0.3)]'
                   : 'text-white/60 hover:text-white hover:bg-white/[0.08]'
               }`}
-              title="Now Playing View"
+              title={isRightPanelOpen ? 'Close panel to side' : 'Open panel from side'}
             >
-              <PanelRightClose className="w-4 h-4" />
+              {isRightPanelOpen ? <PanelRightClose className="w-4 h-4" /> : <PanelRightOpen className="w-4 h-4" />}
             </button>
 
             {/* Volume Control Bar */}
