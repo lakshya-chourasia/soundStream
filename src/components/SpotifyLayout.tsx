@@ -151,25 +151,7 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
   const [isCinemaMode, setIsCinemaMode] = useState<boolean>(false);
   const [maximizeViewMode, setMaximizeViewMode] = useState<'poster' | 'video' | 'lyrics'>('poster');
 
-  // ── Movable Floating Video Window State ──
-  const [isMovableVideo, setIsMovableVideo] = useState<boolean>(false);
-  const [videoWidth, setVideoWidth] = useState<number>(440);
-  const [videoPos, setVideoPos] = useState<{ x: number; y: number }>(() => ({
-    x: typeof window !== 'undefined' ? Math.max(20, window.innerWidth - 480) : 700,
-    y: 76,
-  }));
-  const [isDraggingVideo, setIsDraggingVideo] = useState(false);
-  const [isResizingVideo, setIsResizingVideo] = useState(false);
-  const videoDragStartRef = useRef<{ startX: number; startY: number; posX: number; posY: number }>({
-    startX: 0,
-    startY: 0,
-    posX: 0,
-    posY: 0,
-  });
-  const videoResizeStartRef = useRef<{ startX: number; startW: number }>({
-    startX: 0,
-    startW: 440,
-  });
+
 
   // ── Dynamic Poster Ambient Color Extraction ──
   const [posterColor, setPosterColor] = useState<RGBColor>({ r: 245, g: 158, b: 11 }); // Warm gold default
@@ -437,102 +419,7 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
     setRandomSeed((s) => s + 1);
   };
 
-  // Movable Video Window Drag Handlers
-  const handleMouseDownVideoDrag = (e: React.MouseEvent) => {
-    setIsDraggingVideo(true);
-    videoDragStartRef.current = {
-      startX: e.clientX,
-      startY: e.clientY,
-      posX: videoPos.x,
-      posY: videoPos.y,
-    };
-  };
 
-  const handleTouchStartVideoDrag = (e: React.TouchEvent) => {
-    if (e.touches.length === 1) {
-      setIsDraggingVideo(true);
-      videoDragStartRef.current = {
-        startX: e.touches[0].clientX,
-        startY: e.touches[0].clientY,
-        posX: videoPos.x,
-        posY: videoPos.y,
-      };
-    }
-  };
-
-  const handleMouseDownVideoResize = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setIsResizingVideo(true);
-    videoResizeStartRef.current = {
-      startX: e.clientX,
-      startW: videoWidth,
-    };
-  };
-
-  const handleTouchStartVideoResize = (e: React.TouchEvent) => {
-    e.stopPropagation();
-    if (e.touches.length === 1) {
-      setIsResizingVideo(true);
-      videoResizeStartRef.current = {
-        startX: e.touches[0].clientX,
-        startW: videoWidth,
-      };
-    }
-  };
-
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      if (isDraggingVideo) {
-        const dx = e.clientX - videoDragStartRef.current.startX;
-        const dy = e.clientY - videoDragStartRef.current.startY;
-        const maxW = typeof window !== 'undefined' ? window.innerWidth - 100 : 800;
-        const maxH = typeof window !== 'undefined' ? window.innerHeight - 100 : 600;
-        setVideoPos({
-          x: Math.max(10, Math.min(maxW, videoDragStartRef.current.posX + dx)),
-          y: Math.max(10, Math.min(maxH, videoDragStartRef.current.posY + dy)),
-        });
-      } else if (isResizingVideo) {
-        const dx = e.clientX - videoResizeStartRef.current.startX;
-        const newW = Math.max(280, Math.min(800, videoResizeStartRef.current.startW + dx));
-        setVideoWidth(newW);
-      }
-    };
-
-    const handleTouchMove = (e: TouchEvent) => {
-      if (e.touches.length === 1) {
-        if (isDraggingVideo) {
-          const dx = e.touches[0].clientX - videoDragStartRef.current.startX;
-          const dy = e.touches[0].clientY - videoDragStartRef.current.startY;
-          setVideoPos({
-            x: Math.max(10, videoDragStartRef.current.posX + dx),
-            y: Math.max(10, videoDragStartRef.current.posY + dy),
-          });
-        } else if (isResizingVideo) {
-          const dx = e.touches[0].clientX - videoResizeStartRef.current.startX;
-          setVideoWidth(Math.max(280, Math.min(800, videoResizeStartRef.current.startW + dx)));
-        }
-      }
-    };
-
-    const handleMouseUp = () => {
-      setIsDraggingVideo(false);
-      setIsResizingVideo(false);
-    };
-
-    if (isDraggingVideo || isResizingVideo) {
-      window.addEventListener('mousemove', handleMouseMove);
-      window.addEventListener('mouseup', handleMouseUp);
-      window.addEventListener('touchmove', handleTouchMove);
-      window.addEventListener('touchend', handleMouseUp);
-    }
-
-    return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
-      window.removeEventListener('touchmove', handleTouchMove);
-      window.removeEventListener('touchend', handleMouseUp);
-    };
-  }, [isDraggingVideo, isResizingVideo]);
 
   // Escape key handler for cinema mode
   useEffect(() => {
@@ -1230,44 +1117,12 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
               </div>
             </div>
 
-            {/* Visual Media Box: Album Poster OR Clean 16:9 Video Player (NO Zoom, Fit to Screen) */}
-            <div className="w-full aspect-video rounded-2xl overflow-hidden bg-black shadow-2xl relative border border-white/[0.08] shrink-0 group">
+            {/* Visual Media Box: Album Poster OR Pure Clean 16:9 Video Player (Zero Options/Overlays) */}
+            <div className="w-full aspect-video rounded-2xl overflow-hidden bg-black shadow-2xl relative border border-white/[0.08] shrink-0">
               {isVideoVisible ? (
-                /* Video Frame with Visible Overlay Controls */
+                /* Pure Video: Zero options, zero overlays, zero text */
                 <div className="w-full h-full relative flex items-center justify-center bg-black">
                   {videoSlot}
-                  {/* Clean Visible Video Overlay on Hover */}
-                  <div className="absolute inset-x-0 top-0 p-2.5 bg-gradient-to-b from-black/80 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-between z-30">
-                    <span className="text-[10px] font-black text-yellow-400 bg-black/60 px-2 py-0.5 rounded-md border border-yellow-400/30">
-                      OFFICIAL VIDEO
-                    </span>
-                    <div className="flex items-center gap-1.5">
-                      <button
-                        onClick={() => {
-                          setIsMovableVideo(true);
-                          setIsRightPanelOpen(false);
-                        }}
-                        className="p-1.5 rounded-lg bg-black/70 hover:bg-black text-white/80 hover:text-white transition-colors"
-                        title="Popout movable floating video"
-                      >
-                        <PictureInPicture className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        onClick={() => setIsCinemaMode(true)}
-                        className="p-1.5 rounded-lg bg-black/70 hover:bg-black text-white/80 hover:text-white transition-colors"
-                        title="Fullscreen video"
-                      >
-                        <Maximize2 className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        onClick={onToggleVideo}
-                        className="p-1.5 rounded-lg bg-black/70 hover:bg-rose-500/20 text-white/80 hover:text-rose-400 transition-colors"
-                        title="Close video (Return to artwork)"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </div>
                 </div>
               ) : (
                 /* High-Resolution Album Artwork Poster */
@@ -1282,21 +1137,8 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
                     trackId={currentTrack.id}
                     initialSrc={currentTrack.thumbnail}
                     alt={cleanTrackTitle(currentTrack.title).title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    className="w-full h-full object-cover"
                   />
-                  {/* Hover Overlay with Video Toggle */}
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-2 transition-all">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onToggleVideo();
-                      }}
-                      className="px-3.5 py-1.5 rounded-full bg-yellow-400 text-black text-xs font-black shadow-lg hover:scale-105 active:scale-95 transition-transform flex items-center gap-1.5"
-                    >
-                      <Film className="w-3.5 h-3.5" />
-                      <span>Watch Video</span>
-                    </button>
-                  </div>
                 </div>
               )}
             </div>
@@ -1411,73 +1253,7 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
         )}
       </div>
 
-      {/* ══════════════════════════════════════════════════
-          3. MOVABLE & RESIZABLE FLOATING VIDEO PLAYER (When popped out)
-         ══════════════════════════════════════════════════ */}
-      {isMovableVideo && isVideoVisible && (
-        <div
-          className="fixed rounded-2xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.9)] border border-yellow-400/40 z-50 bg-black flex flex-col transition-shadow"
-          style={{
-            left: `${videoPos.x}px`,
-            top: `${videoPos.y}px`,
-            width: `${videoWidth}px`,
-          }}
-        >
-          {/* Draggable Header */}
-          <div
-            onMouseDown={handleMouseDownVideoDrag}
-            onTouchStart={handleTouchStartVideoDrag}
-            className="w-full h-9 px-3 bg-black/95 backdrop-blur-xl border-b border-white/10 flex items-center justify-between cursor-grab active:cursor-grabbing select-none text-white/80 hover:text-white"
-            title="Drag to reposition floating video player"
-          >
-            <div className="flex items-center gap-2 text-white/50">
-              <GripHorizontal className="w-4 h-4" />
-              <span className="text-[11px] font-bold text-yellow-400 uppercase tracking-wider">
-                Floating Video
-              </span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <button
-                onClick={() => {
-                  setIsMovableVideo(false);
-                  setIsRightPanelOpen(true);
-                }}
-                className="p-1 rounded hover:bg-white/10 text-white/70 hover:text-white"
-                title="Dock to sidebar"
-              >
-                <PanelRightOpen className="w-3.5 h-3.5" />
-              </button>
-              <button
-                onClick={() => {
-                  setIsMovableVideo(false);
-                  onToggleVideo();
-                }}
-                className="p-1 rounded hover:bg-rose-500/20 text-white/70 hover:text-rose-400"
-                title="Close floating video"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          </div>
 
-          {/* 16:9 Clean Aspect Ratio Frame */}
-          <div className="relative w-full aspect-video bg-black">
-            {videoSlot}
-          </div>
-
-          {/* Corner Resize Handle */}
-          <div
-            onMouseDown={handleMouseDownVideoResize}
-            onTouchStart={handleTouchStartVideoResize}
-            className="absolute bottom-1 right-1 w-5 h-5 cursor-se-resize flex items-center justify-center text-white/40 hover:text-yellow-400 z-50 bg-black/80 rounded-tl-md"
-            title="Drag to resize video player"
-          >
-            <svg className="w-2.5 h-2.5 fill-current" viewBox="0 0 6 6">
-              <path d="M6 6H4v-2h2v2zM6 2H4V0h2v2zM2 6H0v-2h2v2z" />
-            </svg>
-          </div>
-        </div>
-      )}
 
       {/* ══════════════════════════════════════════════════
           4. SOUNDSTREAM SIGNATURE BOTTOM PLAYBACK BAR
