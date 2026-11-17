@@ -132,7 +132,7 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
   onOpenQuickImport,
 }) => {
   // ── Home View Mode & Navigation States ──
-  const [centerViewMode, setCenterViewMode] = useState<'home' | 'track_details' | 'queue'>('home');
+  const [centerViewMode, setCenterViewMode] = useState<'home' | 'queue'>('home');
   const [homeFilter, setHomeFilter] = useState<'all' | 'music' | 'vibes' | 'videos'>('all');
   const [isLeftSidebarCollapsed, setIsLeftSidebarCollapsed] = useState<boolean>(true);
   const [randomSeed, setRandomSeed] = useState<number>(1);
@@ -792,64 +792,6 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
                   </div>
                 )}
               </section>
-            ) : centerViewMode === 'track_details' ? (
-              /* Center Synced Karaoke Lyrics View */
-              <div className="max-w-3xl mx-auto py-6 space-y-6">
-                <div className="flex items-center justify-between pb-4 border-b border-white/[0.08]">
-                  <div>
-                    <span className="text-xs font-bold text-yellow-400 tracking-wider uppercase">
-                      SYNCHRONIZED KARAOKE LYRICS
-                    </span>
-                    <h2 className="text-2xl sm:text-3xl font-black text-white mt-1">
-                      {cleanTrackTitle(currentTrack?.title || '').title}
-                    </h2>
-                    <p className="text-sm text-white/60 font-semibold mt-0.5">
-                      {getFullSingerName(currentTrack?.artist || '', currentTrack?.title || '')}
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => setCenterViewMode('home')}
-                    className="px-4 py-2 rounded-full bg-white/[0.08] hover:bg-white/[0.15] text-xs font-bold text-white transition-colors cursor-pointer"
-                  >
-                    Back to Home
-                  </button>
-                </div>
-
-                {lyricsData.isLoading ? (
-                  <div className="py-24 text-center text-yellow-400/80 font-bold text-lg animate-pulse">
-                    Fetching real-time synchronized lyrics...
-                  </div>
-                ) : lyricsData.parsedLines.length > 0 ? (
-                  <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto no-scrollbar">
-                    {lyricsData.parsedLines.map((line, idx) => {
-                      const isActive = idx === activeLyricIndex;
-                      return (
-                        <p
-                          key={idx}
-                          ref={isActive ? activeCenterLineRef : null}
-                          onClick={() => onSeek(line.time)}
-                          className={`transition-all duration-300 cursor-pointer ${
-                            isActive
-                              ? 'text-yellow-400 font-black text-2xl sm:text-3xl scale-102 drop-shadow-[0_0_12px_rgba(250,204,21,0.5)]'
-                              : 'text-white/40 hover:text-white/80 font-bold text-lg sm:text-xl'
-                          }`}
-                        >
-                          {line.text}
-                        </p>
-                      );
-                    })}
-                  </div>
-                ) : lyricsData.plainLyrics ? (
-                  <div className="text-white/80 text-lg sm:text-xl font-bold leading-relaxed whitespace-pre-line py-4">
-                    {lyricsData.plainLyrics}
-                  </div>
-                ) : (
-                  <div className="py-20 text-center text-white/50">
-                    <p className="text-lg font-bold">No synchronized lyrics available for this song.</p>
-                    <p className="text-xs text-white/40 mt-1">Try another track or stream with video.</p>
-                  </div>
-                )}
-              </div>
             ) : (
               /* DYNAMIC HOME FEED (ZERO Hardcoded Mock Data) */
               <>
@@ -872,7 +814,8 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
                             if (activeHeroItem.actionType === 'video') {
                               if (!isVideoVisible) onToggleVideo();
                             } else if (activeHeroItem.actionType === 'lyrics') {
-                              setCenterViewMode('track_details');
+                              setMaximizeViewMode('lyrics');
+                              setIsCinemaMode(true);
                             } else {
                               onPlayTrack(activeHeroItem.track);
                             }
@@ -1147,7 +1090,10 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
             <div className="flex items-center justify-between pt-1 shrink-0">
               <div className="min-w-0 pr-2">
                 <h4
-                  onClick={() => setCenterViewMode('track_details')}
+                  onClick={() => {
+                    setMaximizeViewMode('poster');
+                    setIsCinemaMode(true);
+                  }}
                   className="font-extrabold text-xl text-white tracking-tight truncate hover:text-yellow-400 transition-colors cursor-pointer"
                 >
                   {cleanTrackTitle(currentTrack.title).title}
@@ -1178,9 +1124,12 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
 
             {/* SoundStream Signature Lyrics Preview Card (Theme-aligned Amber / Yellow, ZERO fake text) */}
             <div
-              onClick={() => setCenterViewMode('track_details')}
+              onClick={() => {
+                setMaximizeViewMode('lyrics');
+                setIsCinemaMode(true);
+              }}
               className="rounded-2xl p-4 sm:p-5 flex flex-col justify-between bg-gradient-to-br from-yellow-950/30 via-[#141414] to-black border border-yellow-400/20 hover:border-yellow-400/50 shadow-lg cursor-pointer group transition-all min-h-[150px]"
-              title="Click to view full synchronized lyrics"
+              title="Click to view full synchronized lyrics in cinema mode"
             >
               <div>
                 <div className="flex items-center justify-between mb-2">
@@ -1420,17 +1369,22 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
               <Film className="w-4 h-4" />
             </button>
 
-            {/* Lyrics View Toggle */}
+            {/* Lyrics View Toggle (Directly Opens Cinema Mode, No Other Tab) */}
             <button
               onClick={() => {
-                setCenterViewMode((m) => (m === 'track_details' ? 'home' : 'track_details'));
+                if (isCinemaMode && maximizeViewMode === 'lyrics') {
+                  setIsCinemaMode(false);
+                } else {
+                  setMaximizeViewMode('lyrics');
+                  setIsCinemaMode(true);
+                }
               }}
-              className={`p-1.5 sm:p-2 rounded-xl transition-all cursor-pointer hidden sm:flex ${
-                centerViewMode === 'track_details'
-                  ? 'bg-yellow-400/20 text-yellow-400 border border-yellow-400/40 shadow-[0_0_8px_rgba(250,204,21,0.3)]'
+              className={`p-1.5 sm:p-2 rounded-xl transition-all cursor-pointer ${
+                isCinemaMode && maximizeViewMode === 'lyrics'
+                  ? 'bg-yellow-400 text-black shadow-[0_0_12px_rgba(250,204,21,0.4)]'
                   : 'text-white/60 hover:text-white hover:bg-white/[0.08]'
               }`}
-              title="Synchronized Lyrics"
+              title="Synchronized Lyrics (Cinema Mode)"
             >
               <Mic2 className="w-4 h-4" />
             </button>
@@ -1554,7 +1508,7 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
             )}
 
             {maximizeViewMode === 'lyrics' && (
-              <div className="max-w-2xl w-full py-8 text-center space-y-4 max-h-[500px] overflow-y-auto no-scrollbar">
+              <div className="max-w-3xl w-full py-8 text-center space-y-5 max-h-[65vh] overflow-y-auto no-scrollbar">
                 {lyricsData.isLoading ? (
                   <p className="text-yellow-400 font-bold text-xl animate-pulse">
                     Fetching synchronized lyrics...
@@ -1565,6 +1519,7 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
                     return (
                       <p
                         key={idx}
+                        ref={isActive ? activeCenterLineRef : null}
                         onClick={() => onSeek(line.time)}
                         className={`transition-all duration-300 cursor-pointer ${
                           isActive
