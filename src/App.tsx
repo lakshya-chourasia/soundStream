@@ -17,6 +17,7 @@ import { SpotifyLayout } from './components/SpotifyLayout';
 import { getNextTrackIndex, getPrevTrackIndex, extractYouTubeId, cleanTrackTitle, getDynamicTrackTag, getFullSingerName } from './utils/playerUtils';
 import { prefetchArtwork } from './services/artworkService';
 import { FALLBACK_CURATED_GENRES } from './data/curatedFallback';
+import { backgroundAudio } from './services/backgroundAudioService';
 import { Compass, AlertCircle, X } from 'lucide-react';
 
 const INITIAL_STARTER_POOL: Track[] = [
@@ -642,6 +643,36 @@ export default function App() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [currentTime, duration, handleNext, handlePrev, handleTogglePlay]);
+
+  // Synchronize Android MediaSession & Background Audio Playback
+  useEffect(() => {
+    if (!currentTrack) return;
+    const { title: cleanT, artistFromTitle } = cleanTrackTitle(currentTrack.title);
+    const artist = getFullSingerName(currentTrack.artist || artistFromTitle || '', cleanT);
+
+    backgroundAudio.updateMediaSession({
+      title: cleanT,
+      artist,
+      artwork: currentTrack.thumbnail,
+      isPlaying,
+      currentTime,
+      duration,
+      onPlay: () => {
+        setIsPlaying(true);
+        playerRef.current?.play();
+      },
+      onPause: () => {
+        setIsPlaying(false);
+        playerRef.current?.pause();
+      },
+      onNext: handleNext,
+      onPrev: handlePrev,
+      onSeek: (time: number) => {
+        playerRef.current?.seekTo(time);
+        setCurrentTime(time);
+      },
+    });
+  }, [currentTrack, isPlaying, currentTime, duration, handleNext, handlePrev]);
 
   // Dynamically compute active context as track changes — NO HARDCODED STRINGS
   const { title: cleanCurrentTitle, artistFromTitle: currentArtistFromTitle } = cleanTrackTitle(currentTrack?.title || '');
