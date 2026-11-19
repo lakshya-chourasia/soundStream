@@ -267,3 +267,4 @@ class BackgroundAudioService {
 }
 
 export const backgroundAudio = new BackgroundAudioService();
+

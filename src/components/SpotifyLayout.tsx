@@ -506,7 +506,7 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
           1. MELOPHILE SIGNATURE TOP BAR
          ══════════════════════════════════════════════════ */}
       <header className="h-14 sm:h-16 w-full px-3.5 sm:px-6 flex items-center justify-between bg-black/95 backdrop-blur-xl shrink-0 z-40 border-b border-white/[0.07]">
-        {/* Left: Melophile Signature Logo & Brand */}
+        {/* Left: Melophile Brand Monogram (!M) & Name */}
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           <button
             onClick={handleGoHome}
@@ -514,9 +514,10 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
             title="Melophile Home"
             aria-label="Melophile Home"
           >
-            {/* Signature Melophile Golden Monogram Mark */}
-            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-br from-yellow-300 via-yellow-400 to-amber-500 flex items-center justify-center shadow-[0_0_16px_rgba(250,204,21,0.4)] group-hover:scale-105 transition-transform shrink-0">
-              <span className="font-display font-black text-black text-base sm:text-lg tracking-tighter leading-none">
+            {/* Signature Monogram: Vertical accent bar + M mark (!M) */}
+            <div className="flex items-center gap-1 text-white">
+              <span className="w-1.5 h-6 bg-yellow-400 rounded-xs transition-transform group-hover:scale-y-110 shadow-[0_0_10px_rgba(250,204,21,0.6)]" />
+              <span className="font-display font-black text-2xl sm:text-2xl tracking-tighter leading-none text-white">
                 M
               </span>
             </div>

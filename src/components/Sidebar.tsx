@@ -37,15 +37,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   return (
     <aside className="hidden md:flex w-16 h-full bg-black/60 backdrop-blur-xl border-r border-white/10 flex-col items-center justify-between py-6 select-none shrink-0 z-40">
-      {/* Top: Monogram Brand Logo */}
+      {/* Top: Monogram Brand Logo (!M) */}
       <div className="flex flex-col items-center">
         <button
           onClick={() => onSelectView('now-playing')}
           className="group flex items-center justify-center p-1.5 focus:outline-none"
           title="Melophile Home"
         >
-          <div className="flex items-center gap-0.5 text-white">
-            <span className="w-1.5 h-6 bg-white rounded-xs transition-transform group-hover:scale-y-110" />
+          <div className="flex items-center gap-1 text-white">
+            <span className="w-1.5 h-6 bg-yellow-400 rounded-xs transition-transform group-hover:scale-y-110 shadow-[0_0_10px_rgba(250,204,21,0.6)]" />
             <span className="font-display font-black text-2xl tracking-tighter leading-none ml-0.5">
               M
             </span>
