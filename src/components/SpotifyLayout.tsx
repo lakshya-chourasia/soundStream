@@ -1495,19 +1495,19 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
           {/* ── MOBILE DOCKED MINIPLAYER (Android Web Native Feel) ── */}
           <div
             onClick={() => setIsCinemaMode(true)}
-            className="md:hidden flex items-center justify-between px-3 py-2 bg-gradient-to-r from-[#141414] via-[#101010] to-[#141414] border-t border-white/[0.08] cursor-pointer relative shadow-lg"
+            className="md:hidden flex items-center justify-between px-3.5 py-2.5 bg-[#121215]/95 backdrop-blur-2xl border-t border-white/[0.08] cursor-pointer relative shadow-[0_-8px_25px_rgba(0,0,0,0.8)] active:bg-[#18181d] transition-colors"
           >
             {/* Top edge active scrubber line */}
-            <div className="absolute top-0 inset-x-0 h-[2px] bg-white/10">
+            <div className="absolute top-0 inset-x-0 h-[2.5px] bg-white/10">
               <div
-                className="h-full bg-yellow-400 transition-all"
+                className="h-full bg-gradient-to-r from-yellow-400 to-amber-300 transition-all shadow-[0_0_8px_rgba(250,204,21,0.6)]"
                 style={{ width: `${progressPercent}%` }}
               />
             </div>
 
             {/* Left: Mini Artwork + Track Info */}
-            <div className="flex items-center gap-2.5 min-w-0 flex-1 pr-2">
-              <div className="w-10 h-10 rounded-lg overflow-hidden bg-[#202020] shrink-0 border border-white/10 relative">
+            <div className="flex items-center gap-3 min-w-0 flex-1 pr-2">
+              <div className="relative w-11 h-11 rounded-xl overflow-hidden bg-[#18181b] shrink-0 border border-white/15 shadow-md">
                 <ArtworkImage
                   title={cleanTrackTitle(currentTrack.title).title}
                   artist={getFullSingerName(currentTrack.artist || '', currentTrack.title)}
@@ -1516,23 +1516,66 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
                   alt={cleanTrackTitle(currentTrack.title).title}
                   className="w-full h-full object-cover"
                 />
+                {isPlaying && (
+                  <div className="absolute inset-0 bg-black/35 flex items-center justify-center">
+                    <span className="w-2 h-2 rounded-full bg-yellow-400 animate-ping" />
+                  </div>
+                )}
               </div>
 
               <div className="min-w-0 flex-1">
-                <p className="text-xs font-bold text-white truncate leading-tight">
+                <p className="text-xs sm:text-sm font-bold text-white truncate leading-tight">
                   {cleanTrackTitle(currentTrack.title).title}
                 </p>
-                <p className="text-[10px] text-white/50 truncate mt-0.5 font-medium">
-                  {getFullSingerName(currentTrack.artist || '', currentTrack.title)}
-                </p>
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  <span className="text-[10px] text-yellow-400/80 font-black px-1.5 py-0.2 rounded bg-yellow-400/10 border border-yellow-400/20 uppercase shrink-0">
+                    HI-FI
+                  </span>
+                  <p className="text-[11px] text-white/50 truncate font-medium">
+                    {getFullSingerName(currentTrack.artist || '', currentTrack.title)}
+                  </p>
+                </div>
               </div>
             </div>
 
             {/* Right: Quick Mobile Actions */}
             <div
-              className="flex items-center gap-1 shrink-0"
+              className="flex items-center gap-1.5 shrink-0"
               onClick={(e) => e.stopPropagation()}
             >
+              {/* Quick Video Switcher on Mobile Miniplayer */}
+              <button
+                onClick={() => {
+                  if (!isVideoVisible) onToggleVideo();
+                  setMaximizeViewMode('video');
+                  setIsCinemaMode(true);
+                }}
+                className={`p-2 rounded-xl transition-all cursor-pointer ${
+                  isVideoVisible
+                    ? 'text-yellow-400 bg-yellow-400/15'
+                    : 'text-white/40 hover:text-white'
+                }`}
+                title="Watch Video"
+              >
+                <Film className="w-4 h-4" />
+              </button>
+
+              {/* Quick Lyrics on Mobile Miniplayer */}
+              <button
+                onClick={() => {
+                  setMaximizeViewMode('lyrics');
+                  setIsCinemaMode(true);
+                }}
+                className={`p-2 rounded-xl transition-all cursor-pointer ${
+                  maximizeViewMode === 'lyrics' && isCinemaMode
+                    ? 'text-yellow-400 bg-yellow-400/15'
+                    : 'text-white/40 hover:text-white'
+                }`}
+                title="Synced Lyrics"
+              >
+                <Mic2 className="w-4 h-4" />
+              </button>
+
               <button
                 onClick={() => onToggleFavorite(currentTrack)}
                 className={`p-2 transition-colors cursor-pointer ${
@@ -1545,11 +1588,11 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
 
               <button
                 onClick={onTogglePlay}
-                className="w-9 h-9 rounded-full bg-yellow-400 text-black flex items-center justify-center shadow-[0_0_10px_rgba(250,204,21,0.4)] cursor-pointer active:scale-90 transition-all shrink-0 ml-1"
+                className="w-10 h-10 rounded-full bg-yellow-400 text-black flex items-center justify-center shadow-[0_0_14px_rgba(250,204,21,0.5)] cursor-pointer active:scale-90 transition-all shrink-0 ml-0.5"
                 title={isPlaying ? 'Pause' : 'Play'}
               >
                 {isBuffering ? (
-                  <div className="w-3.5 h-3.5 border-2 border-black border-t-transparent rounded-full animate-spin" />
+                  <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin" />
                 ) : isPlaying ? (
                   <Pause className="w-4 h-4 fill-black text-black" />
                 ) : (
@@ -1942,11 +1985,11 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
           {/* ── CENTER STAGE (Left-aligned lyrics / clean 16:9 video / poster) ── */}
           <div className="relative z-10 flex-1 w-full overflow-hidden flex flex-col justify-center">
             {maximizeViewMode === 'lyrics' && (
-              <div className="w-full h-full overflow-y-auto no-scrollbar flex flex-col justify-start px-6 sm:px-14 md:px-20 lg:px-28 xl:px-36 py-10 sm:py-16">
-                <div className="max-w-4xl space-y-6 sm:space-y-8 select-text">
+              <div className="w-full h-full overflow-y-auto no-scrollbar flex flex-col justify-start px-4 sm:px-14 md:px-20 lg:px-28 xl:px-36 py-6 sm:py-16">
+                <div className="max-w-4xl space-y-4 sm:space-y-8 select-text mx-auto sm:mx-0 w-full">
                   {lyricsData.isLoading ? (
-                    <div className="flex items-center gap-3 text-yellow-400 text-xl font-bold animate-pulse text-left">
-                      <Mic2 className="w-6 h-6 animate-spin" />
+                    <div className="flex items-center gap-3 text-yellow-400 text-lg sm:text-xl font-bold animate-pulse text-left py-12">
+                      <Mic2 className="w-5 h-5 sm:w-6 sm:h-6 animate-spin" />
                       <span>Fetching synchronized lyrics...</span>
                     </div>
                   ) : lyricsData.parsedLines.length > 0 ? (
@@ -1959,8 +2002,8 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
                           onClick={() => onSeek(line.time)}
                           className={`cursor-pointer transition-all duration-300 font-black text-left leading-tight sm:leading-snug ${
                             isActive
-                              ? 'text-yellow-400 text-2xl sm:text-4xl lg:text-5xl drop-shadow-[0_0_18px_rgba(250,204,21,0.45)]'
-                              : 'text-white/35 hover:text-white/80 text-xl sm:text-3xl lg:text-4xl'
+                              ? 'text-yellow-400 text-xl sm:text-4xl lg:text-5xl drop-shadow-[0_0_18px_rgba(250,204,21,0.45)] scale-[1.02] sm:scale-100 origin-left'
+                              : 'text-white/30 hover:text-white/80 text-base sm:text-3xl lg:text-4xl'
                           }`}
                         >
                           {line.text}
@@ -1968,13 +2011,18 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
                       );
                     })
                   ) : lyricsData.plainLyrics ? (
-                    <div className="text-white/80 text-xl sm:text-3xl font-bold leading-relaxed whitespace-pre-line text-left">
+                    <div className="text-white/80 text-base sm:text-3xl font-bold leading-relaxed whitespace-pre-line text-left py-4">
                       {lyricsData.plainLyrics}
                     </div>
                   ) : (
-                    <p className="text-white/50 text-xl font-bold text-left">
-                      No synchronized lyrics found for this track.
-                    </p>
+                    <div className="py-16 text-center sm:text-left space-y-2">
+                      <p className="text-white/60 text-lg sm:text-xl font-bold">
+                        No synchronized lyrics found for this track.
+                      </p>
+                      <p className="text-white/40 text-xs sm:text-sm">
+                        Stream continues with pure master studio audio.
+                      </p>
+                    </div>
                   )}
                 </div>
               </div>
@@ -1985,14 +2033,14 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
               <div className="w-full h-full flex items-center justify-center p-2 sm:p-4 md:p-8">
                 <div
                   id="soundstream-cinema-video-container"
-                  className="w-full max-w-5xl aspect-video rounded-2xl sm:rounded-3xl overflow-hidden shadow-[0_25px_80px_rgba(0,0,0,0.95)] bg-black border border-white/10 relative"
+                  className="w-full max-w-5xl aspect-video rounded-xl sm:rounded-3xl overflow-hidden shadow-[0_20px_70px_rgba(0,0,0,0.95)] bg-black border border-white/10 relative"
                 />
               </div>
             )}
 
             {maximizeViewMode === 'poster' && (
-              <div className="w-full h-full flex items-center justify-center p-4 sm:p-8">
-                <div className="w-72 sm:w-96 md:w-[460px] aspect-square rounded-3xl overflow-hidden shadow-[0_30px_90px_rgba(0,0,0,0.9)] border border-white/20 bg-black">
+              <div className="w-full h-full flex flex-col items-center justify-center p-4 sm:p-8 space-y-4 sm:space-y-6">
+                <div className="w-64 sm:w-96 md:w-[460px] aspect-square rounded-2xl sm:rounded-3xl overflow-hidden shadow-[0_20px_70px_rgba(0,0,0,0.95)] border border-white/20 bg-black">
                   <ArtworkImage
                     title={cleanTrackTitle(currentTrack.title).title}
                     artist={getFullSingerName(currentTrack.artist || '', currentTrack.title)}
@@ -2003,6 +2051,20 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
                     className="w-full h-full object-cover"
                   />
                 </div>
+                {/* Mobile Quick Lyrics Snippet directly under poster */}
+                {lyricsPreviewLines[0] && (
+                  <div
+                    onClick={() => setMaximizeViewMode('lyrics')}
+                    className="sm:hidden px-4 py-2 rounded-xl bg-white/[0.05] border border-white/[0.08] max-w-xs text-center cursor-pointer active:scale-95 transition-all"
+                  >
+                    <p className="text-xs font-bold text-yellow-400 line-clamp-1">
+                      "{lyricsPreviewLines[0]}"
+                    </p>
+                    <span className="text-[9px] text-white/40 uppercase font-bold tracking-wider mt-0.5 block">
+                      Tap to open synced lyrics →
+                    </span>
+                  </div>
+                )}
               </div>
             )}
           </div>
