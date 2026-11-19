@@ -483,6 +483,7 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
           <button
             onClick={() => {
               setMobileNavTab('home');
+              setIsMobileSearchOpen(false);
               handleGoHome();
             }}
             className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-all shrink-0 cursor-pointer ${
@@ -501,6 +502,7 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
             <div className="relative flex items-center w-full h-9 sm:h-10 px-3.5 rounded-full bg-white/[0.06] hover:bg-white/[0.09] focus-within:bg-white/[0.12] focus-within:ring-2 focus-within:ring-yellow-400/50 border border-white/[0.08] transition-all">
               <Search className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white/40 shrink-0 mr-2" />
               <input
+                id="soundstream-search-input"
                 type="text"
                 value={localSearchInput}
                 onChange={(e) => handleSearchChange(e.target.value)}
@@ -510,7 +512,7 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
               {localSearchInput && (
                 <button
                   onClick={handleClearSearchInput}
-                  className="p-1 rounded-full hover:bg-white/10 text-white/50 hover:text-white transition-colors"
+                  className="p-1 rounded-full hover:bg-white/10 text-white/50 hover:text-white transition-colors cursor-pointer"
                   title="Clear search"
                 >
                   <X className="w-3.5 h-3.5" />
@@ -1680,6 +1682,10 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
           onClick={() => {
             setMobileNavTab('search');
             setIsMobileSearchOpen(true);
+            setTimeout(() => {
+              const el = document.getElementById('soundstream-search-input');
+              if (el) el.focus();
+            }, 50);
           }}
           className={`flex flex-col items-center gap-1 cursor-pointer transition-colors ${
             mobileNavTab === 'search' || isMobileSearchOpen ? 'text-yellow-400' : 'text-white/50 hover:text-white'
