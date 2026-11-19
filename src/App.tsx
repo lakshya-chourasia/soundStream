@@ -136,7 +136,7 @@ export default function App() {
   const [playbackRate, setPlaybackRate] = useState<number>(1);
   const [playbackQuality, setPlaybackQuality] = useState<StreamQuality>(() => {
     const saved = localStorage.getItem('soundstream_quality') as StreamQuality;
-    return saved || 'auto';
+    return saved || 'highres';
   });
   const [visualizerMode, setVisualizerMode] = useState<VisualizerMode>('spectrum');
   const [playerStyle, setPlayerStyle] = useState<PlayerStyle>('wavy');
@@ -663,6 +663,11 @@ export default function App() {
         repeatMode={repeatMode}
         isShuffle={isShuffle}
         isVideoVisible={isVideoVisible}
+        playbackQuality={playbackQuality}
+        onChangePlaybackQuality={(q) => {
+          setPlaybackQuality(q);
+          showToast(`Audio quality switched to ${q.toUpperCase()}`);
+        }}
         videoSlot={
           <YouTubePlayer
             ref={playerRef}

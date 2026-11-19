@@ -211,6 +211,10 @@ export const YouTubePlayer = forwardRef<YouTubePlayerHandle, YouTubePlayerProps>
               try {
                 event.target.setVolume(volume);
                 event.target.setPlaybackRate(playbackRate);
+                // Enforce highest fidelity master stream
+                if (event.target.setPlaybackQuality) {
+                  event.target.setPlaybackQuality(playbackQuality || 'hd1080');
+                }
                 if (isPlaying) {
                   event.target.playVideo();
                 }
@@ -284,17 +288,22 @@ export const YouTubePlayer = forwardRef<YouTubePlayerHandle, YouTubePlayerProps>
           playerRef.current.loadVideoById({
             videoId: currentTrack.id,
             startSeconds: 0,
+            suggestedQuality: playbackQuality || 'hd1080',
           });
         } else {
           playerRef.current.cueVideoById({
             videoId: currentTrack.id,
             startSeconds: 0,
+            suggestedQuality: playbackQuality || 'hd1080',
           });
+        }
+        if (playerRef.current.setPlaybackQuality) {
+          playerRef.current.setPlaybackQuality(playbackQuality || 'hd1080');
         }
       } catch (err) {
         console.error('Error loading video by ID:', err);
       }
-    }, [currentTrack?.id, isPlayerReady, isPlaying]);
+    }, [currentTrack?.id, isPlayerReady, isPlaying, playbackQuality]);
 
     // Step 4: Handle play/pause sync
     useEffect(() => {

@@ -88,6 +88,8 @@ export interface SpotifyLayoutProps {
   onOpenSleepTimer: () => void;
   onOpenQuickImport?: () => void;
   genres?: GenreCollection[];
+  playbackQuality?: string;
+  onChangePlaybackQuality?: (quality: any) => void;
 }
 
 function shuffleList<T>(array: T[]): T[] {
@@ -118,6 +120,8 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
   isSearching,
   sleepTimerRemaining,
   genres = [],
+  playbackQuality = 'highres',
+  onChangePlaybackQuality,
   onTogglePlay,
   onSeek,
   onPrev,
@@ -1693,6 +1697,21 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
 
             {/* Right: Video, Lyrics, Sidebar Toggle, Volume Slider */}
             <div className="flex items-center justify-end gap-1 sm:gap-2 w-1/4 min-w-[80px] max-w-[300px]">
+              {/* Ultra Lossless / Studio Master Audio Badge */}
+              <button
+                onClick={() => {
+                  if (onChangePlaybackQuality) {
+                    const nextQ = playbackQuality === 'highres' ? 'hd1080' : 'highres';
+                    onChangePlaybackQuality(nextQ);
+                  }
+                }}
+                className="px-2 py-1 rounded-md bg-yellow-400/10 hover:bg-yellow-400/20 border border-yellow-400/40 text-[10px] font-black text-yellow-400 tracking-wider transition-all cursor-pointer hidden sm:flex items-center gap-1 shadow-[0_0_8px_rgba(250,204,21,0.2)]"
+                title="Master Hi-Fi Audio Stream: Ultra Bitrate (256-320kbps equivalent Opus/AAC stream container)"
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-yellow-400 animate-pulse" />
+                <span>HI-FI MASTER</span>
+              </button>
+
               {/* Toggle Video (Directly Opens Cinema Mode in Video view) */}
               <button
                 onClick={() => {

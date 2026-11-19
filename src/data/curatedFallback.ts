@@ -146,3 +146,4 @@ export const FALLBACK_CURATED_GENRES: GenreCollection[] = [
     ],
   },
 ];
+
