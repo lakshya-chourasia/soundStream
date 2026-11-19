@@ -145,8 +145,57 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
   const [randomSeed, setRandomSeed] = useState<number>(1);
   const [activeHeroIndex, setActiveHeroIndex] = useState<number>(0);
 
-  // ── Hover Preview State ──
-  const [hoveredTrack, setHoveredTrack] = useState<Track | null>(null);
+  // ── Resizable Sidebar Widths (Smooth Drag Resizing) ──
+  const [leftSidebarWidth, setLeftSidebarWidth] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem('soundstream_left_width');
+      return saved ? Math.max(220, Math.min(480, Number(saved))) : 288;
+    } catch {
+      return 288;
+    }
+  });
+
+  const [rightSidebarWidth, setRightSidebarWidth] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem('soundstream_right_width');
+      return saved ? Math.max(260, Math.min(500, Number(saved))) : 340;
+    } catch {
+      return 340;
+    }
+  });
+
+  const isDraggingLeftRef = useRef<boolean>(false);
+  const isDraggingRightRef = useRef<boolean>(false);
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (isDraggingLeftRef.current) {
+        const newWidth = Math.max(200, Math.min(480, e.clientX - 10));
+        setLeftSidebarWidth(newWidth);
+        try { localStorage.setItem('soundstream_left_width', newWidth.toString()); } catch {}
+      } else if (isDraggingRightRef.current) {
+        const newWidth = Math.max(240, Math.min(520, window.innerWidth - e.clientX - 10));
+        setRightSidebarWidth(newWidth);
+        try { localStorage.setItem('soundstream_right_width', newWidth.toString()); } catch {}
+      }
+    };
+
+    const handleMouseUp = () => {
+      if (isDraggingLeftRef.current || isDraggingRightRef.current) {
+        isDraggingLeftRef.current = false;
+        isDraggingRightRef.current = false;
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+      }
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, []);
 
   // ── Library Tab Switcher (Left Sidebar) ──
   const [libraryTab, setLibraryTab] = useState<'all' | 'queue' | 'recommended' | 'favorites'>('all');
@@ -521,19 +570,8 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
           </div>
         </div>
 
-        {/* Right: SoundStream Utilities (+ Import, Sleep Timer, Cinema Mode) */}
+        {/* Right: SoundStream Utilities (Sleep Timer, Cinema Mode) */}
         <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
-          {onOpenQuickImport && (
-            <button
-              onClick={onOpenQuickImport}
-              className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full text-xs font-bold bg-yellow-400 hover:bg-yellow-300 text-black hover:scale-105 active:scale-95 transition-all shadow-[0_0_12px_rgba(250,204,21,0.3)] cursor-pointer"
-              title="Import YouTube / Audio link"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Import</span>
-            </button>
-          )}
-
           {/* Sleep Timer */}
           <button
             onClick={onOpenSleepTimer}
@@ -559,11 +597,12 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
          ══════════════════════════════════════════════════ */}
       <div className="flex-1 flex overflow-hidden p-2 sm:p-2.5 gap-2 relative">
         {/* ──────────────────────────────────────────────
-            LEFT RAIL: YOUR SOUNDSTREAM LIBRARY (Collapsible)
+            LEFT RAIL: YOUR SOUNDSTREAM LIBRARY (Resizable & Collapsible)
            ────────────────────────────────────────────── */}
         <aside
-          className={`shrink-0 bg-[#101010] rounded-2xl flex flex-col overflow-hidden border border-white/[0.06] transition-all duration-300 hidden md:flex ${
-            isLeftSidebarCollapsed ? 'w-18 items-center' : 'w-72'
+          style={{ width: isLeftSidebarCollapsed ? '4.5rem' : `${leftSidebarWidth}px` }}
+          className={`shrink-0 bg-[#101010] rounded-2xl flex flex-col overflow-hidden border border-white/[0.06] transition-[width] duration-150 hidden md:flex ${
+            isLeftSidebarCollapsed ? 'items-center' : ''
           }`}
         >
           {/* Header */}
@@ -699,6 +738,22 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
             )}
           </div>
         </aside>
+
+        {/* Left Resizer Drag Handle */}
+        {!isLeftSidebarCollapsed && (
+          <div
+            onMouseDown={(e) => {
+              e.preventDefault();
+              isDraggingLeftRef.current = true;
+              document.body.style.cursor = 'col-resize';
+              document.body.style.userSelect = 'none';
+            }}
+            className="w-1.5 -mx-1 hover:w-2 hover:bg-yellow-400/50 rounded-full cursor-col-resize transition-all z-20 hidden md:block group"
+            title="Drag to resize library sidebar"
+          >
+            <div className="w-full h-full opacity-0 group-hover:opacity-100 bg-yellow-400 rounded-full transition-opacity" />
+          </div>
+        )}
 
         {/* ──────────────────────────────────────────────
             CENTER STAGE: HOME FEED, VIBES, OR FULL LYRICS
@@ -1243,15 +1298,32 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
           </div>
         </main>
 
+        {/* Right Resizer Drag Handle */}
+        {currentTrack && isRightPanelOpen && (
+          <div
+            onMouseDown={(e) => {
+              e.preventDefault();
+              isDraggingRightRef.current = true;
+              document.body.style.cursor = 'col-resize';
+              document.body.style.userSelect = 'none';
+            }}
+            className="w-1.5 -mx-1 hover:w-2 hover:bg-yellow-400/50 rounded-full cursor-col-resize transition-all z-20 hidden xl:block group"
+            title="Drag to resize Now Playing panel"
+          >
+            <div className="w-full h-full opacity-0 group-hover:opacity-100 bg-yellow-400 rounded-full transition-opacity" />
+          </div>
+        )}
+
         {/* ──────────────────────────────────────────────
-            RIGHT SIDEBAR: NOW PLAYING VIEW (Collapsible to side like Spotify)
+            RIGHT SIDEBAR: NOW PLAYING VIEW (Resizable & Collapsible to side)
            ────────────────────────────────────────────── */}
         {currentTrack && (
           <aside
-            className={`shrink-0 bg-[#101010] rounded-2xl flex flex-col border border-white/[0.06] transition-all duration-300 hidden xl:flex ${
+            style={{ width: isRightPanelOpen ? `${rightSidebarWidth}px` : '4rem' }}
+            className={`shrink-0 bg-[#101010] rounded-2xl flex flex-col border border-white/[0.06] transition-[width] duration-150 hidden xl:flex ${
               isRightPanelOpen
-                ? 'w-80 lg:w-96 overflow-y-auto p-4 space-y-4 no-scrollbar'
-                : 'w-16 items-center py-4 space-y-4 overflow-hidden'
+                ? 'overflow-y-auto p-4 space-y-4 no-scrollbar'
+                : 'items-center py-4 space-y-4 overflow-hidden'
             }`}
           >
             {isRightPanelOpen ? (
