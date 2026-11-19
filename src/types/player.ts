@@ -31,6 +31,8 @@ export interface GenreCollection {
   id: string;
   name: string;
   description: string;
+  curator?: string;
+  tag?: string;
   tracks: Track[];
 }
 

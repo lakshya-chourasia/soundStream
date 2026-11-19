@@ -645,7 +645,7 @@ export default function App() {
 
   // Dynamically compute active context as track changes — NO HARDCODED STRINGS
   const { title: cleanCurrentTitle, artistFromTitle: currentArtistFromTitle } = cleanTrackTitle(currentTrack?.title || '');
-  const rawCurrentArtist = currentTrack?.artist || currentArtistFromTitle || 'SoundStream';
+  const rawCurrentArtist = currentTrack?.artist || currentArtistFromTitle || 'Melophile';
   const currentArtist = getFullSingerName(rawCurrentArtist, cleanCurrentTitle);
   const activeCollection = genres.find((g) => g.id === selectedCollectionId && g.tracks?.some((t) => t.id === currentTrack?.id));
   const dynamicPlaylistTitle = activeCollection ? activeCollection.name : currentArtist.toUpperCase();

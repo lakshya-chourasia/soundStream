@@ -42,12 +42,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <button
           onClick={() => onSelectView('now-playing')}
           className="group flex items-center justify-center p-1.5 focus:outline-none"
-          title="SoundStream Home"
+          title="Melophile Home"
         >
           <div className="flex items-center gap-0.5 text-white">
             <span className="w-1.5 h-6 bg-white rounded-xs transition-transform group-hover:scale-y-110" />
             <span className="font-display font-black text-2xl tracking-tighter leading-none ml-0.5">
-              S
+              M
             </span>
           </div>
         </button>

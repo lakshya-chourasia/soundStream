@@ -28,11 +28,11 @@ export const Header: React.FC<HeaderProps> = ({
         <button
           onClick={() => onSelectView('now-playing')}
           className="flex items-center gap-2 focus:outline-none group"
-          title="SoundStream Home"
+          title="Melophile Home"
         >
           <span className="w-1.5 h-5 bg-yellow-400 rounded-xs transition-transform group-hover:scale-y-110" />
           <span className="font-display font-black text-lg sm:text-xl tracking-wider text-white">
-            SOUNDSTREAM
+            MELOPHILE
           </span>
         </button>
       </div>

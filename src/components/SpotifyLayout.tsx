@@ -164,6 +164,9 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
     }
   });
 
+  // ── Hover Preview State ──
+  const [hoveredTrack, setHoveredTrack] = useState<Track | null>(null);
+
   const isDraggingLeftRef = useRef<boolean>(false);
   const isDraggingRightRef = useRef<boolean>(false);
 
@@ -500,26 +503,26 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
   return (
     <div className="h-screen w-screen flex flex-col bg-[#080808] text-white select-none overflow-hidden font-sans relative">
       {/* ══════════════════════════════════════════════════
-          1. SOUNDSTREAM SIGNATURE TOP BAR
+          1. MELOPHILE SIGNATURE TOP BAR
          ══════════════════════════════════════════════════ */}
       <header className="h-14 sm:h-16 w-full px-3.5 sm:px-6 flex items-center justify-between bg-black/95 backdrop-blur-xl shrink-0 z-40 border-b border-white/[0.07]">
-        {/* Left: SoundStream Signature Logo & Brand */}
+        {/* Left: Melophile Signature Logo & Brand */}
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           <button
             onClick={handleGoHome}
             className="flex items-center gap-2.5 focus:outline-none group cursor-pointer"
-            title="SoundStream Home"
-            aria-label="SoundStream Home"
+            title="Melophile Home"
+            aria-label="Melophile Home"
           >
-            {/* Signature SoundStream Golden Monogram Mark */}
+            {/* Signature Melophile Golden Monogram Mark */}
             <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-br from-yellow-300 via-yellow-400 to-amber-500 flex items-center justify-center shadow-[0_0_16px_rgba(250,204,21,0.4)] group-hover:scale-105 transition-transform shrink-0">
               <span className="font-display font-black text-black text-base sm:text-lg tracking-tighter leading-none">
-                S
+                M
               </span>
             </div>
             <div className="flex items-center gap-1.5">
               <span className="font-display font-black text-base sm:text-xl tracking-wider text-white">
-                SOUNDSTREAM
+                MELOPHILE
               </span>
               <span className="w-1.5 h-1.5 rounded-full bg-yellow-400 shadow-[0_0_8px_#facc15]" />
             </div>
@@ -909,7 +912,7 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
                   <div>
                     <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight flex items-center gap-2">
                       <Library className="w-6 h-6 text-yellow-400" />
-                      <span>SoundStream Full Library</span>
+                      <span>Melophile Full Library</span>
                     </h2>
                     <p className="text-xs text-white/50 font-medium">
                       All {allCatalogPool.length} curated tracks, vibes, and high-definition streams

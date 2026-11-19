@@ -395,7 +395,7 @@ export const NowPlayingHero: React.FC<NowPlayingHeroProps> = ({
     : getDynamicTrackTag(title, displayArtist, currentTrack.views);
 
   const currentYear = new Date().getFullYear();
-  const dynamicCopyright = `© ${currentYear} ${displayArtist} · Streamed via SoundStream Hi-Fi Engine · ${currentTrack.views ? `${currentTrack.views} · ` : ''}24-bit / 48kHz Master`;
+  const dynamicCopyright = `© ${currentYear} ${displayArtist} · Streamed via Melophile Hi-Fi Engine · ${currentTrack.views ? `${currentTrack.views} · ` : ''}24-bit / 48kHz Master`;
 
   const toggleMute = () => {
     if (isMuted) {
