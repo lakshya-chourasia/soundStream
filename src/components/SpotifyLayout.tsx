@@ -137,7 +137,7 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
   // ── Home View Mode & Navigation States ──
   const [centerViewMode, setCenterViewMode] = useState<'home' | 'library' | 'queue'>('home');
   const [homeFilter, setHomeFilter] = useState<'all' | 'music' | 'vibes' | 'videos'>('all');
-  const [isLeftSidebarCollapsed, setIsLeftSidebarCollapsed] = useState<boolean>(true);
+  const [isLeftSidebarCollapsed, setIsLeftSidebarCollapsed] = useState<boolean>(false);
   const [randomSeed, setRandomSeed] = useState<number>(1);
   const [activeHeroIndex, setActiveHeroIndex] = useState<number>(0);
 
@@ -1692,11 +1692,11 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
         <button
           onClick={() => {
             setMobileNavTab('library');
-            setCenterViewMode('queue');
+            setCenterViewMode('library');
             setIsMobileSearchOpen(false);
           }}
           className={`flex flex-col items-center gap-1 cursor-pointer transition-colors ${
-            mobileNavTab === 'library' ? 'text-yellow-400' : 'text-white/50 hover:text-white'
+            mobileNavTab === 'library' || centerViewMode === 'library' ? 'text-yellow-400' : 'text-white/50 hover:text-white'
           }`}
         >
           <Library className="w-5 h-5" />
