@@ -453,7 +453,7 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
       {/* ══════════════════════════════════════════════════
           1. SOUNDSTREAM SIGNATURE TOP BAR
          ══════════════════════════════════════════════════ */}
-      <header className="h-14 sm:h-16 w-full px-3 sm:px-5 flex items-center justify-between bg-black/95 backdrop-blur-xl shrink-0 z-40 border-b border-white/[0.08]">
+      <header className="h-14 sm:h-16 w-full px-3.5 sm:px-6 flex items-center justify-between bg-black/95 backdrop-blur-xl shrink-0 z-40 border-b border-white/[0.07]">
         {/* Left: SoundStream Signature Logo & Brand */}
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           <button
@@ -468,7 +468,7 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
                 S
               </span>
             </div>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1.5">
               <span className="font-display font-black text-base sm:text-xl tracking-wider text-white">
                 SOUNDSTREAM
               </span>
@@ -485,7 +485,7 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
               setIsMobileSearchOpen(false);
               handleGoHome();
             }}
-            className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-all shrink-0 cursor-pointer ${
+            className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full hidden sm:flex items-center justify-center transition-all shrink-0 cursor-pointer ${
               centerViewMode === 'home' && !localSearchInput.trim()
                 ? 'bg-yellow-400 text-black shadow-[0_0_12px_rgba(250,204,21,0.4)]'
                 : 'bg-white/[0.06] hover:bg-white/[0.12] text-white/80 hover:text-white'
@@ -498,7 +498,7 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
 
           {/* Integrated Search Pill */}
           <div className="relative flex-1 max-w-md">
-            <div className="relative flex items-center w-full h-9 sm:h-10 px-3.5 rounded-full bg-white/[0.06] hover:bg-white/[0.09] focus-within:bg-white/[0.12] focus-within:ring-2 focus-within:ring-yellow-400/50 border border-white/[0.08] transition-all">
+            <div className="relative flex items-center w-full h-8.5 sm:h-10 px-3.5 rounded-full bg-white/[0.05] hover:bg-white/[0.08] focus-within:bg-white/[0.10] focus-within:ring-1.5 focus-within:ring-yellow-400/50 border border-white/[0.08] transition-all">
               <Search className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white/40 shrink-0 mr-2" />
               <input
                 id="soundstream-search-input"
@@ -526,7 +526,7 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
           {onOpenQuickImport && (
             <button
               onClick={onOpenQuickImport}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-yellow-400 hover:bg-yellow-300 text-black hover:scale-105 active:scale-95 transition-all shadow-[0_0_12px_rgba(250,204,21,0.3)] cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full text-xs font-bold bg-yellow-400 hover:bg-yellow-300 text-black hover:scale-105 active:scale-95 transition-all shadow-[0_0_12px_rgba(250,204,21,0.3)] cursor-pointer"
               title="Import YouTube / Audio link"
             >
               <Plus className="w-3.5 h-3.5" />
@@ -540,11 +540,11 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
             className={`p-2 rounded-full border transition-all cursor-pointer relative ${
               sleepTimerRemaining
                 ? 'bg-yellow-400/20 text-yellow-400 border-yellow-400/50 shadow-[0_0_10px_rgba(250,204,21,0.3)]'
-                : 'bg-white/[0.06] hover:bg-white/[0.12] text-white/70 hover:text-white border-white/[0.08]'
+                : 'bg-white/[0.05] hover:bg-white/[0.10] text-white/70 hover:text-white border-white/[0.08]'
             }`}
             title={sleepTimerRemaining ? `Sleep Timer: ${Math.ceil(sleepTimerRemaining / 60)}m left` : 'Sleep Timer'}
           >
-            <Timer className="w-4 h-4" />
+            <Timer className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             {sleepTimerRemaining && (
               <span className="absolute -top-1 -right-1 px-1 rounded-full bg-yellow-400 text-black text-[9px] font-black">
                 {Math.ceil(sleepTimerRemaining / 60)}m
@@ -937,18 +937,18 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
               <>
                 {/* Dynamic Featured Hero Card */}
                 {activeHeroItem && (
-                  <div className="relative rounded-3xl p-6 sm:p-8 bg-gradient-to-r from-yellow-950/40 via-amber-900/20 to-black border border-yellow-400/20 shadow-2xl overflow-hidden flex flex-col md:flex-row items-center justify-between gap-6">
-                    <div className="relative z-10 max-w-lg space-y-2">
-                      <span className="inline-block px-3 py-1 rounded-full bg-yellow-400 text-black text-[10px] font-black tracking-wider uppercase shadow-md">
+                  <div className="relative rounded-2xl sm:rounded-3xl p-4 sm:p-8 bg-gradient-to-r from-yellow-950/40 via-amber-900/15 to-[#0e0e11] border border-yellow-400/20 shadow-xl overflow-hidden flex flex-row items-center justify-between gap-3.5 sm:gap-6">
+                    <div className="relative z-10 flex-1 min-w-0 space-y-1.5 sm:space-y-2">
+                      <span className="inline-block px-2.5 py-0.5 rounded-full bg-yellow-400 text-black text-[9px] sm:text-[10px] font-black tracking-wider uppercase shadow-md">
                         {activeHeroItem.badge}
                       </span>
-                      <h2 className="font-display font-black text-2xl sm:text-4xl text-white tracking-tight leading-tight">
+                      <h2 className="font-display font-black text-lg sm:text-4xl text-white tracking-tight leading-tight line-clamp-1 sm:line-clamp-2">
                         {activeHeroItem.title}
                       </h2>
-                      <p className="text-xs sm:text-sm text-white/70 font-medium">
+                      <p className="text-[11px] sm:text-sm text-white/70 font-medium truncate">
                         {activeHeroItem.subtitle}
                       </p>
-                      <div className="flex items-center gap-3 pt-2">
+                      <div className="flex items-center gap-2 pt-1 sm:pt-2">
                         <button
                           onClick={() => {
                             if (activeHeroItem.actionType === 'video') {
@@ -962,24 +962,24 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
                               onPlayTrack(activeHeroItem.track);
                             }
                           }}
-                          className="px-5 py-2.5 rounded-full bg-yellow-400 hover:bg-yellow-300 text-black font-extrabold text-xs tracking-wider uppercase shadow-[0_0_15px_rgba(250,204,21,0.4)] hover:scale-105 active:scale-95 transition-all cursor-pointer flex items-center gap-2"
+                          className="px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-full bg-yellow-400 hover:bg-yellow-300 text-black font-extrabold text-[11px] sm:text-xs tracking-wider uppercase shadow-[0_0_15px_rgba(250,204,21,0.4)] hover:scale-105 active:scale-95 transition-all cursor-pointer flex items-center gap-1.5"
                         >
-                          <Play className="w-4 h-4 fill-black text-black" />
+                          <Play className="w-3.5 h-3.5 fill-black text-black" />
                           <span>{activeHeroItem.actionText}</span>
                         </button>
                         {dynamicFeaturedItems.length > 1 && (
                           <button
                             onClick={() => setActiveHeroIndex((i) => i + 1)}
-                            className="px-4 py-2.5 rounded-full bg-white/[0.08] hover:bg-white/[0.15] text-white text-xs font-bold transition-all cursor-pointer"
+                            className="px-3 sm:px-4 py-2 sm:py-2.5 rounded-full bg-white/[0.08] hover:bg-white/[0.15] text-white text-[11px] sm:text-xs font-bold transition-all cursor-pointer"
                           >
-                            Next Vibe →
+                            Next →
                           </button>
                         )}
                       </div>
                     </div>
 
                     {/* Right Artwork Showcase */}
-                    <div className="relative w-36 h-36 sm:w-48 sm:h-48 rounded-2xl overflow-hidden shadow-2xl border border-white/15 shrink-0 group cursor-pointer"
+                    <div className="relative w-24 h-24 sm:w-48 sm:h-48 rounded-xl sm:rounded-2xl overflow-hidden shadow-xl border border-white/15 shrink-0 group cursor-pointer"
                       onClick={() => onPlayTrack(activeHeroItem.track)}
                     >
                       <ArtworkImage
@@ -1831,8 +1831,8 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
 
       {/* ── ANDROID PHONE BOTTOM NAVIGATION BAR (< md) ── */}
       <nav
-        className="md:hidden bg-[#0a0a0a]/95 backdrop-blur-2xl border-t border-white/[0.08] px-6 py-2 flex items-center justify-around shrink-0 z-40 select-none pb-[calc(0.5rem+var(--safe-bottom))]"
-        style={{ paddingBottom: 'calc(0.5rem + env(safe-area-inset-bottom, 0px))' }}
+        className="md:hidden bg-[#0c0c0e]/95 backdrop-blur-2xl border-t border-white/[0.08] px-8 py-2.5 flex items-center justify-around shrink-0 z-40 select-none pb-[calc(0.75rem+var(--safe-bottom))]"
+        style={{ paddingBottom: 'calc(0.75rem + env(safe-area-inset-bottom, 0px))' }}
       >
         <button
           onClick={() => {
@@ -1840,12 +1840,12 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
             setCenterViewMode('home');
             setIsMobileSearchOpen(false);
           }}
-          className={`flex flex-col items-center gap-1 cursor-pointer transition-colors ${
-            mobileNavTab === 'home' && !isMobileSearchOpen ? 'text-yellow-400' : 'text-white/50 hover:text-white'
+          className={`flex flex-col items-center gap-1 cursor-pointer transition-all ${
+            mobileNavTab === 'home' && !isMobileSearchOpen ? 'text-yellow-400 scale-105' : 'text-white/45 hover:text-white'
           }`}
         >
           <Home className="w-5 h-5" />
-          <span className="text-[10px] font-bold tracking-tight">Home</span>
+          <span className="text-[10px] font-black tracking-wider uppercase">Home</span>
         </button>
 
         <button
@@ -1857,12 +1857,12 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
               if (el) el.focus();
             }, 50);
           }}
-          className={`flex flex-col items-center gap-1 cursor-pointer transition-colors ${
-            mobileNavTab === 'search' || isMobileSearchOpen ? 'text-yellow-400' : 'text-white/50 hover:text-white'
+          className={`flex flex-col items-center gap-1 cursor-pointer transition-all ${
+            mobileNavTab === 'search' || isMobileSearchOpen ? 'text-yellow-400 scale-105' : 'text-white/45 hover:text-white'
           }`}
         >
           <Search className="w-5 h-5" />
-          <span className="text-[10px] font-bold tracking-tight">Search</span>
+          <span className="text-[10px] font-black tracking-wider uppercase">Search</span>
         </button>
 
         <button
@@ -1871,12 +1871,12 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
             setCenterViewMode('library');
             setIsMobileSearchOpen(false);
           }}
-          className={`flex flex-col items-center gap-1 cursor-pointer transition-colors ${
-            mobileNavTab === 'library' || centerViewMode === 'library' ? 'text-yellow-400' : 'text-white/50 hover:text-white'
+          className={`flex flex-col items-center gap-1 cursor-pointer transition-all ${
+            mobileNavTab === 'library' || centerViewMode === 'library' ? 'text-yellow-400 scale-105' : 'text-white/45 hover:text-white'
           }`}
         >
           <Library className="w-5 h-5" />
-          <span className="text-[10px] font-bold tracking-tight">Library</span>
+          <span className="text-[10px] font-black tracking-wider uppercase">Library</span>
         </button>
       </nav>
 
