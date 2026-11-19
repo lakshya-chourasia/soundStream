@@ -604,7 +604,7 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
            ────────────────────────────────────────────── */}
         <aside
           style={{ width: isLeftSidebarCollapsed ? '4.5rem' : `${leftSidebarWidth}px` }}
-          className={`shrink-0 bg-[#101010] rounded-2xl flex flex-col overflow-hidden border border-white/[0.06] transition-[width] duration-150 hidden md:flex ${
+          className={`shrink-0 bg-[#0d0d10]/95 backdrop-blur-2xl rounded-2xl flex flex-col overflow-hidden border border-white/[0.07] transition-[width] duration-150 hidden md:flex shadow-xl ${
             isLeftSidebarCollapsed ? 'items-center' : ''
           }`}
         >
@@ -761,17 +761,17 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
         {/* ──────────────────────────────────────────────
             CENTER STAGE: HOME FEED, VIBES, OR FULL LYRICS
            ────────────────────────────────────────────── */}
-        <main className="flex-1 rounded-2xl bg-[#0f0f0f] border border-white/[0.06] flex flex-col overflow-hidden relative">
+        <main className="flex-1 rounded-2xl bg-[#0d0d0f]/90 backdrop-blur-2xl border border-white/[0.08] flex flex-col overflow-hidden relative shadow-2xl">
           {/* Dynamic Ambient Background Glow derived from artwork */}
           <div
-            className="absolute top-0 left-0 right-0 h-80 opacity-25 pointer-events-none transition-all duration-700 blur-3xl"
+            className="absolute top-0 left-0 right-0 h-96 opacity-30 pointer-events-none transition-all duration-700 blur-[80px]"
             style={{
               background: `radial-gradient(circle at 50% 0%, rgb(${posterColor.r}, ${posterColor.g}, ${posterColor.b}) 0%, transparent 75%)`,
             }}
           />
 
-          {/* Subheader Filter Bar (All, Music, Vibes, Videos, Full Library) */}
-          <div className="px-4 sm:px-6 pt-4 pb-3 flex items-center justify-between border-b border-white/[0.06] shrink-0 z-10">
+          {/* Subheader Filter Bar (All, Music, Vibes, Videos, Full Library) with Frosted Glass Blur */}
+          <div className="px-4 sm:px-6 pt-4 pb-3 flex items-center justify-between border-b border-white/[0.06] bg-black/40 backdrop-blur-md shrink-0 z-10">
             <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5">
               {(['all', 'music', 'vibes', 'videos'] as const).map((filter) => (
                 <button
@@ -784,7 +784,7 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
                   className={`px-3.5 py-1.5 rounded-full text-xs font-bold tracking-wide transition-all capitalize shrink-0 cursor-pointer ${
                     centerViewMode === 'home' && homeFilter === filter
                       ? 'bg-yellow-400 text-black shadow-[0_0_12px_rgba(250,204,21,0.35)]'
-                      : 'bg-white/[0.06] text-white/70 hover:text-white hover:bg-white/[0.12]'
+                      : 'bg-white/[0.06] text-white/70 hover:text-white hover:bg-white/[0.12] backdrop-blur-sm'
                   }`}
                 >
                   {filter}
@@ -797,7 +797,7 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
                 className={`px-3.5 py-1.5 rounded-full text-xs font-bold tracking-wide transition-all capitalize shrink-0 cursor-pointer flex items-center gap-1.5 ${
                   centerViewMode === 'library'
                     ? 'bg-yellow-400 text-black shadow-[0_0_12px_rgba(250,204,21,0.35)]'
-                    : 'bg-white/[0.06] text-white/70 hover:text-white hover:bg-white/[0.12]'
+                    : 'bg-white/[0.06] text-white/70 hover:text-white hover:bg-white/[0.12] backdrop-blur-sm'
                 }`}
               >
                 <Library className="w-3.5 h-3.5" />
@@ -1323,7 +1323,7 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
         {currentTrack && (
           <aside
             style={{ width: isRightPanelOpen ? `${rightSidebarWidth}px` : '4rem' }}
-            className={`shrink-0 bg-[#101010] rounded-2xl flex flex-col border border-white/[0.06] transition-[width] duration-150 hidden xl:flex ${
+            className={`shrink-0 bg-[#0d0d10]/95 backdrop-blur-2xl rounded-2xl flex flex-col border border-white/[0.07] transition-[width] duration-150 hidden xl:flex shadow-xl ${
               isRightPanelOpen
                 ? 'overflow-y-auto p-4 space-y-4 no-scrollbar'
                 : 'items-center py-4 space-y-4 overflow-hidden'
@@ -1960,21 +1960,21 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
          ══════════════════════════════════════════════════ */}
       {isCinemaMode && currentTrack && (
         <div
-          className="fixed inset-0 z-50 flex flex-col justify-between overflow-hidden animate-in fade-in duration-200 select-none"
+          className="fixed inset-0 z-50 flex flex-col justify-between overflow-hidden animate-in fade-in duration-300 select-none backdrop-blur-3xl"
           style={{
-            backgroundColor: `rgb(${Math.max(16, Math.round(posterColor.r * 0.16 + 12))}, ${Math.max(16, Math.round(posterColor.g * 0.16 + 12))}, ${Math.max(18, Math.round(posterColor.b * 0.16 + 15))})`,
+            backgroundColor: `rgba(${Math.max(12, Math.round(posterColor.r * 0.12 + 8))}, ${Math.max(12, Math.round(posterColor.g * 0.12 + 8))}, ${Math.max(14, Math.round(posterColor.b * 0.12 + 10))}, 0.96)`,
           }}
         >
-          {/* Subtle Ambient Radial Lighting */}
+          {/* Subtle Ambient Radial Lighting with Glass Blur */}
           <div
-            className="absolute inset-0 opacity-25 pointer-events-none blur-3xl"
+            className="absolute inset-0 opacity-35 pointer-events-none blur-[100px]"
             style={{
-              background: `radial-gradient(circle at 50% 30%, rgb(${posterColor.r}, ${posterColor.g}, ${posterColor.b}) 0%, transparent 70%)`,
+              background: `radial-gradient(circle at 50% 30%, rgb(${posterColor.r}, ${posterColor.g}, ${posterColor.b}) 0%, transparent 65%)`,
             }}
           />
 
           {/* ── TOP BAR (Track title left, controls right) ── */}
-          <div className="relative z-10 w-full px-4 sm:px-10 py-3 sm:py-5 flex items-center justify-between shrink-0 pt-[calc(0.75rem+var(--safe-top))]">
+          <div className="relative z-10 w-full px-4 sm:px-10 py-3 sm:py-5 flex items-center justify-between shrink-0 pt-[calc(0.75rem+var(--safe-top))] bg-black/20 backdrop-blur-md border-b border-white/[0.05]">
             {/* Left: Mobile collapse chevron / Track Title */}
             <div className="flex items-center gap-2 min-w-0 pr-4">
               <button
