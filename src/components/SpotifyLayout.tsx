@@ -202,7 +202,7 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
     return Array.from(map.values());
   }, [genres, recommendations, queue, favorites]);
 
-  // Dynamic curated sections derived from live genres
+  // Dynamic curated sections derived from live genres (stable, never reshuffles automatically)
   const dynamicCollections = useMemo(() => {
     if (!genres || genres.length === 0) return [];
     return genres.map((g) => ({
@@ -214,24 +214,40 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
     }));
   }, [genres]);
 
-  // Dynamic Popular Releases (Re-shuffled when randomSeed changes)
+  // Stable Popular Releases (Derived from genres and curated pool, only reshuffled on explicit user Shuffle)
   const dynamicPopularTracks = useMemo(() => {
-    const tracks = allCatalogPool.length > 0 ? allCatalogPool : queue;
-    const shuffled = shuffleList(tracks);
-    return shuffled.slice(0, 12);
-  }, [allCatalogPool, queue, randomSeed]);
+    // Collect tracks from the first 2-3 genres to ensure high quality and complete stability
+    const stablePool: Track[] = [];
+    if (genres && genres.length > 0) {
+      for (const g of genres.slice(0, 3)) {
+        for (const t of g.tracks || []) {
+          if (!stablePool.some((x) => x.id === t.id)) {
+            stablePool.push(t);
+          }
+        }
+      }
+    }
+    const pool = stablePool.length > 0 ? stablePool : allCatalogPool;
+    if (randomSeed === 1) {
+      return pool.slice(0, 12);
+    }
+    return shuffleList(pool).slice(0, 12);
+  }, [genres, allCatalogPool, randomSeed]);
 
-  // Dynamic Vibe Tracks
+  // Stable Vibe Tracks
   const dynamicVibeTracks = useMemo(() => {
     const list: Track[] = [];
     for (const c of dynamicCollections) {
       if (c.tracks.length > 0) list.push(...c.tracks);
     }
     const pool = list.length > 0 ? list : allCatalogPool;
+    if (randomSeed === 1) {
+      return pool.slice(0, 10);
+    }
     return shuffleList(pool).slice(0, 10);
   }, [dynamicCollections, allCatalogPool, randomSeed]);
 
-  // Dynamic Featured Hero Items (Derived dynamically from catalog)
+  // Featured Hero Items: Stable featured tracks
   const dynamicFeaturedItems = useMemo(() => {
     const items: Array<{
       track: Track;
@@ -242,50 +258,29 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
       actionType: 'play' | 'video' | 'lyrics';
     }> = [];
 
-    if (currentTrack) {
+    // Prioritize the top curated flagship tracks so the banner is stable
+    const bannerTracks = dynamicPopularTracks.slice(0, 4);
+    for (let i = 0; i < bannerTracks.length; i++) {
+      const t = bannerTracks[i];
       items.push({
-        track: currentTrack,
-        badge: 'NOW STREAMING',
-        title: cleanTrackTitle(currentTrack.title).title,
-        subtitle: getFullSingerName(currentTrack.artist || '', currentTrack.title),
-        actionText: isPlaying ? 'Pause Audio' : 'Play Audio',
+        track: t,
+        badge: i === 0 ? 'FEATURED SPOTLIGHT' : 'TOP STREAM',
+        title: cleanTrackTitle(t.title).title,
+        subtitle: getFullSingerName(t.artist || '', t.title),
+        actionText: 'Play Now',
         actionType: 'play',
       });
-      items.push({
-        track: currentTrack,
-        badge: 'OFFICIAL VIDEO',
-        title: `Watch ${cleanTrackTitle(currentTrack.title).title}`,
-        subtitle: 'Lossless video & range-streamed audio in sync',
-        actionText: isVideoVisible ? 'Hide Video' : 'Watch Video',
-        actionType: 'video',
-      });
-      items.push({
-        track: currentTrack,
-        badge: 'SYNCHRONIZED KARAOKE',
-        title: 'Follow Synced Lyrics',
-        subtitle: 'Word-by-word synchronized scrolling lyrics',
-        actionText: 'View Lyrics',
-        actionType: 'lyrics',
-      });
     }
 
-    if (dynamicPopularTracks.length > 0) {
-      for (const t of dynamicPopularTracks.slice(0, 3)) {
-        if (!currentTrack || t.id !== currentTrack.id) {
-          items.push({
-            track: t,
-            badge: 'CURATED VIBE',
-            title: cleanTrackTitle(t.title).title,
-            subtitle: getFullSingerName(t.artist || '', t.title),
-            actionText: 'Play Mix',
-            actionType: 'play',
-          });
-        }
-      }
-    }
-
-    return items;
-  }, [currentTrack, isPlaying, isVideoVisible, dynamicPopularTracks]);
+    return items.length > 0 ? items : (currentTrack ? [{
+      track: currentTrack,
+      badge: 'FEATURED SPOTLIGHT',
+      title: cleanTrackTitle(currentTrack.title).title,
+      subtitle: getFullSingerName(currentTrack.artist || '', currentTrack.title),
+      actionText: 'Play Audio',
+      actionType: 'play' as const,
+    }] : []);
+  }, [dynamicPopularTracks, currentTrack]);
 
   const activeHeroItem = dynamicFeaturedItems[activeHeroIndex % Math.max(1, dynamicFeaturedItems.length)];
 
@@ -786,27 +781,56 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
                     {searchResults.map((track, idx) => {
                       const { title: t, artistFromTitle: a } = cleanTrackTitle(track.title);
                       const singer = getFullSingerName(track.artist || a || '', t);
+                      const isCurrent = currentTrack?.id === track.id;
                       return (
                         <div
                           key={`search-${track.id}-${idx}`}
                           onClick={() => onPlayTrack(track)}
-                          className="group relative p-3 rounded-2xl bg-white/[0.03] hover:bg-white/[0.08] transition-all border border-white/[0.06] hover:border-yellow-400/30 cursor-pointer flex flex-col justify-between"
+                          className={`group relative p-2.5 sm:p-3 rounded-2xl transition-all duration-300 border cursor-pointer flex flex-col justify-between hover:-translate-y-1 ${
+                            isCurrent
+                              ? 'bg-gradient-to-b from-[#1a1708] to-[#141208] border-yellow-400/60 shadow-[0_8px_24px_rgba(250,204,21,0.18)] ring-1 ring-yellow-400/40'
+                              : 'bg-[#121215]/80 hover:bg-[#18181c] border-white/[0.06] hover:border-yellow-400/30 hover:shadow-[0_12px_28px_rgba(0,0,0,0.6)]'
+                          }`}
                         >
-                          <div className="relative aspect-square w-full rounded-xl overflow-hidden bg-black shadow-lg mb-2.5">
+                          <div className="relative aspect-square w-full rounded-xl overflow-hidden bg-[#0d0d0f] shadow-lg mb-2.5">
                             <ArtworkImage
                               title={t}
                               artist={singer}
                               trackId={track.id}
                               initialSrc={track.thumbnail}
                               alt={t}
-                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
                             />
-                            <div className="absolute bottom-2 right-2 w-10 h-10 rounded-full bg-yellow-400 text-black flex items-center justify-center shadow-xl opacity-0 group-hover:opacity-100 group-hover:translate-y-0 translate-y-2 transition-all">
-                              <Play className="w-4 h-4 fill-black text-black ml-0.5" />
+                            {/* Ambient gradient overlay */}
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-40 group-hover:opacity-20 transition-opacity" />
+
+                            {/* Active playing indicator badge */}
+                            {isCurrent && (
+                              <div className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-black/80 backdrop-blur-md border border-yellow-400/50 flex items-center gap-1.5 shadow-md">
+                                <span className="w-1.5 h-1.5 rounded-full bg-yellow-400 animate-ping" />
+                                <span className="text-[9px] font-black tracking-wider text-yellow-400 uppercase">
+                                  {isPlaying ? 'PLAYING' : 'PAUSED'}
+                                </span>
+                              </div>
+                            )}
+
+                            {/* Play / Pause floating action pill */}
+                            <div className={`absolute bottom-2.5 right-2.5 w-10 h-10 rounded-full bg-yellow-400 text-black flex items-center justify-center shadow-[0_4px_16px_rgba(250,204,21,0.4)] transition-all duration-300 ${
+                              isCurrent
+                                ? 'opacity-100 translate-y-0 scale-100'
+                                : 'opacity-0 translate-y-2 scale-90 group-hover:opacity-100 group-hover:translate-y-0 group-hover:scale-100'
+                            }`}>
+                              {isCurrent && isPlaying ? (
+                                <Pause className="w-4 h-4 fill-black text-black" />
+                              ) : (
+                                <Play className="w-4 h-4 fill-black text-black ml-0.5" />
+                              )}
                             </div>
                           </div>
-                          <div>
-                            <p className="text-xs sm:text-sm font-bold text-white truncate group-hover:text-yellow-400 transition-colors">
+                          <div className="px-0.5">
+                            <p className={`text-xs sm:text-sm font-bold truncate transition-colors ${
+                              isCurrent ? 'text-yellow-400' : 'text-white group-hover:text-yellow-400'
+                            }`}>
                               {t}
                             </p>
                             <p className="text-[11px] text-white/50 truncate mt-0.5 font-medium">
@@ -849,23 +873,38 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
                       <div
                         key={`library-full-${track.id}-${idx}`}
                         onClick={() => onPlayTrack(track)}
-                        className={`group relative p-3 rounded-2xl transition-all border cursor-pointer flex flex-col justify-between ${
+                        className={`group relative p-2.5 sm:p-3 rounded-2xl transition-all duration-300 border cursor-pointer flex flex-col justify-between hover:-translate-y-1 ${
                           isCurrent
-                            ? 'bg-yellow-400/15 border-yellow-400/50 shadow-[0_0_15px_rgba(250,204,21,0.2)]'
-                            : 'bg-white/[0.03] hover:bg-white/[0.08] border-white/[0.06] hover:border-yellow-400/30'
+                            ? 'bg-gradient-to-b from-[#1a1708] to-[#141208] border-yellow-400/60 shadow-[0_8px_24px_rgba(250,204,21,0.18)] ring-1 ring-yellow-400/40'
+                            : 'bg-[#121215]/80 hover:bg-[#18181c] border-white/[0.06] hover:border-yellow-400/30 hover:shadow-[0_12px_28px_rgba(0,0,0,0.6)]'
                         }`}
                       >
-                        <div className="relative aspect-square w-full rounded-xl overflow-hidden bg-black shadow-lg mb-2.5">
+                        <div className="relative aspect-square w-full rounded-xl overflow-hidden bg-[#0d0d0f] shadow-lg mb-2.5">
                           <ArtworkImage
                             title={t}
                             artist={singer}
                             trackId={track.id}
                             initialSrc={track.thumbnail}
                             alt={t}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
                           />
-                          <div className={`absolute bottom-2 right-2 w-10 h-10 rounded-full bg-yellow-400 text-black flex items-center justify-center shadow-xl transition-all ${
-                            isCurrent ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 group-hover:opacity-100 group-hover:translate-y-0 translate-y-2'
+                          {/* Ambient gradient overlay */}
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-40 group-hover:opacity-20 transition-opacity" />
+
+                          {/* Active playing indicator badge */}
+                          {isCurrent && (
+                            <div className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-black/80 backdrop-blur-md border border-yellow-400/50 flex items-center gap-1.5 shadow-md">
+                              <span className="w-1.5 h-1.5 rounded-full bg-yellow-400 animate-ping" />
+                              <span className="text-[9px] font-black tracking-wider text-yellow-400 uppercase">
+                                {isPlaying ? 'PLAYING' : 'PAUSED'}
+                              </span>
+                            </div>
+                          )}
+
+                          <div className={`absolute bottom-2.5 right-2.5 w-10 h-10 rounded-full bg-yellow-400 text-black flex items-center justify-center shadow-[0_4px_16px_rgba(250,204,21,0.4)] transition-all duration-300 ${
+                            isCurrent
+                              ? 'opacity-100 translate-y-0 scale-100'
+                              : 'opacity-0 translate-y-2 scale-90 group-hover:opacity-100 group-hover:translate-y-0 group-hover:scale-100'
                           }`}>
                             {isCurrent && isPlaying ? (
                               <Pause className="w-4 h-4 fill-black text-black" />
@@ -874,7 +913,7 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
                             )}
                           </div>
                         </div>
-                        <div>
+                        <div className="px-0.5">
                           <p className={`text-xs sm:text-sm font-bold truncate transition-colors ${
                             isCurrent ? 'text-yellow-400' : 'text-white group-hover:text-yellow-400'
                           }`}>
@@ -973,27 +1012,56 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
                       {dynamicPopularTracks.map((track, idx) => {
                         const { title: t, artistFromTitle: a } = cleanTrackTitle(track.title);
                         const singer = getFullSingerName(track.artist || a || '', t);
+                        const isCurrent = currentTrack?.id === track.id;
                         return (
                           <div
                             key={`pop-${track.id}-${idx}`}
                             onClick={() => onPlayTrack(track)}
-                            className="group relative p-3 rounded-2xl bg-white/[0.03] hover:bg-white/[0.08] transition-all border border-white/[0.06] hover:border-yellow-400/30 cursor-pointer flex flex-col justify-between"
+                            className={`group relative p-2.5 sm:p-3 rounded-2xl transition-all duration-300 border cursor-pointer flex flex-col justify-between hover:-translate-y-1 ${
+                              isCurrent
+                                ? 'bg-gradient-to-b from-[#1a1708] to-[#141208] border-yellow-400/60 shadow-[0_8px_24px_rgba(250,204,21,0.18)] ring-1 ring-yellow-400/40'
+                                : 'bg-[#121215]/80 hover:bg-[#18181c] border-white/[0.06] hover:border-yellow-400/30 hover:shadow-[0_12px_28px_rgba(0,0,0,0.6)]'
+                            }`}
                           >
-                            <div className="relative aspect-square w-full rounded-xl overflow-hidden bg-black shadow-lg mb-2.5">
+                            <div className="relative aspect-square w-full rounded-xl overflow-hidden bg-[#0d0d0f] shadow-lg mb-2.5">
                               <ArtworkImage
                                 title={t}
                                 artist={singer}
                                 trackId={track.id}
                                 initialSrc={track.thumbnail}
                                 alt={t}
-                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
                               />
-                              <div className="absolute bottom-2 right-2 w-10 h-10 rounded-full bg-yellow-400 text-black flex items-center justify-center shadow-xl opacity-0 group-hover:opacity-100 group-hover:translate-y-0 translate-y-2 transition-all">
-                                <Play className="w-4 h-4 fill-black text-black ml-0.5" />
+                              {/* Ambient gradient overlay */}
+                              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-40 group-hover:opacity-20 transition-opacity" />
+
+                              {/* Active playing indicator badge */}
+                              {isCurrent && (
+                                <div className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-black/80 backdrop-blur-md border border-yellow-400/50 flex items-center gap-1.5 shadow-md">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-yellow-400 animate-ping" />
+                                  <span className="text-[9px] font-black tracking-wider text-yellow-400 uppercase">
+                                    {isPlaying ? 'PLAYING' : 'PAUSED'}
+                                  </span>
+                                </div>
+                              )}
+
+                              {/* Action play button */}
+                              <div className={`absolute bottom-2.5 right-2.5 w-10 h-10 rounded-full bg-yellow-400 text-black flex items-center justify-center shadow-[0_4px_16px_rgba(250,204,21,0.4)] transition-all duration-300 ${
+                                isCurrent
+                                  ? 'opacity-100 translate-y-0 scale-100'
+                                  : 'opacity-0 translate-y-2 scale-90 group-hover:opacity-100 group-hover:translate-y-0 group-hover:scale-100'
+                              }`}>
+                                {isCurrent && isPlaying ? (
+                                  <Pause className="w-4 h-4 fill-black text-black" />
+                                ) : (
+                                  <Play className="w-4 h-4 fill-black text-black ml-0.5" />
+                                )}
                               </div>
                             </div>
-                            <div>
-                              <p className="text-xs sm:text-sm font-bold text-white truncate group-hover:text-yellow-400 transition-colors">
+                            <div className="px-0.5">
+                              <p className={`text-xs sm:text-sm font-bold truncate transition-colors ${
+                                isCurrent ? 'text-yellow-400' : 'text-white group-hover:text-yellow-400'
+                              }`}>
                                 {t}
                               </p>
                               <p className="text-[11px] text-white/50 truncate mt-0.5 font-medium">
@@ -1031,27 +1099,56 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
                         {collection.tracks.slice(0, 6).map((track, idx) => {
                           const { title: t, artistFromTitle: a } = cleanTrackTitle(track.title);
                           const singer = getFullSingerName(track.artist || a || '', t);
+                          const isCurrent = currentTrack?.id === track.id;
                           return (
                             <div
                               key={`col-${collection.id}-${track.id}-${idx}`}
                               onClick={() => onPlayTrack(track)}
-                              className="group relative p-3 rounded-2xl bg-white/[0.03] hover:bg-white/[0.08] transition-all border border-white/[0.06] hover:border-yellow-400/30 cursor-pointer flex flex-col justify-between"
+                              className={`group relative p-2.5 sm:p-3 rounded-2xl transition-all duration-300 border cursor-pointer flex flex-col justify-between hover:-translate-y-1 ${
+                                isCurrent
+                                  ? 'bg-gradient-to-b from-[#1a1708] to-[#141208] border-yellow-400/60 shadow-[0_8px_24px_rgba(250,204,21,0.18)] ring-1 ring-yellow-400/40'
+                                  : 'bg-[#121215]/80 hover:bg-[#18181c] border-white/[0.06] hover:border-yellow-400/30 hover:shadow-[0_12px_28px_rgba(0,0,0,0.6)]'
+                              }`}
                             >
-                              <div className="relative aspect-square w-full rounded-xl overflow-hidden bg-black shadow-lg mb-2.5">
+                              <div className="relative aspect-square w-full rounded-xl overflow-hidden bg-[#0d0d0f] shadow-lg mb-2.5">
                                 <ArtworkImage
                                   title={t}
                                   artist={singer}
                                   trackId={track.id}
                                   initialSrc={track.thumbnail}
                                   alt={t}
-                                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
                                 />
-                                <div className="absolute bottom-2 right-2 w-10 h-10 rounded-full bg-yellow-400 text-black flex items-center justify-center shadow-xl opacity-0 group-hover:opacity-100 group-hover:translate-y-0 translate-y-2 transition-all">
-                                  <Play className="w-4 h-4 fill-black text-black ml-0.5" />
+                                {/* Ambient gradient overlay */}
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-40 group-hover:opacity-20 transition-opacity" />
+
+                                {/* Active playing indicator badge */}
+                                {isCurrent && (
+                                  <div className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-black/80 backdrop-blur-md border border-yellow-400/50 flex items-center gap-1.5 shadow-md">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-yellow-400 animate-ping" />
+                                    <span className="text-[9px] font-black tracking-wider text-yellow-400 uppercase">
+                                      {isPlaying ? 'PLAYING' : 'PAUSED'}
+                                    </span>
+                                  </div>
+                                )}
+
+                                {/* Action play button */}
+                                <div className={`absolute bottom-2.5 right-2.5 w-10 h-10 rounded-full bg-yellow-400 text-black flex items-center justify-center shadow-[0_4px_16px_rgba(250,204,21,0.4)] transition-all duration-300 ${
+                                  isCurrent
+                                    ? 'opacity-100 translate-y-0 scale-100'
+                                    : 'opacity-0 translate-y-2 scale-90 group-hover:opacity-100 group-hover:translate-y-0 group-hover:scale-100'
+                                }`}>
+                                  {isCurrent && isPlaying ? (
+                                    <Pause className="w-4 h-4 fill-black text-black" />
+                                  ) : (
+                                    <Play className="w-4 h-4 fill-black text-black ml-0.5" />
+                                  )}
                                 </div>
                               </div>
-                              <div>
-                                <p className="text-xs sm:text-sm font-bold text-white truncate group-hover:text-yellow-400 transition-colors">
+                              <div className="px-0.5">
+                                <p className={`text-xs sm:text-sm font-bold truncate transition-colors ${
+                                  isCurrent ? 'text-yellow-400' : 'text-white group-hover:text-yellow-400'
+                                }`}>
                                   {t}
                                 </p>
                                 <p className="text-[11px] text-white/50 truncate mt-0.5 font-medium">
@@ -1083,6 +1180,7 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
                       {dynamicVibeTracks.slice(0, 4).map((track, idx) => {
                         const { title: t, artistFromTitle: a } = cleanTrackTitle(track.title);
                         const singer = getFullSingerName(track.artist || a || '', t);
+                        const isCurrent = currentTrack?.id === track.id;
                         return (
                           <div
                             key={`vid-${track.id}-${idx}`}
@@ -1092,28 +1190,38 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
                               setMaximizeViewMode('video');
                               setIsCinemaMode(true);
                             }}
-                            className="group relative rounded-2xl overflow-hidden bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.06] hover:border-yellow-400/40 transition-all cursor-pointer shadow-lg"
+                            className={`group relative rounded-2xl overflow-hidden transition-all duration-300 border cursor-pointer shadow-lg hover:-translate-y-1 ${
+                              isCurrent
+                                ? 'bg-gradient-to-b from-[#1a1708] to-[#141208] border-yellow-400/60 shadow-[0_8px_24px_rgba(250,204,21,0.2)] ring-1 ring-yellow-400/40'
+                                : 'bg-[#121215]/80 hover:bg-[#18181c] border-white/[0.06] hover:border-yellow-400/40 hover:shadow-[0_12px_28px_rgba(0,0,0,0.6)]'
+                            }`}
                           >
-                            <div className="relative aspect-video w-full bg-black overflow-hidden">
+                            <div className="relative aspect-video w-full bg-[#0d0d0f] overflow-hidden">
                               <ArtworkImage
                                 title={t}
                                 artist={singer}
                                 trackId={track.id}
                                 initialSrc={track.thumbnail}
                                 alt={t}
-                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
                               />
                               <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 flex items-center justify-center transition-all">
-                                <div className="w-12 h-12 rounded-full bg-yellow-400 text-black flex items-center justify-center shadow-2xl group-hover:scale-110 transition-transform">
-                                  <Play className="w-5 h-5 fill-black ml-0.5" />
+                                <div className="w-12 h-12 rounded-full bg-yellow-400 text-black flex items-center justify-center shadow-[0_4px_20px_rgba(250,204,21,0.5)] group-hover:scale-110 active:scale-95 transition-transform">
+                                  {isCurrent && isPlaying ? (
+                                    <Pause className="w-5 h-5 fill-black" />
+                                  ) : (
+                                    <Play className="w-5 h-5 fill-black ml-0.5" />
+                                  )}
                                 </div>
                               </div>
-                              <span className="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-md bg-black/80 backdrop-blur-md text-[10px] font-black text-yellow-400 border border-yellow-400/30">
+                              <span className="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-full bg-black/80 backdrop-blur-md text-[10px] font-black text-yellow-400 border border-yellow-400/40 shadow">
                                 HD VIDEO
                               </span>
                             </div>
                             <div className="p-3">
-                              <p className="text-sm font-bold text-white truncate group-hover:text-yellow-400 transition-colors">
+                              <p className={`text-sm font-bold truncate transition-colors ${
+                                isCurrent ? 'text-yellow-400' : 'text-white group-hover:text-yellow-400'
+                              }`}>
                                 {t}
                               </p>
                               <p className="text-xs text-white/50 truncate mt-0.5 font-medium">
