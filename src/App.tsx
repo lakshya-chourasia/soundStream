@@ -16,6 +16,7 @@ import { SleepTimerModal } from './components/SleepTimerModal';
 import { SpotifyLayout } from './components/SpotifyLayout';
 import { getNextTrackIndex, getPrevTrackIndex, extractYouTubeId, cleanTrackTitle, getDynamicTrackTag, getFullSingerName } from './utils/playerUtils';
 import { prefetchArtwork } from './services/artworkService';
+import { FALLBACK_CURATED_GENRES } from './data/curatedFallback';
 import { Compass, AlertCircle, X } from 'lucide-react';
 
 const INITIAL_STARTER_POOL: Track[] = [
@@ -176,9 +177,9 @@ export default function App() {
     }
   });
 
-  // Discovery & Genres
-  const [genres, setGenres] = useState<GenreCollection[]>([]);
-  const [searchResults, setSearchResults] = useState<Track[]>([]);
+  // Discovery & Genres (Initialized with static fallback so Vercel renders instantly)
+  const [genres, setGenres] = useState<GenreCollection[]>(FALLBACK_CURATED_GENRES);
+  const [searchResults, setSearchResults] = useState<Track[]>(() => FALLBACK_CURATED_GENRES[0]?.tracks || []);
   const [isSearching, setIsSearching] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [activeGenreFilter, setActiveGenreFilter] = useState<string | null>(null);
