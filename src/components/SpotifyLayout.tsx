@@ -506,13 +506,13 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
           1. MELOPHILE SIGNATURE TOP BAR
          ══════════════════════════════════════════════════ */}
       <header className="h-14 sm:h-16 w-full px-3.5 sm:px-6 flex items-center justify-between bg-black/95 backdrop-blur-xl shrink-0 z-40 border-b border-white/[0.07]">
-        {/* Left: Melophile Brand Monogram (!M) & Name */}
+        {/* Left: Melophile Brand Monogram (!M) */}
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           <button
             onClick={handleGoHome}
             className="flex items-center gap-2.5 focus:outline-none group cursor-pointer"
-            title="Melophile Home"
-            aria-label="Melophile Home"
+            title="Home"
+            aria-label="Home"
           >
             {/* Signature Monogram: Vertical accent bar + M mark (!M) */}
             <div className="flex items-center gap-1 text-white">
@@ -520,12 +520,6 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
               <span className="font-display font-black text-2xl sm:text-2xl tracking-tighter leading-none text-white">
                 M
               </span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="font-display font-black text-base sm:text-xl tracking-wider text-white">
-                MELOPHILE
-              </span>
-              <span className="w-1.5 h-1.5 rounded-full bg-yellow-400 shadow-[0_0_8px_#facc15]" />
             </div>
           </button>
         </div>

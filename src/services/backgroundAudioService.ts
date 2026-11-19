@@ -90,18 +90,14 @@ class BackgroundAudioService {
             this.audioContext.resume().catch(() => {});
           }
 
-          // Small delay to let YouTube iframe finish any visibility-induced pause event, then resume playback
-          setTimeout(() => {
-            if (this.resumeCallback) {
-              this.resumeCallback();
-            }
-          }, 150);
-
-          setTimeout(() => {
-            if (this.resumeCallback) {
-              this.resumeCallback();
-            }
-          }, 600);
+          // Counteract mobile browser visibility pause cascade
+          [100, 300, 700, 1500, 2500].forEach((delay) => {
+            setTimeout(() => {
+              if (this.isArmed && this.resumeCallback) {
+                this.resumeCallback();
+              }
+            }, delay);
+          });
         }
       }
     });

@@ -23,12 +23,12 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   return (
     <header className="h-14 sm:h-16 w-full flex items-center justify-between px-3 sm:px-8 bg-transparent select-none shrink-0 z-30">
-      {/* ── LEFT SECTION: Brand Logo & Title ── */}
+      {/* ── LEFT SECTION: Brand Logo (!M) ── */}
       <div className="flex items-center gap-2.5 sm:gap-4">
         <button
           onClick={() => onSelectView('now-playing')}
           className="flex items-center gap-2.5 focus:outline-none group cursor-pointer"
-          title="Melophile Home"
+          title="Home"
         >
           <div className="flex items-center gap-1 text-white">
             <span className="w-1.5 h-5 bg-yellow-400 rounded-xs transition-transform group-hover:scale-y-110 shadow-[0_0_10px_rgba(250,204,21,0.6)]" />
@@ -36,9 +36,6 @@ export const Header: React.FC<HeaderProps> = ({
               M
             </span>
           </div>
-          <span className="font-display font-black text-lg sm:text-xl tracking-wider text-white">
-            MELOPHILE
-          </span>
         </button>
       </div>
 
