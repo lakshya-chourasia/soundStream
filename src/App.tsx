@@ -400,10 +400,32 @@ export default function App() {
       const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`);
       if (!res.ok) throw new Error('Search failed');
       const data = await res.json();
-      setSearchResults(data.tracks || []);
+      if (Array.isArray(data.tracks) && data.tracks.length > 0) {
+        setSearchResults(data.tracks);
+        return;
+      }
+      throw new Error('Empty search results');
     } catch (err: any) {
-      console.error(err);
-      showToast('Unable to complete YouTube search right now.');
+      console.warn('Network search error, using local pool:', err);
+      const lower = q.toLowerCase();
+      const localPool = [
+        ...INITIAL_STARTER_POOL,
+        ...FALLBACK_CURATED_GENRES.flatMap((g) => g.tracks || []),
+        ...genres.flatMap((g) => g.tracks || []),
+        ...recommendations,
+      ];
+      const matched = localPool.filter(
+        (t) =>
+          t.title.toLowerCase().includes(lower) ||
+          t.artist.toLowerCase().includes(lower)
+      );
+      if (matched.length > 0) {
+        const seen = new Set<string>();
+        const unique = matched.filter((t) => (seen.has(t.id) ? false : (seen.add(t.id), true)));
+        setSearchResults(unique.slice(0, 16));
+      } else {
+        showToast('No matching songs found in local catalog.');
+      }
     } finally {
       setIsSearching(false);
     }

@@ -1,22 +1,21 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
   <defs>
-    <radialGradient id="bg" cx="50%" cy="50%" r="70%">
-      <stop offset="0%" stop-color="#181a24" />
-      <stop offset="100%" stop-color="#08090c" />
+    <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#facc15" stop-opacity="0.8" />
+      <stop offset="100%" stop-color="#f59e0b" stop-opacity="0" />
     </radialGradient>
-    <linearGradient id="glow" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#06b6d4" />
-      <stop offset="50%" stop-color="#ec4899" />
-      <stop offset="100%" stop-color="#f59e0b" />
+    <linearGradient id="pillGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#fef08a" />
+      <stop offset="50%" stop-color="#eab308" />
+      <stop offset="100%" stop-color="#ca8a04" />
     </linearGradient>
   </defs>
-  <rect width="512" height="512" rx="128" fill="url(#bg)" />
-  <circle cx="256" cy="256" r="180" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="3" />
-  <circle cx="256" cy="256" r="140" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="2" />
-  <circle cx="256" cy="256" r="100" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="2" />
-  <circle cx="256" cy="256" r="50" fill="url(#glow)" />
-  <path d="M240 220 L300 256 L240 292 Z" fill="#ffffff" />
-  <path d="M120 256 Q 180 180, 256 256 T 392 256" fill="none" stroke="url(#glow)" stroke-width="12" stroke-linecap="round" opacity="0.8" />
-  <path d="M140 290 Q 200 230, 256 290 T 372 290" fill="none" stroke="#06b6d4" stroke-width="6" stroke-linecap="round" opacity="0.6" />
-</svg>
+  <rect width="512" height="512" rx="110" fill="#09090b" />
+  
+  <!-- Glowing Amber Pill -->
+  <rect x="75" y="110" width="70" height="292" rx="35" fill="url(#glow)" filter="blur(8px)" opacity="0.9" />
+  <rect x="80" y="116" width="60" height="280" rx="30" fill="url(#pillGrad)" stroke="#fef08a" stroke-width="3" />
 
+  <!-- Bold White M -->
+  <path d="M 195 140 L 255 140 L 330 295 L 405 140 L 465 140 L 465 372 L 410 372 L 410 240 L 345 372 L 315 372 L 250 240 L 250 372 L 195 372 Z" fill="#ffffff" />
+</svg>

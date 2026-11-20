@@ -367,6 +367,25 @@ class BackgroundAudioService {
         this.triggerImmediateRecovery();
       }
     });
+
+    // Native Android Notification Mini Player action listener
+    (window as any).__melophileMediaAction = (action: string) => {
+      if (action === 'toggle') {
+        if (this.shouldBePlaying) {
+          this.handlers?.onPause();
+        } else {
+          this.handlers?.onPlay();
+        }
+      } else if (action === 'play') {
+        this.handlers?.onPlay();
+      } else if (action === 'pause') {
+        this.handlers?.onPause();
+      } else if (action === 'next') {
+        this.handlers?.onNext();
+      } else if (action === 'prev') {
+        this.handlers?.onPrev();
+      }
+    };
   }
 
   public registerPlayerBridge(bridge: BackgroundPlayerBridge) {
@@ -492,6 +511,11 @@ class BackgroundAudioService {
         album,
         artwork: artworkList,
       });
+
+      // Forward to Android native notification mini player
+      if (typeof (window as any).AndroidMediaBridge !== 'undefined' && (window as any).AndroidMediaBridge.updateTrack) {
+        (window as any).AndroidMediaBridge.updateTrack(title || 'Melophile', artist || '', artwork || '', this.shouldBePlaying);
+      }
     } catch (e) {
       console.warn('[BackgroundAudio] MediaSession metadata error:', e);
     }
@@ -506,6 +530,16 @@ class BackgroundAudioService {
     } else {
       this.disarm();
     }
+
+    try {
+      if (typeof (window as any).AndroidMediaBridge !== 'undefined' && (window as any).AndroidMediaBridge.updateTrack) {
+        const parts = this.lastMetadataKey.split('|');
+        const title = parts[0] || 'Melophile';
+        const artist = parts[1] || '';
+        const artwork = parts[3] || '';
+        (window as any).AndroidMediaBridge.updateTrack(title, artist, artwork, isPlaying);
+      }
+    } catch {}
 
     if (typeof navigator !== 'undefined' && 'mediaSession' in navigator) {
       try {

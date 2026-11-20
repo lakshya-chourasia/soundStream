@@ -30,12 +30,11 @@ export const Header: React.FC<HeaderProps> = ({
           className="flex items-center gap-2.5 focus:outline-none group cursor-pointer"
           title="Home"
         >
-          <div className="flex items-center gap-1 text-white">
-            <span className="w-1.5 h-5 bg-yellow-400 rounded-xs transition-transform group-hover:scale-y-110 shadow-[0_0_10px_rgba(250,204,21,0.6)]" />
-            <span className="font-display font-black text-xl tracking-tighter leading-none">
-              M
-            </span>
-          </div>
+          <img
+            src="/logo.png"
+            alt="!M"
+            className="h-7 w-auto object-contain select-none transition-transform group-hover:scale-105 drop-shadow-[0_0_10px_rgba(250,204,21,0.45)]"
+          />
         </button>
       </div>
 

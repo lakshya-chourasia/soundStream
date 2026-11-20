@@ -44,12 +44,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
           className="group flex items-center justify-center p-1.5 focus:outline-none"
           title="Melophile Home"
         >
-          <div className="flex items-center gap-1 text-white">
-            <span className="w-1.5 h-6 bg-yellow-400 rounded-xs transition-transform group-hover:scale-y-110 shadow-[0_0_10px_rgba(250,204,21,0.6)]" />
-            <span className="font-display font-black text-2xl tracking-tighter leading-none ml-0.5">
-              M
-            </span>
-          </div>
+          <img
+            src="/logo.png"
+            alt="!M"
+            className="h-8 w-auto object-contain select-none transition-transform group-hover:scale-105 drop-shadow-[0_0_10px_rgba(250,204,21,0.45)]"
+          />
         </button>
       </div>
 
