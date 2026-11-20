@@ -1,8 +1,10 @@
 package com.soundstream.music;
 
+import android.app.PictureInPictureParams;
 import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
+import android.util.Rational;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import androidx.core.content.ContextCompat;
@@ -14,6 +16,9 @@ public class MainActivity extends BridgeActivity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         
+        // Start Foreground Media Service while in foreground to ensure OS permission
+        startBackgroundAudioService();
+
         // Configure WebView to allow continuous background audio playback
         try {
             WebView webView = this.getBridge().getWebView();
@@ -61,6 +66,20 @@ public class MainActivity extends BridgeActivity {
     }
 
     @Override
+    protected void onUserLeaveHint() {
+        super.onUserLeaveHint();
+        // Seamlessly enter Picture-in-Picture when user minimizes app (Home or app switch)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            try {
+                PictureInPictureParams params = new PictureInPictureParams.Builder()
+                    .setAspectRatio(new Rational(16, 9))
+                    .build();
+                enterPictureInPictureMode(params);
+            } catch (Exception ignored) {}
+        }
+    }
+
+    @Override
     public void onResume() {
         super.onResume();
         keepWebViewAlive();
@@ -69,16 +88,13 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onPause() {
         super.onPause();
-        // Keep WebView actively decoding audio in background
         keepWebViewAlive();
-        startBackgroundAudioService();
     }
 
     @Override
     public void onStop() {
         super.onStop();
         keepWebViewAlive();
-        startBackgroundAudioService();
     }
 
     @Override
