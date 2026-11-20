@@ -2,8 +2,8 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  --font-sans: 'Circular Std', 'Circular', 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-display: 'Circular Std', 'Circular', 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-display: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, monospace;
 }
 
@@ -16,6 +16,12 @@
 }
 
 :root {
+  --bg-canvas: #09090b;
+  --bg-surface: #111114;
+  --bg-elevated: #18181d;
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --accent-primary: #f59e0b;
+  --accent-hover: #fbbf24;
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-left: env(safe-area-inset-left, 0px);
@@ -29,11 +35,13 @@ html, body, #root {
   margin: 0;
   padding: 0;
   overflow: hidden;
-  background-color: #0d0f12;
-  color: #ffffff;
-  font-family: 'Circular Std', 'Circular', 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background-color: #09090b;
+  color: #f4f4f6;
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-synthesis: none;
   overscroll-behavior: none;
   touch-action: manipulation;
 }
@@ -43,7 +51,15 @@ button, input, textarea, select {
 }
 
 .font-sans, .font-display {
-  font-family: 'Circular Std', 'Circular', 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 /* ─────────────────────────────────────────────
@@ -163,15 +179,15 @@ button, input, textarea, select {
 }
 
 /* ─────────────────────────────────────────────
-   ANIMATED EQUALIZER BARS
+   ANIMATED EQUALIZER BARS (GPU-only scaleY — zero layout reflow or text shimmer)
 ───────────────────────────────────────────── */
-@keyframes bar1 { 0%, 100% { height: 4px; } 50% { height: 16px; } }
-@keyframes bar2 { 0%, 100% { height: 16px; } 50% { height: 6px; } }
-@keyframes bar3 { 0%, 100% { height: 8px; } 50% { height: 18px; } }
+@keyframes bar1 { 0%, 100% { transform: scaleY(0.28); } 50% { transform: scaleY(1); } }
+@keyframes bar2 { 0%, 100% { transform: scaleY(0.95); } 50% { transform: scaleY(0.32); } }
+@keyframes bar3 { 0%, 100% { transform: scaleY(0.45); } 50% { transform: scaleY(1); } }
 
-.animate-bar-1 { animation: bar1 0.7s ease-in-out infinite; }
-.animate-bar-2 { animation: bar2 0.55s ease-in-out infinite 0.12s; }
-.animate-bar-3 { animation: bar3 0.8s ease-in-out infinite 0.24s; }
+.animate-bar-1 { height: 100%; transform-origin: bottom; will-change: transform; animation: bar1 0.7s ease-in-out infinite; }
+.animate-bar-2 { height: 100%; transform-origin: bottom; will-change: transform; animation: bar2 0.55s ease-in-out infinite 0.12s; }
+.animate-bar-3 { height: 100%; transform-origin: bottom; will-change: transform; animation: bar3 0.8s ease-in-out infinite 0.24s; }
 
 /* ─────────────────────────────────────────────
    CIRCULAR TRANSPORT BUTTONS

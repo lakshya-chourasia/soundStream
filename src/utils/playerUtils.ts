@@ -344,3 +344,40 @@ export function getFullSingerName(artist?: string, title?: string): string {
   return cleanedArtist;
 }
 
+/**
+ * Cryptographically strong random integer in [0, max) using Web Crypto API
+ */
+export function cryptoRandomInt(max: number): number {
+  if (max <= 1) return 0;
+  if (typeof window !== 'undefined' && window.crypto?.getRandomValues) {
+    const arr = new Uint32Array(1);
+    const limit = Math.floor(0x100000000 / max) * max;
+    let val = 0;
+    do {
+      window.crypto.getRandomValues(arr);
+      val = arr[0];
+    } while (val >= limit);
+    return val % max;
+  }
+  return Math.floor(Math.random() * max);
+}
+
+/**
+ * Unbiased Fisher-Yates shuffle backed by Web Crypto entropy
+ */
+export function cryptoShuffleList<T>(array: T[]): T[] {
+  const result = [...array];
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = cryptoRandomInt(i + 1);
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+  return result;
+}
+
+/**
+ * Pick one cryptographically random item from an array
+ */
+export function pickCryptoRandom<T>(array: T[]): T | undefined {
+  if (!array.length) return undefined;
+  return array[cryptoRandomInt(array.length)];
+}

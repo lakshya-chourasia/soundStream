@@ -3,6 +3,7 @@ import type { Request, Response } from 'express';
 import { createServer as createViteServer } from 'vite';
 import path from 'path';
 import fs from 'fs';
+import { randomInt, randomBytes } from 'node:crypto';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -331,6 +332,567 @@ function parseDurationSec(durationStr: string): number {
 // In-memory blacklist for known playback-restricted videos (disallowed embedding)
 const KNOWN_RESTRICTED_IDS = new Set<string>(['hLQl3WQQoQ0', 'f-X8f_d1n3Y']);
 
+// ─────────────────────────────────────────────────────────────────────────────
+// TRUE-ENTROPY OFFICIAL SINGERS RANDOM MUSIC DISCOVERY ENGINE
+// Preserves full CSPRNG randomness on every load/refresh while guaranteeing
+// verified official singers, Official Artist Channels, VEVO & Topic masters.
+// ─────────────────────────────────────────────────────────────────────────────
+
+function csprngShuffle<T>(items: T[]): T[] {
+  const arr = [...items];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = randomInt(0, i + 1);
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function csprngPick<T>(items: T[]): T {
+  return items[randomInt(0, items.length)];
+}
+
+const RANDOM_MOODS = [
+  { label: 'Midnight Drive', tag: '#MIDNIGHT', desc: 'Late-night studio cuts and hypnotic vocal grooves' },
+  { label: 'Golden Hour', tag: '#GOLDENHOUR', desc: 'Warm sunset melodies from iconic recording artists' },
+  { label: 'Rainy Window', tag: '#RAINYMOOD', desc: 'Intimate vocal performances and soulful ballads' },
+  { label: 'Velvet Lounge', tag: '#VELVET', desc: 'Smooth harmonies, warm basslines, and lush production' },
+  { label: 'After Hours', tag: '#AFTERHOURS', desc: 'Deep nocturnal rhythms and moody studio masters' },
+  { label: 'Electric Pulse', tag: '#ELECTRIC', desc: 'High-voltage hooks, crisp percussion, and chart-topping energy' },
+  { label: 'Sunrise Drift', tag: '#SUNRISE', desc: 'Bright uplifting anthems and effortless morning vocals' },
+  { label: 'Ocean Breeze', tag: '#COASTAL', desc: 'Sunlit melodies, relaxed tempos, and coastal grooves' },
+  { label: 'Neon Mirage', tag: '#NEON', desc: 'Shimmering synth-pop and nocturnal studio anthems' },
+  { label: 'Sunday Slow', tag: '#SUNDAY', desc: 'Unrushed acoustic cuts and soul-warming vocals' },
+  { label: 'Rooftop Dusk', tag: '#ROOFTOP', desc: 'Twilight beats, stylish hooks, and skyline atmosphere' },
+  { label: 'Stargazer', tag: '#COSMIC', desc: 'Expansive studio soundscapes and dreamy vocal textures' },
+  { label: 'Quiet Storm', tag: '#QUIETSTORM', desc: 'Velvety chords, classic voices, and heartfelt lyricism' },
+  { label: 'Desert Highway', tag: '#ROADTRIP', desc: 'Open-road anthems, driving guitars, and soaring choruses' },
+  { label: 'Ember Glow', tag: '#EMBER', desc: 'Rich analog warmth, timeless singers, and iconic hooks' },
+  { label: 'Urban Echo', tag: '#CITYNIGHTS', desc: 'Crisp modern production and signature artist vocals' },
+];
+
+interface OfficialGenreBucket {
+  genre: string;
+  tag: string;
+  artists: string[];
+}
+
+const OFFICIAL_SINGER_BUCKETS: OfficialGenreBucket[] = [
+  {
+    genre: 'Global Pop Icons',
+    tag: '#POP',
+    artists: [
+      'The Weeknd', 'Dua Lipa', 'Bruno Mars', 'Billie Eilish', 'Adele',
+      'Ed Sheeran', 'Taylor Swift', 'Harry Styles', 'Rihanna', 'Lady Gaga',
+      'Ariana Grande', 'Post Malone', 'Sabrina Carpenter', 'Olivia Rodrigo',
+      'Beyoncé', 'Sam Smith', 'Sia', 'Shawn Mendes', 'Charlie Puth',
+      'Miley Cyrus', 'Lana Del Rey', 'Lorde', 'Troye Sivan', 'Halsey',
+      'Benson Boone', 'Teddy Swims', 'Tate McRae', 'Chappell Roan',
+    ],
+  },
+  {
+    genre: 'R&B & Neo-Soul',
+    tag: '#RNBSOUL',
+    artists: [
+      'SZA', 'Frank Ocean', 'Daniel Caesar', 'Giveon', 'Alicia Keys',
+      'John Legend', 'Sade', 'Amy Winehouse', 'Stevie Wonder', 'Marvin Gaye',
+      'Anderson .Paak', 'Silk Sonic', 'Leon Bridges', 'Snoh Aalegra',
+      'Kali Uchis', 'Steve Lacy', 'Omar Apollo', 'Jorja Smith',
+      'Summer Walker', 'Brent Faiyaz', 'Khalid', 'H.E.R.', 'RAYE', 'Erykah Badu',
+    ],
+  },
+  {
+    genre: 'Indie & Alternative',
+    tag: '#INDIE',
+    artists: [
+      'Arctic Monkeys', 'Tame Impala', 'Coldplay', 'Radiohead', 'Gorillaz',
+      'The Strokes', 'Cigarettes After Sex', 'The Neighbourhood', 'The 1975',
+      'Glass Animals', 'Hozier', 'Noah Kahan', 'Bon Iver', 'Clairo',
+      'Joji', 'Mac DeMarco', 'Men I Trust', 'Beach House', 'Laufey',
+      'Mitski', 'Phoebe Bridgers', 'The Marías', 'Vance Joy', 'Cage The Elephant',
+      'Foster The People', 'Rex Orange County', 'beabadoobee',
+    ],
+  },
+  {
+    genre: 'Rock & Timeless Anthems',
+    tag: '#ROCK',
+    artists: [
+      'Queen', 'Fleetwood Mac', 'Pink Floyd', 'Oasis', 'The Killers',
+      'Linkin Park', 'Red Hot Chili Peppers', 'Foo Fighters', 'Green Day',
+      'Nirvana', 'Muse', 'Imagine Dragons', 'OneRepublic', 'U2',
+      'Bruce Springsteen', 'David Bowie', 'Elton John', 'Prince',
+      'Michael Jackson', 'Whitney Houston', 'George Michael', 'Phil Collins',
+    ],
+  },
+  {
+    genre: 'Hip-Hop & Rap',
+    tag: '#HIPHOP',
+    artists: [
+      'Kendrick Lamar', 'Drake', 'Travis Scott', 'J. Cole', 'Tyler, The Creator',
+      'Eminem', 'Kid Cudi', 'Mac Miller', 'A$AP Rocky', 'Childish Gambino',
+      'Future', 'Metro Boomin', 'OutKast', 'Ms. Lauryn Hill', 'Nas',
+      'Central Cee', 'Dave', 'Stormzy', 'Doja Cat', '21 Savage',
+    ],
+  },
+  {
+    genre: 'Electronic & Dance',
+    tag: '#ELECTRONIC',
+    artists: [
+      'Daft Punk', 'Calvin Harris', 'Avicii', 'Disclosure', 'Fred again..',
+      'Flume', 'ODESZA', 'Kygo', 'Zedd', 'Martin Garrix', 'RÜFÜS DU SOL',
+      'KAYTRANADA', 'Peggy Gou', 'M83', 'Empire of the Sun', 'MGMT',
+      'Parcels', 'Justice', 'David Guetta', 'Swedish House Mafia',
+    ],
+  },
+  {
+    genre: 'Bollywood & Indian Soul',
+    tag: '#BOLLYWOOD',
+    artists: [
+      'Arijit Singh', 'Shreya Ghoshal', 'A. R. Rahman', 'Atif Aslam',
+      'Sonu Nigam', 'KK', 'Mohit Chauhan', 'Pritam', 'Vishal-Shekhar',
+      'Jubin Nautiyal', 'Armaan Malik', 'Darshan Raval', 'Anuv Jain',
+      'Prateek Kuhad', 'Amit Trivedi', 'Sunidhi Chauhan', 'Kailash Kher',
+      'Papon', 'Lucky Ali', 'Sachet-Parampara', 'Rekha Bhardwaj', 'Shankar Mahadevan',
+    ],
+  },
+  {
+    genre: 'Punjabi & Desi Wave',
+    tag: '#PUNJABI',
+    artists: [
+      'Diljit Dosanjh', 'AP Dhillon', 'Karan Aujla', 'Shubh', 'Sidhu Moose Wala',
+      'Guru Randhawa', 'Harrdy Sandhu', 'Badshah', 'Divine', 'Ritviz',
+      'King', 'Talwiinder', 'PropheC', 'Amrinder Gill', 'Satinder Sartaaj',
+    ],
+  },
+  {
+    genre: 'Latin & Reggaeton',
+    tag: '#LATIN',
+    artists: [
+      'Bad Bunny', 'Shakira', 'KAROL G', 'ROSALÍA', 'Rauw Alejandro',
+      'Feid', 'J Balvin', 'Luis Fonsi', 'Peso Pluma', 'Maluma',
+      'Enrique Iglesias', 'Ricky Martin', 'Camila Cabello', 'Camilo',
+    ],
+  },
+  {
+    genre: 'Afrobeats & Global Groove',
+    tag: '#AFROBEATS',
+    artists: [
+      'Burna Boy', 'Wizkid', 'Rema', 'Tems', 'Ayra Starr',
+      'Davido', 'Asake', 'Ckay', 'Omah Lay', 'Fireboy DML',
+      'Stromae', 'Angèle', 'Tyla',
+    ],
+  },
+  {
+    genre: 'K-Pop & J-Pop Official',
+    tag: '#ASIANPOP',
+    artists: [
+      'BTS', 'BLACKPINK', 'NewJeans', 'Jung Kook', 'IU', 'TWICE',
+      'Stray Kids', 'SEVENTEEN', 'Fujii Kaze', 'YOASOBI', 'Kenshi Yonezu',
+      'Ado', 'Official HIGE DANDism', 'Lisa', 'Jimin', 'V',
+    ],
+  },
+];
+
+// Known unofficial fan-upload, lyric-repost, slowed/reverb, and compilation channels to reject
+const UNOFFICIAL_CHANNEL_PATTERN =
+  /\b(7clouds|unique\s*vibes|vibe\s*music|shadow\s*music|chilltracks|royal\s*music|dopelyrics|syrebralvibes|taj\s*tracks|cloudkid|mrsuicidesheep|trap\s*nation|bass\s*nation|proximity|koala\s*kontrol|wave\s*music|latin\s*hype|cumbia\s*drive|lofi\s*girl|chilledcow|audio\s*library|nocopyrightsounds|ncs\b|lyrics?\s*channel|lyric\s*box|music\s*lyrics|song\s*lyrics|slowed|reverb|nightcore|sped\s*up|8d\s*tunes|8d\s*audio|karaoke|sing\s*king|piano\s*tutorials?|guitar\s*lessons?|type\s*beat|beats\s*by|ai\s*covers?|ai\s*music|suno|udio|jukebox|status\s*video|whatsapp\s*status|fan\s*club|fan\s*page|bollywood\s*classics\s*mix|nonstop\s*hits)\b/i;
+
+// Verified major official music labels & broadcasters that publish genuine official singer releases
+const OFFICIAL_LABEL_CHANNEL_PATTERN =
+  /\b(vevo|t-series|sony\s*music|zee\s*music|yrf\b|yash\s*raj|tips\s*official|saregama|universal\s*music|warner\s*music|atlantic\s*records|republic\s*records|interscope|columbia\s*records|rca\s*records|def\s*jam|capitol\s*records|island\s*records|epic\s*records|parlophone|virgin\s*records|motown|blue\s*note|xl\s*recordings|4ad|domino\s*recording|sub\s*pop|ninja\s*tune|stones\s*throw|fueled\s*by\s*ramen|hybe\s*labels|jyp\s*entertainment|smtown|yg\s*entertainment|coke\s*studio|88rising|spinnin|monstercat|ultra\s*music|armada\s*music|anjunabeats|speed\s*records|white\s*hill\s*music|desi\s*melodies|dm\s*-\s*desi\s*melodies|times\s*music|eros\s*now\s*music|jjust\s*music|colorsxstudios|npr\s*music|vevo\s*official)\b/i;
+
+// Unofficial / non-studio track title indicators to exclude from official singer discovery
+const UNOFFICIAL_TITLE_PATTERN =
+  /\b(cover\b|karaoke|instrumental\b|slowed|reverb|8d\s*audio|nightcore|sped\s*up|pitched|type\s*beat|fan\s*made|fan\s*video|ai\s*cover|ai\s*version|tribute\b|piano\s*version|piano\s*cover|guitar\s*cover|violin\s*cover|acoustic\s*cover|reaction|tutorial|how\s*to\s*play|parody|podcast|interview|behind\s*the\s*scenes|making\s*of|teaser\b|trailer\b|promo\b|status\b|whatsapp|ringtone|lofi\s*flip|lo-fi\s*remix|mashup|jukebox|nonstop|full\s*album|playlist|megamix|compilation|1\s*hour|10\s*hours|24\/7|live\s*stream|mixtape|mix\b|radio|beats\s*to|study\s*music|sleep\s*music|shorts?)\b/i;
+
+// Rolling in-memory pool of live verified official tracks discovered during runtime
+const liveDiscoveredPool = new Map<string, any>();
+const recentServedIds: string[] = [];
+const recentArtistSeeds: string[] = [];
+
+function recordServedTracks(ids: string[]) {
+  for (const id of ids) {
+    if (!id) continue;
+    recentServedIds.push(id);
+  }
+  if (recentServedIds.length > 240) {
+    recentServedIds.splice(0, recentServedIds.length - 240);
+  }
+}
+
+function addToLivePool(tracks: any[]) {
+  for (const t of tracks) {
+    if (!t?.id || KNOWN_RESTRICTED_IDS.has(t.id) || !t.isOfficial) continue;
+    liveDiscoveredPool.set(t.id, t);
+  }
+  if (liveDiscoveredPool.size > 650) {
+    const excess = liveDiscoveredPool.size - 650;
+    const keys = liveDiscoveredPool.keys();
+    for (let i = 0; i < excess; i++) {
+      const k = keys.next().value;
+      if (k) liveDiscoveredPool.delete(k);
+    }
+  }
+}
+
+function parseExcludeSet(excludeParam: unknown): Set<string> {
+  const set = new Set<string>(KNOWN_RESTRICTED_IDS);
+  if (typeof excludeParam === 'string' && excludeParam.trim()) {
+    for (const part of excludeParam.split(',')) {
+      const id = part.trim();
+      if (id) set.add(id);
+    }
+  }
+  return set;
+}
+
+function pickRandomOfficialArtists(bucket: OfficialGenreBucket, count: number): string[] {
+  const fresh = csprngShuffle(
+    bucket.artists.filter((a) => !recentArtistSeeds.includes(a))
+  );
+  const pool = fresh.length >= count ? fresh : csprngShuffle(bucket.artists);
+  const chosen = pool.slice(0, count);
+  for (const a of chosen) {
+    recentArtistSeeds.push(a);
+  }
+  if (recentArtistSeeds.length > 90) {
+    recentArtistSeeds.splice(0, recentArtistSeeds.length - 90);
+  }
+  return chosen;
+}
+
+function buildOfficialSingerQuery(artist: string): string {
+  const mode = randomInt(0, 3);
+  if (mode === 0) return `${artist} official music video`;
+  if (mode === 1) return `${artist} official audio`;
+  return `${artist} songs official`;
+}
+
+function buildProceduralArchetypes(count: number) {
+  const shuffledBuckets = csprngShuffle(OFFICIAL_SINGER_BUCKETS);
+  const shuffledMoods = csprngShuffle(RANDOM_MOODS);
+  const picked: Array<{
+    id: string;
+    name: string;
+    description: string;
+    tag: string;
+    artists: string[];
+    queries: string[];
+  }> = [];
+
+  for (let i = 0; i < Math.min(count, shuffledBuckets.length); i++) {
+    const bucket = shuffledBuckets[i];
+    const mood = shuffledMoods[i % shuffledMoods.length];
+    const artists = pickRandomOfficialArtists(bucket, 2);
+
+    const styleVariant = randomInt(0, 3);
+    const title =
+      styleVariant === 0
+        ? `${mood.label}: ${bucket.genre}`
+        : styleVariant === 1
+        ? `${bucket.genre} Spotlight`
+        : `${bucket.genre} · ${mood.label}`;
+
+    picked.push({
+      id: `rand-${randomBytes(4).toString('hex')}`,
+      name: title,
+      description: `Official releases featuring ${artists.join(', ')} and more — ${mood.desc.toLowerCase()}`,
+      tag: randomInt(0, 2) === 0 ? bucket.tag : mood.tag,
+      artists,
+      queries: artists.map((a) => buildOfficialSingerQuery(a)),
+    });
+  }
+
+  return picked;
+}
+
+function cleanOfficialChannelName(rawChannel: string): string {
+  return rawChannel
+    .replace(/\s*-\s*Topic$/i, '')
+    .replace(/VEVO$/i, '')
+    .replace(/\s+Official$/i, '')
+    .trim();
+}
+
+async function scrapeYouTubeMusic(
+  rawQuery: string,
+  options: {
+    limit?: number;
+    singleTracksOnly?: boolean;
+    officialOnly?: boolean;
+    excludeIds?: Set<string>;
+  } = {}
+): Promise<any[]> {
+  const {
+    limit = 16,
+    singleTracksOnly = false,
+    officialOnly = false,
+    excludeIds = KNOWN_RESTRICTED_IDS,
+  } = options;
+
+  const officialQuery = /official\s*(music\s*)?(video|audio)|songs?\s+official/i.test(rawQuery)
+    ? rawQuery
+    : `${rawQuery} official music video`;
+
+  const searchUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(officialQuery)}`;
+  const response = await fetch(searchUrl, {
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      'Accept-Language': 'en-US,en;q=0.9',
+    },
+    signal: AbortSignal.timeout(5500),
+  });
+
+  if (!response.ok) {
+    throw new Error(`YouTube responded with status ${response.status}`);
+  }
+
+  const html = await response.text();
+  const match = html.match(/var ytInitialData = ({.*?});<\/script>/s) || html.match(/ytInitialData\s*=\s*({.+?});/);
+  if (!match) return [];
+
+  const data = JSON.parse(match[1]);
+  const sections = data.contents?.twoColumnSearchResultsRenderer?.primaryContents?.sectionListRenderer?.contents || [];
+  const tracks: any[] = [];
+  const seenLocal = new Set<string>();
+
+  for (const sec of sections) {
+    const renderers = sec.itemSectionRenderer?.contents || [];
+    for (const item of renderers) {
+      if (!item.videoRenderer) continue;
+      const v = item.videoRenderer;
+      const videoId = v.videoId;
+      if (!videoId || seenLocal.has(videoId) || KNOWN_RESTRICTED_IDS.has(videoId) || excludeIds.has(videoId)) {
+        continue;
+      }
+
+      const title = v.title?.runs?.map((r: any) => r.text).join('') || v.title?.simpleText || 'Unknown Title';
+      const rawChannel = v.ownerText?.runs?.map((r: any) => r.text).join('') || 'YouTube Artist';
+      const duration = v.lengthText?.simpleText || '';
+      const durationSec = parseDurationSec(duration);
+      const views = v.viewCountText?.simpleText || '';
+      const thumbs = v.thumbnail?.thumbnails || [];
+      const thumbnail = thumbs[thumbs.length - 1]?.url || `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
+
+      const lowerTitle = title.toLowerCase();
+      const lowerChannel = rawChannel.toLowerCase();
+
+      const hasVerifiedArtistBadge = !!v.ownerBadges?.some(
+        (b: any) => b.metadataBadgeRenderer?.style === 'BADGE_STYLE_TYPE_VERIFIED_ARTIST'
+      );
+      const hasVerifiedBadge = !!v.ownerBadges?.some(
+        (b: any) => b.metadataBadgeRenderer?.style === 'BADGE_STYLE_TYPE_VERIFIED'
+      );
+      const isTopicChannel = /\s*-\s*topic$/i.test(rawChannel);
+      const isVevoChannel = /vevo/i.test(rawChannel);
+      const isKnownLabelChannel = OFFICIAL_LABEL_CHANNEL_PATTERN.test(rawChannel);
+      const isUnofficialChannel = UNOFFICIAL_CHANNEL_PATTERN.test(rawChannel);
+
+      // Strictly block obvious non-music uploads everywhere
+      const isDisqualified =
+        lowerTitle.includes('1 hour') ||
+        lowerTitle.includes('10 hours') ||
+        lowerTitle.includes('reaction') ||
+        lowerTitle.includes('tutorial') ||
+        lowerTitle.includes('how to play') ||
+        lowerTitle.includes('parody') ||
+        lowerTitle.includes('podcast') ||
+        lowerTitle.includes('interview') ||
+        lowerTitle.includes('behind the scenes') ||
+        lowerTitle.includes('making of');
+
+      if (isDisqualified) continue;
+
+      // True official singer/label verification (never fooled by fan channels typing "Official" in title)
+      const isVerifiedOfficialSource =
+        !isUnofficialChannel &&
+        (hasVerifiedArtistBadge ||
+          isTopicChannel ||
+          isVevoChannel ||
+          isKnownLabelChannel ||
+          (hasVerifiedBadge &&
+            (lowerTitle.includes('official music video') ||
+              lowerTitle.includes('official video') ||
+              lowerTitle.includes('official audio') ||
+              lowerTitle.includes('official lyric video'))));
+
+      if (singleTracksOnly) {
+        const isMixOrCompilation =
+          !duration ||
+          duration === 'Live' ||
+          durationSec < 95 ||
+          durationSec > 540 ||
+          UNOFFICIAL_TITLE_PATTERN.test(lowerTitle);
+        if (isMixOrCompilation) continue;
+      }
+
+      if (officialOnly) {
+        if (!isVerifiedOfficialSource) continue;
+        // Also exclude fan lyric videos unless uploaded directly by the Official Artist Channel
+        if (!hasVerifiedArtistBadge && !isTopicChannel && /\blyrics?\b/i.test(lowerTitle) && !isKnownLabelChannel) {
+          continue;
+        }
+      }
+
+      const displayArtist = cleanOfficialChannelName(rawChannel) || rawChannel;
+
+      seenLocal.add(videoId);
+      tracks.push({
+        id: videoId,
+        title,
+        artist: displayArtist,
+        duration: duration || 'Live',
+        durationSec,
+        views,
+        thumbnail,
+        isOfficial: isVerifiedOfficialSource,
+      });
+    }
+  }
+
+  if (singleTracksOnly || officialOnly) {
+    const official = csprngShuffle(tracks.filter((t) => t.isOfficial));
+    const result = officialOnly
+      ? official.slice(0, limit)
+      : [...official, ...csprngShuffle(tracks.filter((t) => !t.isOfficial))].slice(0, limit);
+    addToLivePool(result);
+    return result;
+  }
+
+  tracks.sort((a, b) => {
+    if (a.isOfficial && !b.isOfficial) return -1;
+    if (!a.isOfficial && b.isOfficial) return 1;
+    return 0;
+  });
+
+  addToLivePool(tracks.filter((t) => t.isOfficial && t.durationSec >= 95 && t.durationSec <= 540));
+  return tracks.slice(0, limit);
+}
+
+function getAllFallbackTracks(excludeIds: Set<string>): any[] {
+  const combined = new Map<string, any>();
+  for (const t of liveDiscoveredPool.values()) {
+    if (!KNOWN_RESTRICTED_IDS.has(t.id) && !excludeIds.has(t.id) && t.isOfficial) {
+      combined.set(t.id, t);
+    }
+  }
+  for (const g of CURATED_GENRES) {
+    for (const t of g.tracks) {
+      if (!KNOWN_RESTRICTED_IDS.has(t.id) && !excludeIds.has(t.id) && !combined.has(t.id)) {
+        combined.set(t.id, { ...t, isOfficial: true });
+      }
+    }
+  }
+  return csprngShuffle(Array.from(combined.values()));
+}
+
+function getCanonicalTrackKey(rawTitle: string): string {
+  return rawTitle
+    .toLowerCase()
+    .replace(/\s*[\(\[]\s*[^\)\]]*(official|video|audio|lyric|visualizer|hd|4k|live|remaster|vevo|m\/v|mv|performance|session)[^\)\]]*[\)\]]/gi, '')
+    .replace(/\s*\|.*$/, '')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+}
+
+async function generateRandomUniverse(clientExclude: Set<string>) {
+  const seed = randomBytes(6).toString('hex');
+  const recentSet = new Set<string>([...clientExclude, ...recentServedIds.slice(-90)]);
+  const archetypes = buildProceduralArchetypes(4);
+
+  // Query 2 randomly chosen official singers per collection in parallel (8 verified singer searches total)
+  const scrapeResults = await Promise.all(
+    archetypes.map(async (arch) => {
+      const settled = await Promise.allSettled(
+        arch.queries.map((q) =>
+          scrapeYouTubeMusic(q, {
+            limit: 10,
+            singleTracksOnly: true,
+            officialOnly: true,
+            excludeIds: recentSet,
+          })
+        )
+      );
+      const merged: any[] = [];
+      for (const r of settled) {
+        if (r.status === 'fulfilled') merged.push(...r.value);
+      }
+      return csprngShuffle(merged);
+    })
+  );
+
+  const usedGlobalIds = new Set<string>();
+  const usedGlobalTitles = new Set<string>();
+  const fallbackPool = getAllFallbackTracks(recentSet);
+  const emergencyPool = getAllFallbackTracks(KNOWN_RESTRICTED_IDS);
+
+  const genres = archetypes.map((arch, idx) => {
+    const liveTracks = scrapeResults[idx] || [];
+    const collectionTracks: any[] = [];
+
+    for (const t of csprngShuffle(liveTracks)) {
+      if (collectionTracks.length >= 7) break;
+      const canon = getCanonicalTrackKey(t.title || '');
+      if (
+        !usedGlobalIds.has(t.id) &&
+        !KNOWN_RESTRICTED_IDS.has(t.id) &&
+        (!canon || !usedGlobalTitles.has(canon))
+      ) {
+        usedGlobalIds.add(t.id);
+        if (canon) usedGlobalTitles.add(canon);
+        collectionTracks.push(t);
+      }
+    }
+
+    // Supplement cleanly from verified official pool if a YouTube query returned fewer than 6 unique tracks
+    const supplementSources = [fallbackPool, emergencyPool];
+    for (const source of supplementSources) {
+      if (collectionTracks.length >= 6) break;
+      for (const t of source) {
+        if (collectionTracks.length >= 6) break;
+        const canon = getCanonicalTrackKey(t.title || '');
+        if (
+          !usedGlobalIds.has(t.id) &&
+          !KNOWN_RESTRICTED_IDS.has(t.id) &&
+          (!canon || !usedGlobalTitles.has(canon))
+        ) {
+          usedGlobalIds.add(t.id);
+          if (canon) usedGlobalTitles.add(canon);
+          collectionTracks.push(t);
+        }
+      }
+    }
+
+    return {
+      id: arch.id,
+      name: arch.name,
+      description: arch.description,
+      tag: arch.tag,
+      tracks: csprngShuffle(collectionTracks),
+    };
+  });
+
+  const shuffledGenres = csprngShuffle(genres.filter((g) => g.tracks.length > 0));
+  const allUniverseTracks = csprngShuffle(shuffledGenres.flatMap((g) => g.tracks));
+
+  const featured = allUniverseTracks.slice(0, 4);
+  const popular = csprngShuffle(allUniverseTracks).slice(0, 9);
+  const randomStarter =
+    allUniverseTracks.length > 0
+      ? csprngPick(allUniverseTracks)
+      : csprngPick(CURATED_GENRES.flatMap((g) => g.tracks).filter((t) => !KNOWN_RESTRICTED_IDS.has(t.id)));
+
+  recordServedTracks(allUniverseTracks.map((t) => t.id));
+
+  return {
+    seed,
+    generatedAt: Date.now(),
+    genres: shuffledGenres,
+    featured,
+    popular,
+    randomStarter,
+  };
+}
+
 async function startServer() {
   const app = express();
   const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
@@ -342,73 +904,166 @@ async function startServer() {
     const { videoId } = req.body;
     if (videoId && typeof videoId === 'string') {
       KNOWN_RESTRICTED_IDS.add(videoId);
+      liveDiscoveredPool.delete(videoId);
       console.warn(`[Restricted Video Added to Blacklist]: ${videoId}`);
     }
     res.json({ ok: true, count: KNOWN_RESTRICTED_IDS.size });
   });
 
-  // API 1: Curated Genres and Starter Tracks (Random Flexible Starter)
-  app.get('/api/curated', (_req: Request, res: Response) => {
-    const allTracks = CURATED_GENRES.flatMap((g) => g.tracks).filter((t) => !KNOWN_RESTRICTED_IDS.has(t.id));
-    const randomStarter = allTracks.length > 0
-      ? allTracks[Math.floor(Math.random() * allTracks.length)]
-      : CURATED_GENRES[0].tracks[0];
+  // API 1: Totally Random Music Universe (Fresh collections, spotlight, popular, and starter every single time)
+  const handleRandomFeed = async (req: Request, res: Response) => {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+    const excludeSet = parseExcludeSet(req.query.exclude);
+    try {
+      const universe = await generateRandomUniverse(excludeSet);
+      res.json(universe);
+    } catch (err: any) {
+      console.error('Random universe generation error:', err?.message);
+      const fallbackShuffled = csprngShuffle(CURATED_GENRES).map((g) => ({
+        ...g,
+        tracks: csprngShuffle(g.tracks.filter((t) => !KNOWN_RESTRICTED_IDS.has(t.id))),
+      }));
+      const flat = csprngShuffle(fallbackShuffled.flatMap((g) => g.tracks));
+      res.json({
+        seed: randomBytes(6).toString('hex'),
+        generatedAt: Date.now(),
+        genres: fallbackShuffled,
+        featured: flat.slice(0, 4),
+        popular: flat.slice(0, 9),
+        randomStarter: flat[0] || CURATED_GENRES[0].tracks[0],
+      });
+    }
+  };
 
-    res.json({
-      genres: CURATED_GENRES,
-      featured: CURATED_GENRES[0].tracks,
-      randomStarter,
-    });
-  });
+  app.get('/api/curated', handleRandomFeed);
+  app.get('/api/random-feed', handleRandomFeed);
 
-  // API 2: Dynamic Smart Recommendations (Flexible, Shuffled Mix)
+  // API 2: Totally Random Live Recommendations (Fresh unseen songs every call)
   app.get('/api/recommendations', async (req: Request, res: Response) => {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
     const trackId = (req.query.trackId as string || '').trim();
-    const artist = (req.query.artist as string || '').trim().toLowerCase();
-    const limit = Math.min(20, Math.max(4, parseInt(req.query.limit as string || '8', 10)));
+    const limit = Math.min(20, Math.max(4, parseInt(req.query.limit as string || '10', 10)));
+    const excludeSet = parseExcludeSet(req.query.exclude);
+    if (trackId) excludeSet.add(trackId);
 
     try {
-      const allTracks = CURATED_GENRES.flatMap((g) => g.tracks).filter((t) => !KNOWN_RESTRICTED_IDS.has(t.id));
+      // Pick 2 random official singer buckets (up to 3 random singers) for totally fresh official recommendations
+      const seeds = buildProceduralArchetypes(2);
+      const queries = seeds.flatMap((s) => s.queries).slice(0, 3);
+      const liveResults = await Promise.allSettled(
+        queries.map((q) =>
+          scrapeYouTubeMusic(q, {
+            limit: 10,
+            singleTracksOnly: true,
+            officialOnly: true,
+            excludeIds: excludeSet,
+          })
+        )
+      );
+
       const uniqueMap = new Map<string, any>();
-      for (const t of allTracks) {
-        if (!uniqueMap.has(t.id) && t.id !== trackId) {
-          uniqueMap.set(t.id, t);
+      const usedRecTitles = new Set<string>();
+      for (const r of liveResults) {
+        if (r.status === 'fulfilled') {
+          for (const t of csprngShuffle(r.value)) {
+            const canon = getCanonicalTrackKey(t.title || '');
+            if (
+              !uniqueMap.has(t.id) &&
+              !excludeSet.has(t.id) &&
+              !KNOWN_RESTRICTED_IDS.has(t.id) &&
+              (!canon || !usedRecTitles.has(canon))
+            ) {
+              uniqueMap.set(t.id, t);
+              if (canon) usedRecTitles.add(canon);
+            }
+          }
         }
       }
 
-      const pool = Array.from(uniqueMap.values());
-      const artistMatches: any[] = [];
-      const others: any[] = [];
-
-      for (const t of pool) {
-        if (artist && (t.artist.toLowerCase().includes(artist) || artist.includes(t.artist.toLowerCase()))) {
-          artistMatches.push(t);
-        } else {
-          others.push(t);
+      // Blend with unseen discovered official pool & catalog if needed
+      if (uniqueMap.size < limit) {
+        for (const t of getAllFallbackTracks(excludeSet)) {
+          if (uniqueMap.size >= limit) break;
+          if (!uniqueMap.has(t.id)) uniqueMap.set(t.id, t);
+        }
+      }
+      if (uniqueMap.size < limit) {
+        for (const t of getAllFallbackTracks(KNOWN_RESTRICTED_IDS)) {
+          if (uniqueMap.size >= limit) break;
+          if (!uniqueMap.has(t.id) && t.id !== trackId) uniqueMap.set(t.id, t);
         }
       }
 
-      // Fisher-Yates random shuffle
-      const shuffle = (arr: any[]) => {
-        const a = [...arr];
-        for (let i = a.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
-          [a[i], a[j]] = [a[j], a[i]];
-        }
-        return a;
-      };
+      const recommendations = csprngShuffle(Array.from(uniqueMap.values())).slice(0, limit);
+      recordServedTracks(recommendations.map((t) => t.id));
 
-      const shuffledOthers = shuffle(others);
-      const combined = [...artistMatches, ...shuffledOthers].slice(0, limit);
-
-      res.json({ recommendations: combined });
+      res.json({
+        seed: randomBytes(4).toString('hex'),
+        recommendations,
+      });
     } catch (err: any) {
-      console.error('Error generating recommendations:', err);
-      res.status(500).json({ error: 'Failed to generate recommendations' });
+      console.error('Error generating random recommendations:', err);
+      const fallback = getAllFallbackTracks(excludeSet).slice(0, limit);
+      res.json({ seed: randomBytes(4).toString('hex'), recommendations: fallback });
     }
   });
 
-  // API 2: Search Autocomplete Suggestions
+  // API 2b: Instant Surprise / Totally Random Official Singer Track (+ fresh random up-next batch)
+  app.get('/api/random-track', async (req: Request, res: Response) => {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+    const excludeSet = parseExcludeSet(req.query.exclude);
+
+    try {
+      const [arch] = buildProceduralArchetypes(1);
+      const settled = await Promise.allSettled(
+        arch.queries.map((q) =>
+          scrapeYouTubeMusic(q, {
+            limit: 10,
+            singleTracksOnly: true,
+            officialOnly: true,
+            excludeIds: excludeSet,
+          })
+        )
+      );
+      const live: any[] = [];
+      for (const r of settled) {
+        if (r.status === 'fulfilled') live.push(...r.value);
+      }
+
+      const unseenPool = [...csprngShuffle(live), ...getAllFallbackTracks(excludeSet)];
+      const deduped: any[] = [];
+      const seen = new Set<string>();
+      for (const t of unseenPool) {
+        if (!t?.id || seen.has(t.id) || excludeSet.has(t.id) || KNOWN_RESTRICTED_IDS.has(t.id)) continue;
+        seen.add(t.id);
+        deduped.push(t);
+      }
+
+      const finalPool = deduped.length > 0 ? deduped : getAllFallbackTracks(KNOWN_RESTRICTED_IDS);
+      const picked = csprngPick(finalPool.slice(0, Math.min(6, finalPool.length))) || finalPool[0];
+      const upNext = csprngShuffle(finalPool.filter((t) => t.id !== picked?.id)).slice(0, 6);
+
+      if (picked) recordServedTracks([picked.id, ...upNext.map((t) => t.id)]);
+
+      res.json({
+        seed: randomBytes(4).toString('hex'),
+        vibe: arch.name,
+        track: picked,
+        upNext,
+      });
+    } catch (err: any) {
+      console.error('Random track error:', err?.message);
+      const fallback = getAllFallbackTracks(KNOWN_RESTRICTED_IDS);
+      res.json({
+        seed: randomBytes(4).toString('hex'),
+        vibe: 'Random Discovery',
+        track: fallback[0] || CURATED_GENRES[0].tracks[0],
+        upNext: fallback.slice(1, 6),
+      });
+    }
+  });
+
+  // API 2c: Search Autocomplete Suggestions
   app.get('/api/suggest', async (req: Request, res: Response) => {
     const q = (req.query.q as string || '').trim();
     if (!q) {
@@ -421,6 +1076,7 @@ async function startServer() {
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         },
+        signal: AbortSignal.timeout(4000),
       });
 
       if (!response.ok) {
@@ -439,110 +1095,25 @@ async function startServer() {
   app.get('/api/search', async (req: Request, res: Response) => {
     const rawQ = (req.query.q as string || '').trim();
     if (!rawQ) {
-      return res.json({ tracks: CURATED_GENRES[0].tracks });
+      return res.json({ tracks: getAllFallbackTracks(KNOWN_RESTRICTED_IDS).slice(0, 12) });
     }
 
-    // Append "official music video" to query if not already present
-    const officialQuery = /official\s*(music\s*)?video/i.test(rawQ)
-      ? rawQ
-      : `${rawQ} official music video`;
-
     try {
-      const searchUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(officialQuery)}`;
-      const response = await fetch(searchUrl, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-          'Accept-Language': 'en-US,en;q=0.9',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`YouTube responded with status ${response.status}`);
+      const results = await scrapeYouTubeMusic(rawQ, { limit: 25, singleTracksOnly: false });
+      if (results.length > 0) {
+        return res.json({ tracks: results });
       }
-
-      const html = await response.text();
-      const match = html.match(/var ytInitialData = ({.*?});<\/script>/s) || html.match(/ytInitialData\s*=\s*({.+?});/);
-
-      if (!match) {
-        // Fallback search across curated tracks if scraping fails
-        const matched = CURATED_GENRES.flatMap(g => g.tracks).filter(t =>
+      const matched = getAllFallbackTracks(KNOWN_RESTRICTED_IDS).filter(
+        (t) =>
           t.title.toLowerCase().includes(rawQ.toLowerCase()) ||
           t.artist.toLowerCase().includes(rawQ.toLowerCase())
-        );
-        return res.json({ tracks: matched.length > 0 ? matched : CURATED_GENRES[0].tracks });
-      }
-
-      const data = JSON.parse(match[1]);
-      const sections = data.contents?.twoColumnSearchResultsRenderer?.primaryContents?.sectionListRenderer?.contents || [];
-      const tracks: any[] = [];
-
-      for (const sec of sections) {
-        const renderers = sec.itemSectionRenderer?.contents || [];
-        for (const item of renderers) {
-          if (item.videoRenderer) {
-            const v = item.videoRenderer;
-            const videoId = v.videoId;
-            if (!videoId) continue;
-
-            const title = v.title?.runs?.map((r: any) => r.text).join('') || v.title?.simpleText || 'Unknown Title';
-            const artist = v.ownerText?.runs?.map((r: any) => r.text).join('') || 'YouTube Artist';
-            const duration = v.lengthText?.simpleText || 'Live';
-            const views = v.viewCountText?.simpleText || '';
-            const thumbs = v.thumbnail?.thumbnails || [];
-            const thumbnail = thumbs[thumbs.length - 1]?.url || `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
-
-            // Skip non-music formats like 10hr loops, full podcasts, reaction videos, or covers when searching for official videos
-            const lowerTitle = title.toLowerCase();
-            const lowerArtist = artist.toLowerCase();
-            const isDisqualified =
-              lowerTitle.includes('1 hour') ||
-              lowerTitle.includes('10 hours') ||
-              lowerTitle.includes('reaction') ||
-              lowerTitle.includes('tutorial') ||
-              lowerTitle.includes('how to play') ||
-              lowerTitle.includes('parody');
-
-            if (isDisqualified) continue;
-
-            // Prioritize badge indicators for official videos (Official Music Video, VEVO, Official Video, - Topic)
-            const isOfficial =
-              lowerTitle.includes('official') ||
-              lowerTitle.includes('music video') ||
-              lowerTitle.includes('vevo') ||
-              lowerArtist.includes('vevo') ||
-              lowerArtist.includes('official') ||
-              lowerArtist.includes('- topic') ||
-              v.ownerBadges?.some((b: any) => b.metadataBadgeRenderer?.style === 'BADGE_STYLE_TYPE_VERIFIED_ARTIST');
-
-            tracks.push({
-              id: videoId,
-              title,
-              artist,
-              duration,
-              durationSec: parseDurationSec(duration),
-              views,
-              thumbnail,
-              isOfficial,
-            });
-          }
-        }
-      }
-
-      // Sort official videos to the top
-      tracks.sort((a, b) => {
-        if (a.isOfficial && !b.isOfficial) return -1;
-        if (!a.isOfficial && b.isOfficial) return 1;
-        return 0;
+      );
+      return res.json({
+        tracks: matched.length > 0 ? matched : getAllFallbackTracks(KNOWN_RESTRICTED_IDS).slice(0, 12),
       });
-
-      // Filter out known playback-restricted videos
-      const filtered = tracks.filter((t) => !KNOWN_RESTRICTED_IDS.has(t.id));
-
-      res.json({ tracks: filtered.slice(0, 25) });
     } catch (err: any) {
       console.error('Search error:', err.message);
-      // Fallback
-      res.json({ tracks: CURATED_GENRES[0].tracks });
+      res.json({ tracks: getAllFallbackTracks(KNOWN_RESTRICTED_IDS).slice(0, 12) });
     }
   });
 
@@ -602,6 +1173,88 @@ async function startServer() {
   });
 
   // API 5: Fetch synchronized or plain lyrics for a track
+  const lyricsCache = new Map<string, { payload: any; expiresAt: number }>();
+  const inFlightLyrics = new Map<string, Promise<any>>();
+  const geminiCooldownUntil = new Map<string, number>();
+  let sharedGeminiClient: any = null;
+
+  async function getServerGeminiClient() {
+    if (!process.env.GEMINI_API_KEY) return null;
+    if (!sharedGeminiClient) {
+      const { GoogleGenAI } = await import('@google/genai');
+      sharedGeminiClient = new GoogleGenAI({
+        apiKey: process.env.GEMINI_API_KEY,
+        httpOptions: {
+          headers: {
+            'User-Agent': 'aistudio-build',
+          },
+        },
+      });
+    }
+    return sharedGeminiClient;
+  }
+
+  function parseQuotaCooldownMs(err: any): number {
+    const msg = String(err?.message || '');
+    const retryMatch = msg.match(/"retryDelay"\s*:\s*"(\d+)s"/i) || msg.match(/retry in\s+(\d+)h(\d+)m/i);
+    if (retryMatch) {
+      if (retryMatch.length >= 3 && retryMatch[2]) {
+        const hours = parseInt(retryMatch[1], 10) || 0;
+        const mins = parseInt(retryMatch[2], 10) || 0;
+        return Math.min(Math.max((hours * 3600 + mins * 60) * 1000, 60_000), 6 * 3600 * 1000);
+      }
+      const secs = parseInt(retryMatch[1], 10);
+      if (Number.isFinite(secs) && secs > 0) {
+        return Math.min(Math.max(secs * 1000, 60_000), 6 * 3600 * 1000);
+      }
+    }
+    return 30 * 60 * 1000; // Default 30-minute cooldown on 429 RESOURCE_EXHAUSTED
+  }
+
+  function isQuotaError(err: any): boolean {
+    const status = err?.status ?? err?.code;
+    const msg = String(err?.message || '');
+    return status === 429 || msg.includes('429') || msg.includes('RESOURCE_EXHAUSTED') || msg.includes('quota');
+  }
+
+  function normalizeForCompare(str: string): string {
+    return str.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+  }
+
+  function pickBestLrclibMatch(items: any[], cleanTrack: string, primaryArtist: string) {
+    if (!Array.isArray(items) || items.length === 0) return null;
+    const targetTrack = normalizeForCompare(cleanTrack);
+    const targetArtist = normalizeForCompare(primaryArtist);
+
+    let best: any = null;
+    let bestScore = -1;
+
+    for (const item of items) {
+      if (!item || (!item.syncedLyrics && !item.plainLyrics && !item.instrumental)) continue;
+      const itemTrack = normalizeForCompare(item.trackName || '');
+      const itemArtist = normalizeForCompare(item.artistName || '');
+
+      let score = 0;
+      if (itemTrack === targetTrack) score += 60;
+      else if (itemTrack.includes(targetTrack) || targetTrack.includes(itemTrack)) score += 35;
+
+      if (targetArtist && itemArtist) {
+        if (itemArtist === targetArtist) score += 40;
+        else if (itemArtist.includes(targetArtist) || targetArtist.includes(itemArtist)) score += 25;
+      }
+
+      if (item.syncedLyrics) score += 15;
+      else if (item.plainLyrics) score += 8;
+
+      if (score > bestScore) {
+        bestScore = score;
+        best = item;
+      }
+    }
+
+    return bestScore >= 35 ? best : null;
+  }
+
   app.get('/api/lyrics', async (req: Request, res: Response) => {
     const rawTrack = (req.query.track as string || '').trim();
     const rawArtist = (req.query.artist as string || '').trim();
@@ -611,16 +1264,18 @@ async function startServer() {
       return res.status(400).json({ error: 'Missing track parameter' });
     }
 
-    // Clean track title (strip common YouTube suffixes)
+    // Clean track title (strip common YouTube / edition / featured suffixes)
     let cleanTrack = rawTrack
-      .replace(/\s*[\(\[]\s*(?:Official\s*(?:Music\s*)?)?(?:Video|Audio|Lyric\s*Video|HD|4K|Visualizer|Lyrics?)\s*[\)\]]/gi, '')
+      .replace(/\s*[\(\[]\s*(?:Official\s*(?:Music\s*)?)?(?:Video|Audio|Lyric\s*Video|HD|4K|Visualizer|Lyrics?|Remaster(?:ed)?(?:\s*\d+)?|Deluxe(?:\s*Edition)?|Acoustic|Live|Extended\s*Mix|Full\s*Song|Slowed.*|Reverb.*)\s*[\)\]]/gi, '')
+      .replace(/\s*[\(\[]\s*(?:feat\.?|ft\.?|with)\s+[^\)\]]+[\)\]]/gi, '')
+      .replace(/\s+(?:feat\.?|ft\.?)\s+.*$/i, '')
       .replace(/\s*\|.*$/, '')
       .trim();
 
     let cleanArtist = rawArtist
       .replace(/ - Topic$/i, '')
       .replace(/VEVO$/i, '')
-      .replace(/Official$/i, '')
+      .replace(/\bOfficial\b/gi, '')
       .trim();
 
     // If title was "Artist - Title"
@@ -634,92 +1289,197 @@ async function startServer() {
       }
     }
 
-    try {
-      // Step 1: Direct lookup on LRCLIB
-      let url = `https://lrclib.net/api/get?track_name=${encodeURIComponent(cleanTrack)}&artist_name=${encodeURIComponent(cleanArtist)}`;
-      if (durationSec > 0) {
-        url += `&duration=${durationSec}`;
-      }
-      const lrclibRes = await fetch(url, {
-        headers: { 'User-Agent': 'AuraMusicPlayer/1.0 (https://github.com/aura)' }
-      });
+    const primaryArtist = cleanArtist
+      .split(/\s*(?:,|&|\bfeat\.?\b|\bft\.?\b|\bx\b|×|\/)\s*/i)[0]
+      .trim();
 
-      if (lrclibRes.ok) {
-        const data = await lrclibRes.json();
-        return res.json({
-          track: data.trackName || cleanTrack,
-          artist: data.artistName || cleanArtist,
-          plainLyrics: data.plainLyrics || null,
-          syncedLyrics: data.syncedLyrics || null,
-          instrumental: !!data.instrumental,
-          source: 'lrclib',
-        });
-      }
+    const cacheKey = `${normalizeForCompare(cleanTrack)}::${normalizeForCompare(primaryArtist || cleanArtist)}`;
+    const now = Date.now();
+    const cached = lyricsCache.get(cacheKey);
+    if (cached && cached.expiresAt > now) {
+      return res.json(cached.payload);
+    }
 
-      // Step 2: Search on LRCLIB if direct match missed
-      const searchUrl = `https://lrclib.net/api/search?q=${encodeURIComponent(cleanTrack + ' ' + cleanArtist)}`;
-      const searchRes = await fetch(searchUrl, {
-        headers: { 'User-Agent': 'AuraMusicPlayer/1.0 (https://github.com/aura)' }
-      });
+    const resolveLyrics = async () => {
+      const lrclibHeaders = { 'User-Agent': 'MelophilePlayer/1.0' };
 
-      if (searchRes.ok) {
-        const items = await searchRes.json();
-        if (Array.isArray(items) && items.length > 0) {
-          const match = items[0];
-          return res.json({
-            track: match.trackName || cleanTrack,
-            artist: match.artistName || cleanArtist,
-            plainLyrics: match.plainLyrics || null,
-            syncedLyrics: match.syncedLyrics || null,
-            instrumental: !!match.instrumental,
-            source: 'lrclib-search',
-          });
-        }
-      }
+      // Step 1: Direct lookup on LRCLIB (with duration, then without duration if YouTube duration differs)
+      if (primaryArtist) {
+        const directUrls: string[] = [];
+        const baseDirect = `https://lrclib.net/api/get?track_name=${encodeURIComponent(cleanTrack)}&artist_name=${encodeURIComponent(primaryArtist)}`;
+        if (durationSec > 0) directUrls.push(`${baseDirect}&duration=${durationSec}`);
+        directUrls.push(baseDirect);
 
-      // Step 3: Check if Gemini is available for AI track analysis or lyric fallback
-      if (process.env.GEMINI_API_KEY) {
-        try {
-          const { GoogleGenAI } = await import('@google/genai');
-          const ai = new GoogleGenAI({});
-          const response = await ai.models.generateContent({
-            model: 'gemini-4-hydrogen',
-            contents: `You are a music lyrics assistant. Provide the official lyrics for the song "${cleanTrack}" by "${cleanArtist}". If the song is an instrumental track (like electronic, chillhop, or classical with no singing), simply respond with "[Instrumental] - This is an instrumental soundscape with no vocal lyrics." Otherwise, return only the formatted song lyrics with clean verse/chorus line breaks.`,
-          });
-          const text = response.text || '';
-          if (text.includes('[Instrumental]')) {
-            return res.json({
-              track: cleanTrack,
-              artist: cleanArtist,
-              plainLyrics: null,
-              syncedLyrics: null,
-              instrumental: true,
-              source: 'gemini',
+        for (const directUrl of directUrls) {
+          try {
+            const lrclibRes = await fetch(directUrl, {
+              headers: lrclibHeaders,
+              signal: AbortSignal.timeout(4000),
             });
-          } else if (text.trim()) {
-            return res.json({
-              track: cleanTrack,
-              artist: cleanArtist,
-              plainLyrics: text.trim(),
-              syncedLyrics: null,
-              instrumental: false,
-              source: 'gemini',
-            });
+            if (lrclibRes.ok) {
+              const data = await lrclibRes.json();
+              if (data.syncedLyrics || data.plainLyrics || data.instrumental) {
+                return {
+                  track: data.trackName || cleanTrack,
+                  artist: data.artistName || primaryArtist,
+                  plainLyrics: data.plainLyrics || null,
+                  syncedLyrics: data.syncedLyrics || null,
+                  instrumental: !!data.instrumental,
+                  source: 'lrclib',
+                };
+              }
+            }
+          } catch {
+            // Try next strategy
           }
-        } catch (geminiErr: any) {
-          console.warn('Gemini lyrics fallback error:', geminiErr.message);
         }
       }
 
-      // Step 4: Graceful fallback when lyrics not found
-      return res.json({
+      // Step 2: Structured search on LRCLIB (track_name + artist_name, then general q)
+      const searchQueries: string[] = [];
+      if (primaryArtist) {
+        searchQueries.push(
+          `https://lrclib.net/api/search?track_name=${encodeURIComponent(cleanTrack)}&artist_name=${encodeURIComponent(primaryArtist)}`
+        );
+        searchQueries.push(
+          `https://lrclib.net/api/search?q=${encodeURIComponent(`${cleanTrack} ${primaryArtist}`)}`
+        );
+      } else {
+        searchQueries.push(`https://lrclib.net/api/search?track_name=${encodeURIComponent(cleanTrack)}`);
+      }
+
+      for (const searchUrl of searchQueries) {
+        try {
+          const searchRes = await fetch(searchUrl, {
+            headers: lrclibHeaders,
+            signal: AbortSignal.timeout(4000),
+          });
+          if (searchRes.ok) {
+            const items = await searchRes.json();
+            const match = pickBestLrclibMatch(items, cleanTrack, primaryArtist);
+            if (match) {
+              return {
+                track: match.trackName || cleanTrack,
+                artist: match.artistName || primaryArtist || cleanArtist,
+                plainLyrics: match.plainLyrics || null,
+                syncedLyrics: match.syncedLyrics || null,
+                instrumental: !!match.instrumental,
+                source: 'lrclib-search',
+              };
+            }
+          }
+        } catch {
+          // Try next strategy
+        }
+      }
+
+      // Step 3: Free secondary lyrics source (lyrics.ovh) before invoking AI fallback
+      if (primaryArtist && cleanTrack) {
+        try {
+          const ovhUrl = `https://api.lyrics.ovh/v1/${encodeURIComponent(primaryArtist)}/${encodeURIComponent(cleanTrack)}`;
+          const ovhRes = await fetch(ovhUrl, { signal: AbortSignal.timeout(3500) });
+          if (ovhRes.ok) {
+            const ovhData = await ovhRes.json();
+            const rawOvhLyrics = typeof ovhData?.lyrics === 'string' ? ovhData.lyrics.trim() : '';
+            if (rawOvhLyrics) {
+              const cleanedOvh = rawOvhLyrics.replace(/^Paroles de la chanson .*?\n+/i, '').trim();
+              if (cleanedOvh) {
+                return {
+                  track: cleanTrack,
+                  artist: primaryArtist,
+                  plainLyrics: cleanedOvh,
+                  syncedLyrics: null,
+                  instrumental: false,
+                  source: 'lyrics-ovh',
+                };
+              }
+            }
+          }
+        } catch {
+          // Continue to optional Gemini fallback
+        }
+      }
+
+      // Step 4: Optional Gemini fallback (lightweight model with quota circuit breaker)
+      let quotaExceeded = false;
+      const fallbackModel = 'gemini-3.1-flash-lite';
+      const cooldownExpires = geminiCooldownUntil.get(fallbackModel) || 0;
+
+      if (process.env.GEMINI_API_KEY) {
+        if (Date.now() < cooldownExpires) {
+          quotaExceeded = true;
+        } else {
+          try {
+            const ai = await getServerGeminiClient();
+            if (ai) {
+              const response = await ai.models.generateContent({
+                model: fallbackModel,
+                contents: `Provide the official lyrics for the song "${cleanTrack}" by "${primaryArtist || cleanArtist}". If it is an instrumental track with no singing, respond only with "[Instrumental]". If you are unsure or do not know the verified lyrics, respond only with "[NotFound]". Otherwise return only the formatted lyrics with clean line breaks.`,
+              });
+              const text = (response.text || '').trim();
+              if (text.includes('[Instrumental]')) {
+                return {
+                  track: cleanTrack,
+                  artist: primaryArtist || cleanArtist,
+                  plainLyrics: null,
+                  syncedLyrics: null,
+                  instrumental: true,
+                  source: 'gemini',
+                };
+              }
+              if (text && !text.includes('[NotFound]')) {
+                return {
+                  track: cleanTrack,
+                  artist: primaryArtist || cleanArtist,
+                  plainLyrics: text,
+                  syncedLyrics: null,
+                  instrumental: false,
+                  source: 'gemini',
+                };
+              }
+            }
+          } catch (geminiErr: any) {
+            if (isQuotaError(geminiErr)) {
+              quotaExceeded = true;
+              const cooldownMs = parseQuotaCooldownMs(geminiErr);
+              geminiCooldownUntil.set(fallbackModel, Date.now() + cooldownMs);
+            }
+          }
+        }
+      }
+
+      // Step 5: Graceful fallback when lyrics are not available
+      return {
         track: cleanTrack,
-        artist: cleanArtist,
+        artist: primaryArtist || cleanArtist,
         plainLyrics: null,
         syncedLyrics: null,
         instrumental: false,
         notFound: true,
-      });
+        quotaExceeded,
+      };
+    };
+
+    try {
+      let pending = inFlightLyrics.get(cacheKey);
+      if (!pending) {
+        pending = resolveLyrics().finally(() => {
+          inFlightLyrics.delete(cacheKey);
+        });
+        inFlightLyrics.set(cacheKey, pending);
+      }
+
+      const payload = await pending;
+      const ttlMs = payload.notFound ? 15 * 60 * 1000 : 24 * 60 * 60 * 1000;
+      lyricsCache.set(cacheKey, { payload, expiresAt: Date.now() + ttlMs });
+
+      // Bound cache size cleanly
+      if (lyricsCache.size > 400) {
+        const oldestKey = lyricsCache.keys().next().value;
+        if (oldestKey) lyricsCache.delete(oldestKey);
+      }
+
+      return res.json(payload);
     } catch (err: any) {
       console.error('Lyrics endpoint error:', err.message);
       return res.status(500).json({ error: 'Failed to fetch lyrics' });

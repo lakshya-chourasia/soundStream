@@ -11,14 +11,13 @@ import { CuratedVibes } from './components/CuratedVibes';
 import { PlayerBottomBar } from './components/PlayerBottomBar';
 import { MobileBottomNav } from './components/MobileBottomNav';
 import { YouTubePlayer, YouTubePlayerHandle } from './components/YouTubePlayer';
-import { QuickImportModal } from './components/QuickImportModal';
-import { SleepTimerModal } from './components/SleepTimerModal';
 import { SpotifyLayout } from './components/SpotifyLayout';
-import { getNextTrackIndex, getPrevTrackIndex, extractYouTubeId, cleanTrackTitle, getDynamicTrackTag, getFullSingerName } from './utils/playerUtils';
+import { getNextTrackIndex, getPrevTrackIndex, extractYouTubeId, cleanTrackTitle, getDynamicTrackTag, getFullSingerName, cryptoShuffleList, pickCryptoRandom } from './utils/playerUtils';
 import { prefetchArtwork } from './services/artworkService';
 import { FALLBACK_CURATED_GENRES } from './data/curatedFallback';
 import { backgroundAudio } from './services/backgroundAudioService';
-import { Compass, AlertCircle, X } from 'lucide-react';
+import { getQualityOption } from './utils/qualityConfig';
+import { X, CheckCircle2 } from 'lucide-react';
 
 const INITIAL_STARTER_POOL: Track[] = [
   {
@@ -105,12 +104,49 @@ const INITIAL_STARTER_POOL: Track[] = [
 ];
 
 const getRandomStarterTrack = (): Track => {
-  const idx = Math.floor(Math.random() * INITIAL_STARTER_POOL.length);
-  return INITIAL_STARTER_POOL[idx];
+  return pickCryptoRandom(INITIAL_STARTER_POOL) || INITIAL_STARTER_POOL[0];
 };
+
+const getShuffledFallbackGenres = (): GenreCollection[] => {
+  return cryptoShuffleList(FALLBACK_CURATED_GENRES).map((g) => ({
+    ...g,
+    tracks: cryptoShuffleList(g.tracks || []),
+  }));
+};
+
+const SEEN_IDS_STORAGE_KEY = 'melophile_seen_random_ids';
+
+function loadSessionSeenIds(): string[] {
+  try {
+    const raw = sessionStorage.getItem(SEEN_IDS_STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed.filter((x) => typeof x === 'string') : [];
+  } catch {
+    return [];
+  }
+}
 
 export default function App() {
   const playerRef = useRef<YouTubePlayerHandle | null>(null);
+  const hasUserInteractedRef = useRef<boolean>(false);
+  const seenTrackIdsRef = useRef<string[]>(loadSessionSeenIds());
+
+  const rememberSeenIds = useCallback((ids: string[]) => {
+    const merged = [...seenTrackIdsRef.current];
+    for (const id of ids) {
+      if (!id) continue;
+      const idx = merged.indexOf(id);
+      if (idx !== -1) merged.splice(idx, 1);
+      merged.push(id);
+    }
+    if (merged.length > 160) {
+      merged.splice(0, merged.length - 160);
+    }
+    seenTrackIdsRef.current = merged;
+    try {
+      sessionStorage.setItem(SEEN_IDS_STORAGE_KEY, JSON.stringify(merged));
+    } catch {}
+  }, []);
 
   // Playback Restricted Video Filter List (persist across sessions)
   const [restrictedVideoIds, setRestrictedVideoIds] = useState<Set<string>>(() => {
@@ -151,11 +187,9 @@ export default function App() {
     localStorage.setItem('soundstream_quality', playbackQuality);
   }, [playbackQuality]);
 
-  // Navigation & Modals State
+  // Navigation & Notifications State
   const [activeView, setActiveView] = useState<ActiveView>('now-playing');
   const [selectedCollectionId, setSelectedCollectionId] = useState<string>('love-2k20');
-  const [isQuickImportOpen, setIsQuickImportOpen] = useState<boolean>(false);
-  const [isSleepTimerOpen, setIsSleepTimerOpen] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // Playlists, Favorites, and Queue (Random Starter Pool)
@@ -178,9 +212,15 @@ export default function App() {
     }
   });
 
-  // Discovery & Genres (Initialized with static fallback so Vercel renders instantly)
-  const [genres, setGenres] = useState<GenreCollection[]>(FALLBACK_CURATED_GENRES);
-  const [searchResults, setSearchResults] = useState<Track[]>(() => FALLBACK_CURATED_GENRES[0]?.tracks || []);
+  // Discovery & Genres (Cryptographically shuffled even on initial paint before live random universe loads)
+  const [genres, setGenres] = useState<GenreCollection[]>(() => getShuffledFallbackGenres());
+  const [featuredTracks, setFeaturedTracks] = useState<Track[]>([]);
+  const [popularTracks, setPopularTracks] = useState<Track[]>([]);
+  const [isRandomizingFeed, setIsRandomizingFeed] = useState<boolean>(false);
+  const [isSurpriseLoading, setIsSurpriseLoading] = useState<boolean>(false);
+  const [searchResults, setSearchResults] = useState<Track[]>(() =>
+    cryptoShuffleList(FALLBACK_CURATED_GENRES.flatMap((g) => g.tracks || [])).slice(0, 12)
+  );
   const [isSearching, setIsSearching] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [activeGenreFilter, setActiveGenreFilter] = useState<string | null>(null);
@@ -188,9 +228,6 @@ export default function App() {
   // Theme State
   const [themePreset] = useState<ThemePreset>('obsidian');
   const currentTheme = THEME_PRESETS[themePreset];
-
-  // Sleep Timer Countdown
-  const [sleepTimerRemaining, setSleepTimerRemaining] = useState<number | null>(null);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -214,99 +251,125 @@ export default function App() {
     localStorage.setItem('aura_playlists', JSON.stringify(playlists));
   }, [playlists]);
 
-  // Sleep Timer Tick
-  useEffect(() => {
-    if (sleepTimerRemaining === null) return;
-    if (sleepTimerRemaining <= 0) {
-      setIsPlaying(false);
-      setSleepTimerRemaining(null);
-      showToast('Sleep timer reached. Audio playback paused.');
-      return;
-    }
-
-    const timer = setInterval(() => {
-      setSleepTimerRemaining((prev) => (prev !== null ? prev - 1 : null));
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [sleepTimerRemaining]);
-
-  // Dynamic Recommendations State
+  // Dynamic Random Recommendations State
   const [recommendations, setRecommendations] = useState<Track[]>([]);
   const [isRecommendationsLoading, setIsRecommendationsLoading] = useState<boolean>(false);
 
-  const fetchRecommendations = useCallback(async (targetTrack?: Track) => {
-    const track = targetTrack || currentTrack;
-    if (!track) return;
+  const buildExcludeQuery = useCallback(
+    (extraIds: string[] = []) => {
+      const combined = new Set<string>([
+        ...seenTrackIdsRef.current.slice(-110),
+        ...Array.from(restrictedVideoIds),
+        ...extraIds,
+      ]);
+      return Array.from(combined).slice(-130).join(',');
+    },
+    [restrictedVideoIds]
+  );
 
-    setIsRecommendationsLoading(true);
-    try {
-      const { title: cleanT, artistFromTitle } = cleanTrackTitle(track.title);
-      const artist = artistFromTitle || track.artist || '';
-      const res = await fetch(
-        `/api/recommendations?trackId=${encodeURIComponent(track.id)}&artist=${encodeURIComponent(artist)}&limit=10`
-      );
-      if (res.ok) {
-        const data = await res.json();
-        if (data.recommendations && data.recommendations.length > 0) {
-          setRecommendations(data.recommendations);
+  const fetchRecommendations = useCallback(
+    async (targetTrack?: Track) => {
+      const track = targetTrack || currentTrack;
+      setIsRecommendationsLoading(true);
+      try {
+        const exclude = buildExcludeQuery(track ? [track.id] : []);
+        const nonce = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        const params = new URLSearchParams({
+          trackId: track?.id || '',
+          limit: '12',
+          exclude,
+          nonce,
+        });
+        const res = await fetch(`/api/recommendations?${params.toString()}`, { cache: 'no-store' });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.recommendations && data.recommendations.length > 0) {
+            const freshRecs: Track[] = cryptoShuffleList(data.recommendations);
+            setRecommendations(freshRecs);
+            rememberSeenIds(freshRecs.map((t) => t.id));
+          }
         }
+      } catch (err) {
+        console.warn('Failed to fetch random recommendations:', err);
+      } finally {
+        setIsRecommendationsLoading(false);
       }
-    } catch (err) {
-      console.warn('Failed to fetch recommendations:', err);
-    } finally {
-      setIsRecommendationsLoading(false);
-    }
-  }, [currentTrack]);
+    },
+    [buildExcludeQuery, currentTrack, rememberSeenIds]
+  );
 
-  // Fetch Initial Curated Soundscapes (Random Flexible Starter — Never Fixed!)
-  useEffect(() => {
-    fetch('/api/curated')
-      .then((res) => res.json())
-      .then((data) => {
+  const loadRandomUniverse = useCallback(
+    async (options: { isInitial?: boolean; notify?: boolean } = {}) => {
+      const { isInitial = false, notify = false } = options;
+      setIsRandomizingFeed(true);
+      try {
+        const exclude = buildExcludeQuery();
+        const nonce = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        const res = await fetch(
+          `/api/curated?exclude=${encodeURIComponent(exclude)}&nonce=${encodeURIComponent(nonce)}`,
+          { cache: 'no-store' }
+        );
+        const data = await res.json();
+
         if (data.genres && data.genres.length > 0) {
-          setGenres(data.genres);
+          const liveGenres: GenreCollection[] = data.genres;
+          setGenres(liveGenres);
 
-          // Flatten all tracks across all soundscapes
-          const allCurated = data.genres
+          const allFresh = liveGenres
             .flatMap((g: GenreCollection) => g.tracks || [])
             .filter((t: Track) => !restrictedVideoIds.has(t.id));
 
-          if (allCurated.length > 0) {
-            // Pick a randomized starter track from the pool
+          const freshFeatured: Track[] =
+            Array.isArray(data.featured) && data.featured.length > 0
+              ? data.featured.filter((t: Track) => !restrictedVideoIds.has(t.id))
+              : cryptoShuffleList(allFresh).slice(0, 4);
+
+          const freshPopular: Track[] =
+            Array.isArray(data.popular) && data.popular.length > 0
+              ? data.popular.filter((t: Track) => !restrictedVideoIds.has(t.id))
+              : cryptoShuffleList(allFresh).slice(0, 9);
+
+          setFeaturedTracks(freshFeatured);
+          setPopularTracks(freshPopular);
+          rememberSeenIds(allFresh.map((t) => t.id));
+
+          if (isInitial && allFresh.length > 0 && !hasUserInteractedRef.current) {
             const starter: Track =
               data.randomStarter && !restrictedVideoIds.has(data.randomStarter.id)
                 ? data.randomStarter
-                : allCurated[Math.floor(Math.random() * allCurated.length)];
+                : pickCryptoRandom(allFresh) || allFresh[0];
 
             setCurrentTrack(starter);
-
-            // Sync parent soundscape collection
-            const parentGenre = data.genres.find((g: GenreCollection) =>
-              g.tracks?.some((t: Track) => t.id === starter.id)
-            );
+            const parentGenre = liveGenres.find((g) => g.tracks?.some((t) => t.id === starter.id));
             if (parentGenre) setSelectedCollectionId(parentGenre.id);
 
-            // Build diverse initial queue
-            const otherTracks = allCurated.filter((t: Track) => t.id !== starter.id);
-            const shuffled = [...otherTracks].sort(() => 0.5 - Math.random());
-            setQueue([starter, ...shuffled.slice(0, 9)]);
-
-            // Immediately load recommendations for this starter track
+            const otherTracks = cryptoShuffleList(allFresh.filter((t) => t.id !== starter.id));
+            setQueue([starter, ...otherTracks.slice(0, 10)]);
             fetchRecommendations(starter);
+          } else if (!isInitial) {
+            fetchRecommendations(currentTrack || undefined);
           }
 
-          if (data.genres[0]?.tracks) {
-            setSearchResults(data.genres[0].tracks);
+          if (notify) {
+            showToast('Generated a brand-new random music mix');
           }
         }
-      })
-      .catch((err) => {
-        console.error('Failed to load curated tracks:', err);
-      });
+      } catch (err) {
+        console.error('Failed to generate random music universe:', err);
+        if (notify) showToast('Shuffled a fresh local mix');
+      } finally {
+        setIsRandomizingFeed(false);
+      }
+    },
+    [buildExcludeQuery, currentTrack, fetchRecommendations, rememberSeenIds, restrictedVideoIds]
+  );
+
+  // Fetch Initial Totally Random Universe on Mount
+  useEffect(() => {
+    loadRandomUniverse({ isInitial: true, notify: false });
   }, []);
 
-  // Refetch recommendations whenever currentTrack changes
+  // Refetch totally fresh random recommendations whenever currentTrack changes
   useEffect(() => {
     if (currentTrack?.id) {
       fetchRecommendations(currentTrack);
@@ -367,8 +430,12 @@ export default function App() {
 
   // Play Specific Track
   const handlePlayTrack = useCallback((track: Track) => {
+    hasUserInteractedRef.current = true;
+    // Arm Android 30s background audio anchor synchronously inside the user gesture
+    backgroundAudio.armFromUserGesture();
     const isSameTrack = currentTrack?.id === track.id;
     setCurrentTrack(track);
+    rememberSeenIds([track.id]);
 
     setQueue((prevQueue) => {
       const exists = prevQueue.some((t) => t.id === track.id);
@@ -386,7 +453,51 @@ export default function App() {
       setIsPlaying(true);
       setIsBuffering(true);
     }
-  }, [currentTrack]);
+  }, [currentTrack, rememberSeenIds]);
+
+  // Surprise Me: Pick and immediately play a totally random unseen song from the live engine
+  const handleSurprisePlay = useCallback(async () => {
+    hasUserInteractedRef.current = true;
+    setIsSurpriseLoading(true);
+    try {
+      const exclude = buildExcludeQuery(currentTrack ? [currentTrack.id] : []);
+      const nonce = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      const res = await fetch(
+        `/api/random-track?exclude=${encodeURIComponent(exclude)}&nonce=${encodeURIComponent(nonce)}`,
+        { cache: 'no-store' }
+      );
+      if (!res.ok) throw new Error('Random track fetch failed');
+      const data = await res.json();
+      const picked: Track | undefined = data.track;
+      const upNext: Track[] = Array.isArray(data.upNext) ? data.upNext : [];
+
+      if (picked && !restrictedVideoIds.has(picked.id)) {
+        rememberSeenIds([picked.id, ...upNext.map((t) => t.id)]);
+        setQueue((prev) => {
+          const existingIds = new Set(prev.map((t) => t.id));
+          const freshAddons = [picked, ...upNext].filter(
+            (t) => !existingIds.has(t.id) && !restrictedVideoIds.has(t.id)
+          );
+          return [picked, ...prev.filter((t) => t.id !== picked.id), ...freshAddons.filter((t) => t.id !== picked.id)];
+        });
+        handlePlayTrack(picked);
+        const { title: cleanT } = cleanTrackTitle(picked.title);
+        showToast(`Random pick: "${cleanT}"`);
+      }
+    } catch {
+      const pool = cryptoShuffleList([
+        ...genres.flatMap((g) => g.tracks || []),
+        ...recommendations,
+      ]).filter((t) => t.id !== currentTrack?.id && !restrictedVideoIds.has(t.id));
+      const fallbackPick = pickCryptoRandom(pool);
+      if (fallbackPick) {
+        handlePlayTrack(fallbackPick);
+        showToast(`Random pick: "${cleanTrackTitle(fallbackPick.title).title}"`);
+      }
+    } finally {
+      setIsSurpriseLoading(false);
+    }
+  }, [buildExcludeQuery, currentTrack, genres, handlePlayTrack, recommendations, rememberSeenIds, restrictedVideoIds]);
 
   // Upgrade track thumbnail to ultra-high-resolution 1200x1200bb studio master artwork
   useEffect(() => {
@@ -508,15 +619,19 @@ export default function App() {
   };
 
   // Transport Handlers
-  const handleTogglePlay = () => {
+  const handleTogglePlay = useCallback(() => {
+    hasUserInteractedRef.current = true;
     if (isPlaying) {
+      backgroundAudio.disarm();
       setIsPlaying(false);
       playerRef.current?.pause();
     } else {
+      // Arm Android background anchor synchronously inside tap/click gesture
+      backgroundAudio.armFromUserGesture();
       setIsPlaying(true);
       playerRef.current?.play();
     }
-  };
+  }, [isPlaying]);
 
   const handleNext = useCallback(() => {
     if (!currentTrack || queue.length === 0) return;
@@ -524,15 +639,15 @@ export default function App() {
     const nextIndex = getNextTrackIndex(currentIndex, queue.length, repeatMode, isShuffle, playedHistory);
 
     if (nextIndex === null || nextIndex === -1) {
-      setIsPlaying(false);
-      setCurrentTime(0);
+      // Infinite Random Autoplay: seamlessly pull a totally unseen random song when queue finishes
+      handleSurprisePlay();
       return;
     }
 
     setPlayedHistory((prev) => [...prev, currentIndex]);
     const nextTrack = queue[nextIndex];
     if (nextTrack) handlePlayTrack(nextTrack);
-  }, [currentTrack, isShuffle, playedHistory, queue, repeatMode]);
+  }, [currentTrack, handlePlayTrack, handleSurprisePlay, isShuffle, playedHistory, queue, repeatMode]);
 
   const handlePrev = useCallback(() => {
     if (!currentTrack || queue.length === 0) return;
@@ -644,29 +759,45 @@ export default function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [currentTime, duration, handleNext, handlePrev, handleTogglePlay]);
 
-  // Hook background audio service to player handle for seamless background auto-recovery
+  // Connect background audio watchdog bridge to the YouTube player instance
   useEffect(() => {
-    backgroundAudio.registerResumeCallback(() => {
-      if (isPlaying && playerRef.current) {
-        playerRef.current.play();
-      }
+    backgroundAudio.registerPlayerBridge({
+      isActuallyPlaying: () => playerRef.current?.isActuallyPlaying() ?? false,
+      forceBackgroundResume: () => playerRef.current?.forceBackgroundResume(),
+      getCurrentTime: () => playerRef.current?.getCurrentTime() ?? 0,
+      getDuration: () => playerRef.current?.getDuration() ?? 0,
     });
-  }, [isPlaying]);
+  }, []);
 
-  // Synchronize Android MediaSession & Background Audio Playback
+  // 1. Android Lock-Screen & Notification Metadata (only updates when track info changes)
   useEffect(() => {
     if (!currentTrack) return;
     const { title: cleanT, artistFromTitle } = cleanTrackTitle(currentTrack.title);
     const artist = getFullSingerName(currentTrack.artist || artistFromTitle || '', cleanT);
 
-    backgroundAudio.updateMediaSession({
+    backgroundAudio.updateMetadata({
       title: cleanT,
       artist,
       album: 'Melophile',
       artwork: currentTrack.thumbnail,
-      isPlaying,
-      currentTime,
-      duration,
+    });
+  }, [currentTrack?.id, currentTrack?.title, currentTrack?.artist, currentTrack?.thumbnail]);
+
+  // 2. Android MediaSession Playback State + 30s Audio Anchor & Web Lock sync
+  useEffect(() => {
+    backgroundAudio.updatePlaybackState(isPlaying);
+  }, [isPlaying]);
+
+  // 3. Android Lock-Screen Progress Bar (throttled inside backgroundAudio)
+  useEffect(() => {
+    if (duration > 0) {
+      backgroundAudio.updatePositionState(currentTime, duration, playbackRate);
+    }
+  }, [currentTime, duration, playbackRate]);
+
+  // 4. Native Android Lock-Screen, Notification Shade & Bluetooth Hardware Controls
+  useEffect(() => {
+    backgroundAudio.setActionHandlers({
       onPlay: () => {
         setIsPlaying(true);
         playerRef.current?.play();
@@ -675,14 +806,21 @@ export default function App() {
         setIsPlaying(false);
         playerRef.current?.pause();
       },
+      onStop: () => {
+        setIsPlaying(false);
+        playerRef.current?.pause();
+      },
       onNext: handleNext,
       onPrev: handlePrev,
       onSeek: (time: number) => {
         playerRef.current?.seekTo(time);
         setCurrentTime(time);
+        if (duration > 0) {
+          backgroundAudio.updatePositionState(time, duration, playbackRate, true);
+        }
       },
     });
-  }, [currentTrack, isPlaying, currentTime, duration, handleNext, handlePrev]);
+  }, [handleNext, handlePrev, duration, playbackRate]);
 
   // Dynamically compute active context as track changes — NO HARDCODED STRINGS
   const { title: cleanCurrentTitle, artistFromTitle: currentArtistFromTitle } = cleanTrackTitle(currentTrack?.title || '');
@@ -693,7 +831,7 @@ export default function App() {
   const dynamicGenreTag = (activeCollection as any)?.tag || getDynamicTrackTag(cleanCurrentTitle, currentArtist, currentTrack?.views);
 
   return (
-    <div className="h-screen w-screen text-white flex flex-col font-sans relative overflow-hidden bg-black select-none">
+    <div className="h-screen w-screen text-zinc-100 flex flex-col font-sans relative overflow-hidden bg-[#09090B] select-none">
       <SpotifyLayout
         currentTrack={currentTrack}
         isPlaying={isPlaying}
@@ -707,7 +845,8 @@ export default function App() {
         playbackQuality={playbackQuality}
         onChangePlaybackQuality={(q) => {
           setPlaybackQuality(q);
-          showToast(`Audio quality switched to ${q.toUpperCase()}`);
+          const opt = getQualityOption(q);
+          showToast(`Stream quality set to ${opt.label}`);
         }}
         videoSlot={
           <YouTubePlayer
@@ -739,7 +878,6 @@ export default function App() {
         searchQuery={searchQuery}
         searchResults={searchResults.filter((t) => !restrictedVideoIds.has(t.id))}
         isSearching={isSearching}
-        sleepTimerRemaining={sleepTimerRemaining}
         onTogglePlay={handleTogglePlay}
         onSeek={(time) => {
           playerRef.current?.seekTo(time);
@@ -753,59 +891,52 @@ export default function App() {
         }}
         onChangeVolume={setVolume}
         onToggleVideo={() => setIsVideoVisible(!isVideoVisible)}
+        onSetVideoVisible={(visible) => setIsVideoVisible(visible)}
         onPlayTrack={handlePlayTrack}
+        onPlayGenre={handlePlayGenre}
         onAddToQueue={handleAddToQueue}
+        onRemoveFromQueue={handleRemoveFromQueue}
+        onClearQueue={handleClearQueue}
         onToggleFavorite={handleToggleFavorite}
         onSearch={handleSearch}
         onClearSearch={() => {
           setSearchQuery('');
           setSearchResults([]);
         }}
-        onOpenSleepTimer={() => setIsSleepTimerOpen(true)}
-        onOpenQuickImport={() => setIsQuickImportOpen(true)}
         genres={genres}
+        featuredTracks={featuredTracks}
+        popularTracks={popularTracks}
+        isRandomizingFeed={isRandomizingFeed}
+        isSurpriseLoading={isSurpriseLoading}
+        onRandomizeFeed={() => loadRandomUniverse({ isInitial: false, notify: true })}
+        onSurprisePlay={handleSurprisePlay}
+        onRefreshRecommendations={() => {
+          fetchRecommendations(currentTrack || undefined);
+          showToast('Rolled fresh random recommendations');
+        }}
       />
 
-      {/* Toast Notification */}
+      {/* Unified Obsidian Toast Notification */}
       {toastMessage && (
-        <div className="fixed top-16 left-4 right-4 sm:left-auto sm:right-8 z-50 bg-black/95 backdrop-blur-xl text-white text-xs font-bold px-4 py-2.5 rounded-xl border border-white/20 shadow-2xl flex items-center justify-between sm:justify-start gap-2.5 animate-in">
-          <div className="flex items-center gap-2.5 truncate">
-            <span className="w-2 h-2 rounded-full bg-yellow-400 shadow-[0_0_8px_#facc15] shrink-0" />
+        <div
+          role="status"
+          aria-live="polite"
+          className="fixed top-16 left-4 right-4 sm:left-auto sm:right-6 z-[70] bg-[#141418]/95 backdrop-blur-xl text-zinc-100 text-xs font-medium px-4 py-2.5 rounded-xl border border-white/[0.12] shadow-2xl flex items-center justify-between sm:justify-start gap-2.5 max-w-sm"
+        >
+          <div className="flex items-center gap-2 min-w-0">
+            <CheckCircle2 className="w-4 h-4 text-amber-400 shrink-0" />
             <span className="truncate">{toastMessage}</span>
           </div>
           <button
+            type="button"
             onClick={() => setToastMessage(null)}
-            className="p-1 hover:text-white/60 text-white/40 sm:hidden shrink-0"
+            className="p-1 hover:text-white text-zinc-400 shrink-0 cursor-pointer rounded-md"
             aria-label="Dismiss notification"
           >
             <X className="w-3.5 h-3.5" />
           </button>
         </div>
       )}
-
-      {/* Quick Import Modal */}
-      <QuickImportModal
-        isOpen={isQuickImportOpen}
-        onClose={() => setIsQuickImportOpen(false)}
-        onPlayTrack={handlePlayTrack}
-        onAddToQueue={handleAddToQueue}
-      />
-
-      {/* Sleep Timer Modal */}
-      <SleepTimerModal
-        isOpen={isSleepTimerOpen}
-        onClose={() => setIsSleepTimerOpen(false)}
-        sleepTimerRemaining={sleepTimerRemaining}
-        onSetTimerMinutes={(mins) => {
-          if (mins === null) {
-            setSleepTimerRemaining(null);
-            showToast('Sleep timer turned off.');
-          } else {
-            setSleepTimerRemaining(mins * 60);
-            showToast(`Sleep timer set for ${mins} minutes.`);
-          }
-        }}
-      />
     </div>
   );
 }
