@@ -24,6 +24,7 @@ import {
   PanelRightOpen,
   Home,
   ListMusic,
+  Mic,
   Mic2,
   Layers,
   Library,
@@ -33,6 +34,7 @@ import {
   Dices,
   RefreshCw,
 } from 'lucide-react';
+import { useVoiceSearch } from '../hooks/useVoiceSearch';
 import { ArtworkImage } from './ArtworkImage';
 import { InteractiveCoverArt } from './InteractiveCoverArt';
 import { UnifiedTrackCard } from './UnifiedTrackCard';
@@ -625,11 +627,39 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
     }, 240);
   };
 
+  const handleSearchSubmit = (val?: string) => {
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    const target = (typeof val === 'string' ? val : localSearchInput).trim();
+    if (target) {
+      onSearch(target);
+    } else {
+      handleClearSearchInput();
+    }
+  };
+
   const handleClearSearchInput = () => {
     if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
     setLocalSearchInput('');
     onClearSearch();
   };
+
+  const {
+    isListening: isVoiceListening,
+    isSupported: isVoiceSupported,
+    error: voiceError,
+    toggleListening: toggleVoiceSearch,
+    clearError: clearVoiceError,
+  } = useVoiceSearch({
+    onResult: (text, isFinal) => {
+      setLocalSearchInput(text);
+      if (isFinal) {
+        if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+        onSearch(text);
+      } else {
+        handleSearchChange(text);
+      }
+    },
+  });
 
   const handleGoHome = () => {
     setCenterViewMode('home');
@@ -690,24 +720,89 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
         </button>
 
         {/* Zone 2: Command-Style Live Search */}
-        <div className="flex items-center max-w-lg w-full justify-center min-w-0">
-          <div className="relative flex items-center w-full h-9 sm:h-9.5 px-3 rounded-lg bg-[#141418] hover:bg-[#18181E] focus-within:bg-[#18181E] border border-white/[0.08] focus-within:border-amber-400/60 focus-within:ring-2 focus-within:ring-amber-400/15 transition-colors">
-            <Search className="w-4 h-4 text-zinc-500 shrink-0 mr-2.5" />
+        <div className="flex items-center max-w-lg w-full justify-center min-w-0 relative">
+          <div
+            className={`relative flex items-center w-full h-9 sm:h-9.5 px-3 rounded-lg bg-[#141418] hover:bg-[#18181E] focus-within:bg-[#18181E] border transition-all ${
+              isVoiceListening
+                ? 'border-amber-400/90 ring-2 ring-amber-400/30 shadow-[0_0_22px_rgba(251,191,36,0.25)] bg-[#1a1814]'
+                : 'border-white/[0.08] focus-within:border-amber-400/60 focus-within:ring-2 focus-within:ring-amber-400/15'
+            }`}
+          >
+            <Search
+              className={`w-4 h-4 shrink-0 mr-2.5 transition-colors ${
+                isVoiceListening ? 'text-amber-400 animate-pulse' : 'text-zinc-500'
+              }`}
+            />
             <input
               ref={searchInputRef}
               id="soundstream-search-input"
               type="text"
               value={localSearchInput}
               onChange={(e) => handleSearchChange(e.target.value)}
-              placeholder="Search songs, artists, or moods..."
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  handleSearchSubmit();
+                } else if (e.key === 'Escape') {
+                  e.preventDefault();
+                  handleClearSearchInput();
+                }
+              }}
+              onPaste={(e) => {
+                const pasted = e.clipboardData.getData('text');
+                if (
+                  pasted &&
+                  (pasted.includes('youtube.com') ||
+                    pasted.includes('youtu.be') ||
+                    /^[a-zA-Z0-9_-]{11}$/.test(pasted.trim()))
+                ) {
+                  e.preventDefault();
+                  setLocalSearchInput(pasted.trim());
+                  handleSearchSubmit(pasted.trim());
+                }
+              }}
+              placeholder={
+                isVoiceListening
+                  ? 'Listening... speak song, artist, or vibe'
+                  : 'Search songs, artists, or moods...'
+              }
               className="w-full bg-transparent text-xs sm:text-sm text-zinc-100 placeholder:text-zinc-500 focus:outline-none"
               aria-label="Search songs, artists, or moods"
             />
+
+            {/* Voice Search Mic Button */}
+            <button
+              type="button"
+              onClick={toggleVoiceSearch}
+              className={`p-1.5 rounded-md transition-all cursor-pointer mr-1 relative flex items-center justify-center shrink-0 ${
+                isVoiceListening
+                  ? 'bg-amber-400/20 text-amber-300 shadow-[0_0_12px_rgba(251,191,36,0.35)]'
+                  : 'hover:bg-white/[0.08] text-zinc-400 hover:text-amber-400'
+              }`}
+              title={
+                !isVoiceSupported
+                  ? 'Voice search not supported in this browser'
+                  : isVoiceListening
+                  ? 'Listening... Click to stop'
+                  : 'Search with voice'
+              }
+              aria-label={isVoiceListening ? 'Stop voice search' : 'Start voice search'}
+            >
+              <Mic
+                className={`w-3.5 h-3.5 ${
+                  isVoiceListening ? 'text-amber-400 animate-pulse scale-110' : ''
+                }`}
+              />
+              {isVoiceListening && (
+                <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-amber-400 animate-ping" />
+              )}
+            </button>
+
             {localSearchInput ? (
               <button
                 type="button"
                 onClick={handleClearSearchInput}
-                className="p-1 rounded-md hover:bg-white/[0.08] text-zinc-400 hover:text-white transition-colors cursor-pointer"
+                className="p-1 rounded-md hover:bg-white/[0.08] text-zinc-400 hover:text-white transition-colors cursor-pointer shrink-0"
                 title="Clear search"
                 aria-label="Clear search"
               >
@@ -719,6 +814,21 @@ export const SpotifyLayout: React.FC<SpotifyLayoutProps> = ({
               </kbd>
             )}
           </div>
+
+          {/* Voice Search Error Alert */}
+          {voiceError && (
+            <div className="absolute top-full left-0 right-0 mt-1.5 px-3 py-1.5 bg-red-950/90 border border-red-500/30 rounded-lg text-[11px] text-red-200 flex items-center justify-between z-50 shadow-xl backdrop-blur-md">
+              <span className="truncate mr-2">{voiceError}</span>
+              <button
+                type="button"
+                onClick={clearVoiceError}
+                className="text-red-300 hover:text-white p-0.5 cursor-pointer"
+                aria-label="Dismiss error"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Zone 3: PWA Install & Cinema Mode Primary Utilities */}

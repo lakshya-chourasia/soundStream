@@ -28,8 +28,8 @@ const CURATED_GENRES = [
         thumbnail: 'https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/eb/ca/25/ebca2596-cd1e-b295-91a3-771c868d0a79/191404113868.png/1200x1200bb.jpg',
       },
       {
-        id: 'zmsS_6sP5c4',
-        title: 'If I Could Change You',
+        id: 'Ljg6g7BAdQo',
+        title: 'If I Could Change Your Mind',
         artist: 'Danielle Haim (HAIM)',
         duration: '3:50',
         durationSec: 230,
@@ -37,8 +37,8 @@ const CURATED_GENRES = [
         thumbnail: 'https://is1-ssl.mzstatic.com/image/thumb/Music114/v4/f1/0c/21/f10c2105-fed1-b727-fb61-b0c96cc73eea/886444152648.jpg/1200x1200bb.jpg',
       },
       {
-        id: 'kYFjF3v1U7c',
-        title: 'Go slow',
+        id: 'Qngp4ZMVXAQ',
+        title: 'Go Slow',
         artist: 'Gorgon City ft. Kaskade (Ryan Raddon)',
         duration: '3:45',
         durationSec: 225,
@@ -46,12 +46,12 @@ const CURATED_GENRES = [
         thumbnail: 'https://is1-ssl.mzstatic.com/image/thumb/Music113/v4/fb/c9/72/fbc972b5-3b37-058a-6818-63604315bf22/19UMGIM36996.rgb.jpg/1200x1200bb.jpg',
       },
       {
-        id: 'f-X8f_d1n3Y',
-        title: 'Losing my mind',
+        id: 'd7ypnPjz81I',
+        title: 'Wish You Were Mine',
         artist: 'Philip George',
         duration: '3:15',
         durationSec: 195,
-        views: '18M views',
+        views: '110M views',
         thumbnail: 'https://is1-ssl.mzstatic.com/image/thumb/Music118/v4/06/6e/d9/066ed9f2-5eec-324e-90cc-7c0e8dd89c79/05037128232506.rgb.jpg/1200x1200bb.jpg',
       },
       {
@@ -204,8 +204,8 @@ const CURATED_GENRES = [
     description: 'Neon horizons, analog synthesizers, and midnight expressway nostalgia',
     tracks: [
       {
-        id: 'a6P40S5K4c4',
-        title: 'Days of Thunder (Official Video)',
+        id: 'UiSB2Fbw9gs',
+        title: 'Days of Thunder',
         artist: 'Tyler Lyle (The Midnight)',
         duration: '5:30',
         durationSec: 330,
@@ -623,17 +623,20 @@ async function scrapeYouTubeMusic(
   } = {}
 ): Promise<any[]> {
   const {
-    limit = 16,
+    limit = 24,
     singleTracksOnly = false,
     officialOnly = false,
     excludeIds = KNOWN_RESTRICTED_IDS,
   } = options;
 
-  const officialQuery = /official\s*(music\s*)?(video|audio)|songs?\s+official/i.test(rawQuery)
+  const isSpecialQuery = /lo-?fi|chill|remix|cover|acoustic|live|slowed|reverb|karaoke|instrumental|audio|lyrics?|podcast|ambient/i.test(
+    rawQuery
+  );
+  const searchQuery = isSpecialQuery || /official/i.test(rawQuery)
     ? rawQuery
     : `${rawQuery} official music video`;
 
-  const searchUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(officialQuery)}`;
+  const searchUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(searchQuery)}`;
   const response = await fetch(searchUrl, {
     headers: {
       'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -687,7 +690,7 @@ async function scrapeYouTubeMusic(
       const isKnownLabelChannel = OFFICIAL_LABEL_CHANNEL_PATTERN.test(rawChannel);
       const isUnofficialChannel = UNOFFICIAL_CHANNEL_PATTERN.test(rawChannel);
 
-      // Strictly block obvious non-music uploads everywhere
+      // Block non-music uploads (spam, reactions, tutorials, gaming, parodies)
       const isDisqualified =
         lowerTitle.includes('1 hour') ||
         lowerTitle.includes('10 hours') ||
@@ -702,7 +705,12 @@ async function scrapeYouTubeMusic(
 
       if (isDisqualified) continue;
 
-      // True official singer/label verification (never fooled by fan channels typing "Official" in title)
+      // Filter extreme lengths (>20 mins) unless user explicitly searched for long formats or live
+      if (durationSec > 1200 && !lowerTitle.includes('live') && !isSpecialQuery) {
+        continue;
+      }
+
+      // True official singer/label verification
       const isVerifiedOfficialSource =
         !isUnofficialChannel &&
         (hasVerifiedArtistBadge ||
@@ -721,16 +729,12 @@ async function scrapeYouTubeMusic(
           duration === 'Live' ||
           durationSec < 95 ||
           durationSec > 540 ||
-          UNOFFICIAL_TITLE_PATTERN.test(lowerTitle);
+          (!isSpecialQuery && UNOFFICIAL_TITLE_PATTERN.test(lowerTitle));
         if (isMixOrCompilation) continue;
       }
 
-      if (officialOnly) {
-        if (!isVerifiedOfficialSource) continue;
-        // Also exclude fan lyric videos unless uploaded directly by the Official Artist Channel
-        if (!hasVerifiedArtistBadge && !isTopicChannel && /\blyrics?\b/i.test(lowerTitle) && !isKnownLabelChannel) {
-          continue;
-        }
+      if (officialOnly && !isVerifiedOfficialSource) {
+        continue;
       }
 
       const displayArtist = cleanOfficialChannelName(rawChannel) || rawChannel;
@@ -749,23 +753,16 @@ async function scrapeYouTubeMusic(
     }
   }
 
-  if (singleTracksOnly || officialOnly) {
-    const official = csprngShuffle(tracks.filter((t) => t.isOfficial));
-    const result = officialOnly
-      ? official.slice(0, limit)
-      : [...official, ...csprngShuffle(tracks.filter((t) => !t.isOfficial))].slice(0, limit);
-    addToLivePool(result);
-    return result;
-  }
-
+  // Sort official releases and verified artists to the top, while keeping all music tracks
   tracks.sort((a, b) => {
     if (a.isOfficial && !b.isOfficial) return -1;
     if (!a.isOfficial && b.isOfficial) return 1;
     return 0;
   });
 
-  addToLivePool(tracks.filter((t) => t.isOfficial && t.durationSec >= 95 && t.durationSec <= 540));
-  return tracks.slice(0, limit);
+  const finalTracks = tracks.filter((t) => !KNOWN_RESTRICTED_IDS.has(t.id) && !excludeIds.has(t.id));
+  addToLivePool(finalTracks.filter((t) => t.isOfficial && t.durationSec >= 95 && t.durationSec <= 540));
+  return finalTracks.slice(0, limit);
 }
 
 function getAllFallbackTracks(excludeIds: Set<string>): any[] {
@@ -898,6 +895,17 @@ async function startServer() {
   const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
   app.use(express.json());
+
+  // Enable universal CORS so web clients, APKs, and preview environments can access API
+  app.use((req, res, next) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    if (req.method === 'OPTIONS') {
+      return res.sendStatus(200);
+    }
+    next();
+  });
 
   // Report playback-restricted video to filter across all clients
   app.post('/api/report-restricted', (req: Request, res: Response) => {
@@ -1091,29 +1099,62 @@ async function startServer() {
     }
   });
 
-  // API 3: YouTube Search Scraper (Prioritizing & Filtering for Official Music Videos)
+  // API 3: YouTube Search Scraper (Prioritizing Official Releases with Universal Song Coverage)
   app.get('/api/search', async (req: Request, res: Response) => {
     const rawQ = (req.query.q as string || '').trim();
     if (!rawQ) {
-      return res.json({ tracks: getAllFallbackTracks(KNOWN_RESTRICTED_IDS).slice(0, 12) });
+      return res.json({
+        tracks: getAllFallbackTracks(KNOWN_RESTRICTED_IDS)
+          .filter((t) => !KNOWN_RESTRICTED_IDS.has(t.id))
+          .slice(0, 12),
+      });
     }
 
     try {
-      const results = await scrapeYouTubeMusic(rawQ, { limit: 25, singleTracksOnly: false });
-      if (results.length > 0) {
-        return res.json({ tracks: results });
+      // 1. Primary search: scrape YouTube with smart query and official-first sorting
+      let results = await scrapeYouTubeMusic(rawQ, {
+        limit: 25,
+        singleTracksOnly: false,
+        officialOnly: false,
+        excludeIds: KNOWN_RESTRICTED_IDS,
+      });
+
+      // 2. Secondary fallback pass if initial search had 0 results
+      if (results.length === 0 && !/song|music|audio|video/i.test(rawQ)) {
+        results = await scrapeYouTubeMusic(`${rawQ} song`, {
+          limit: 20,
+          singleTracksOnly: false,
+          officialOnly: false,
+          excludeIds: KNOWN_RESTRICTED_IDS,
+        });
       }
+
+      const cleanResults = results.filter((t) => !KNOWN_RESTRICTED_IDS.has(t.id));
+
+      if (cleanResults.length > 0) {
+        return res.json({ tracks: cleanResults });
+      }
+
+      // Check if local catalog has keywords matching the query
+      const lowerQ = rawQ.toLowerCase();
       const matched = getAllFallbackTracks(KNOWN_RESTRICTED_IDS).filter(
         (t) =>
-          t.title.toLowerCase().includes(rawQ.toLowerCase()) ||
-          t.artist.toLowerCase().includes(rawQ.toLowerCase())
+          !KNOWN_RESTRICTED_IDS.has(t.id) &&
+          (t.title.toLowerCase().includes(lowerQ) ||
+            t.artist.toLowerCase().includes(lowerQ))
       );
-      return res.json({
-        tracks: matched.length > 0 ? matched : getAllFallbackTracks(KNOWN_RESTRICTED_IDS).slice(0, 12),
-      });
+
+      return res.json({ tracks: matched });
     } catch (err: any) {
       console.error('Search error:', err.message);
-      res.json({ tracks: getAllFallbackTracks(KNOWN_RESTRICTED_IDS).slice(0, 12) });
+      const lowerQ = rawQ.toLowerCase();
+      const matched = getAllFallbackTracks(KNOWN_RESTRICTED_IDS).filter(
+        (t) =>
+          !KNOWN_RESTRICTED_IDS.has(t.id) &&
+          (t.title.toLowerCase().includes(lowerQ) ||
+            t.artist.toLowerCase().includes(lowerQ))
+      );
+      res.json({ tracks: matched });
     }
   });
 

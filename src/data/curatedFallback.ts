@@ -18,8 +18,8 @@ export const FALLBACK_CURATED_GENRES: GenreCollection[] = [
         thumbnail: 'https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/eb/ca/25/ebca2596-cd1e-b295-91a3-771c868d0a79/191404113868.png/1200x1200bb.jpg',
       },
       {
-        id: 'zmsS_6sP5c4',
-        title: 'If I Could Change You',
+        id: 'Ljg6g7BAdQo',
+        title: 'If I Could Change Your Mind',
         artist: 'Danielle Haim (HAIM)',
         duration: '3:50',
         durationSec: 230,
@@ -27,8 +27,8 @@ export const FALLBACK_CURATED_GENRES: GenreCollection[] = [
         thumbnail: 'https://is1-ssl.mzstatic.com/image/thumb/Music114/v4/f1/0c/21/f10c2105-fed1-b727-fb61-b0c96cc73eea/886444152648.jpg/1200x1200bb.jpg',
       },
       {
-        id: 'kYFjF3v1U7c',
-        title: 'Go slow',
+        id: 'Qngp4ZMVXAQ',
+        title: 'Go Slow',
         artist: 'Gorgon City ft. Kaskade (Ryan Raddon)',
         duration: '3:45',
         durationSec: 225,

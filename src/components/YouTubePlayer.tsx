@@ -601,7 +601,9 @@ export const YouTubePlayer = forwardRef<YouTubePlayerHandle, YouTubePlayerProps>
               const activeTrack = currentTrackRef.current;
               console.warn('YouTube Player error code:', event.data, 'for video:', activeTrack?.id);
               cancelActiveFade();
-              if (event.data === 101 || event.data === 150 || event.data === 100) {
+              // Catch all restricted, blocked, unlisted, deleted, or unplayable video codes:
+              // 150/101: owner embedding restriction; 100: not found/deleted/unlisted/blocked; 2/5: invalid or html5 playback error
+              if (event.data === 101 || event.data === 150 || event.data === 100 || event.data === 2 || event.data === 5) {
                 if (activeTrack && callbacksRef.current.onPlaybackRestricted) {
                   callbacksRef.current.onPlaybackRestricted(activeTrack, event.data);
                   return;
@@ -611,9 +613,9 @@ export const YouTubePlayer = forwardRef<YouTubePlayerHandle, YouTubePlayerProps>
               if (event.data === 101 || event.data === 150) {
                 msg = 'Playback restricted on this video by the owner.';
               } else if (event.data === 100) {
-                msg = 'Video not found or removed.';
-              } else if (event.data === 2) {
-                msg = 'Invalid YouTube video ID.';
+                msg = 'Video not found, unlisted, or removed.';
+              } else if (event.data === 2 || event.data === 5) {
+                msg = 'Video playback blocked or invalid format.';
               }
               callbacksRef.current.onError(msg);
               callbacksRef.current.onStateChange(false, false);

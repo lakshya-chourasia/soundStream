@@ -223,6 +223,8 @@ export default function App() {
   );
   const [isSearching, setIsSearching] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const searchAbortRef = useRef<AbortController | null>(null);
+  const searchReqIdRef = useRef<number>(0);
   const [activeGenreFilter, setActiveGenreFilter] = useState<string | null>(null);
 
   // Theme State
@@ -389,67 +391,6 @@ export default function App() {
     }
   }, [recommendations]);
 
-  // Search YouTube
-  const handleSearch = async (q: string) => {
-    if (!q.trim()) return;
-    setIsSearching(true);
-    setSearchQuery(q);
-    setActiveView('discover');
-
-    try {
-      const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`);
-      if (!res.ok) throw new Error('Search failed');
-      const data = await res.json();
-      if (Array.isArray(data.tracks) && data.tracks.length > 0) {
-        setSearchResults(data.tracks);
-        return;
-      }
-      throw new Error('Empty search results');
-    } catch (err: any) {
-      console.warn('Network search error, using local pool:', err);
-      const lower = q.toLowerCase();
-      const localPool = [
-        ...INITIAL_STARTER_POOL,
-        ...FALLBACK_CURATED_GENRES.flatMap((g) => g.tracks || []),
-        ...genres.flatMap((g) => g.tracks || []),
-        ...recommendations,
-      ];
-      const matched = localPool.filter(
-        (t) =>
-          t.title.toLowerCase().includes(lower) ||
-          t.artist.toLowerCase().includes(lower)
-      );
-      if (matched.length > 0) {
-        const seen = new Set<string>();
-        const unique = matched.filter((t) => (seen.has(t.id) ? false : (seen.add(t.id), true)));
-        setSearchResults(unique.slice(0, 16));
-      } else {
-        showToast('No matching songs found in local catalog.');
-      }
-    } finally {
-      setIsSearching(false);
-    }
-  };
-
-  // Select Curated Collection from Dropdown
-  const handleSelectCollection = (genreId: string) => {
-    setSelectedCollectionId(genreId);
-    const col = genres.find((g) => g.id === genreId);
-    if (col && col.tracks && col.tracks.length > 0) {
-      setQueue(col.tracks);
-      handlePlayTrack(col.tracks[0]);
-      showToast(`Loaded: ${col.name}`);
-    }
-  };
-
-  const handleSelectGenreFilter = async (genreId: string) => {
-    setActiveGenreFilter(genreId);
-    const selected = genres.find((g) => g.id === genreId);
-    if (selected && selected.tracks) {
-      setSearchResults(selected.tracks);
-    }
-  };
-
   // Play Specific Track
   const handlePlayTrack = useCallback((track: Track) => {
     hasUserInteractedRef.current = true;
@@ -476,6 +417,160 @@ export default function App() {
       setIsBuffering(true);
     }
   }, [currentTrack, rememberSeenIds]);
+
+  // Search YouTube & Music Library (Abortable, YouTube ID auto-detect, zero stale overwrites)
+  const handleSearch = useCallback(
+    async (q: string) => {
+      const trimmed = q.trim();
+      if (!trimmed) {
+        if (searchAbortRef.current) searchAbortRef.current.abort();
+        searchReqIdRef.current += 1;
+        setIsSearching(false);
+        setSearchQuery('');
+        setSearchResults([]);
+        return;
+      }
+
+      setSearchQuery(trimmed);
+      setActiveView('discover');
+
+      // Check if input is a direct YouTube URL or 11-char ID
+      const directId = extractYouTubeId(trimmed);
+      if (directId) {
+        setIsSearching(true);
+        try {
+          const res = await fetch(`/api/resolve?urlOrId=${encodeURIComponent(directId)}`);
+          if (res.ok) {
+            const resolved = await res.json();
+            if (resolved?.id) {
+              const resolvedTrack: Track = {
+                id: resolved.id,
+                title: resolved.title || 'YouTube Video',
+                artist: resolved.artist || 'YouTube',
+                duration: resolved.duration || '--:--',
+                durationSec: resolved.durationSec || 0,
+                thumbnail: resolved.thumbnail || `https://i.ytimg.com/vi/${resolved.id}/hqdefault.jpg`,
+              };
+              setSearchResults([resolvedTrack]);
+              handlePlayTrack(resolvedTrack);
+              showToast(`Loaded: ${resolvedTrack.title}`);
+              setIsSearching(false);
+              return;
+            }
+          }
+        } catch (err) {
+          console.warn('Direct YouTube resolve failed, falling back to standard search:', err);
+        }
+      }
+
+      // Abort previous in-flight search immediately so stale responses never overwrite
+      if (searchAbortRef.current) {
+        searchAbortRef.current.abort();
+      }
+      const reqId = ++searchReqIdRef.current;
+      const controller = new AbortController();
+      searchAbortRef.current = controller;
+
+      // Fast instant local match while network loads
+      const lower = trimmed.toLowerCase();
+      const localPool = [
+        ...INITIAL_STARTER_POOL,
+        ...FALLBACK_CURATED_GENRES.flatMap((g) => g.tracks || []),
+        ...genres.flatMap((g) => g.tracks || []),
+        ...recommendations,
+      ].filter((t) => !restrictedVideoIds.has(t.id));
+
+      const localMatched = localPool.filter(
+        (t) =>
+          t.title.toLowerCase().includes(lower) ||
+          t.artist.toLowerCase().includes(lower)
+      );
+      if (localMatched.length > 0) {
+        const seen = new Set<string>();
+        const unique = localMatched.filter((t) => (seen.has(t.id) ? false : (seen.add(t.id), true)));
+        setSearchResults(unique.slice(0, 16));
+      }
+
+      setIsSearching(true);
+
+      try {
+        let res: Response | null = null;
+        try {
+          res = await fetch(`/api/search?q=${encodeURIComponent(trimmed)}`, {
+            signal: controller.signal,
+          });
+          if (!res.ok) res = null;
+        } catch {
+          res = null;
+        }
+
+        // If local/relative /api/search failed or returned 404, fall back to production cloud search API
+        if (!res && !controller.signal.aborted) {
+          try {
+            res = await fetch(`https://melophile-music.vercel.app/api/search?q=${encodeURIComponent(trimmed)}`, {
+              signal: controller.signal,
+            });
+            if (!res.ok) res = null;
+          } catch {
+            res = null;
+          }
+        }
+
+        if (!res) throw new Error('Search failed');
+        const data = await res.json();
+        if (controller.signal.aborted || reqId !== searchReqIdRef.current) return;
+
+        if (Array.isArray(data.tracks) && data.tracks.length > 0) {
+          const filtered = data.tracks.filter((t: Track) => !restrictedVideoIds.has(t.id));
+          setSearchResults(filtered);
+          return;
+        }
+
+        // If network returns 0, keep local matches if any, else empty list
+        if (localMatched.length > 0) {
+          const seen = new Set<string>();
+          const unique = localMatched.filter((t) => (seen.has(t.id) ? false : (seen.add(t.id), true)));
+          setSearchResults(unique.slice(0, 16));
+        } else {
+          setSearchResults([]);
+        }
+      } catch (err: any) {
+        if (controller.signal.aborted || reqId !== searchReqIdRef.current) return;
+        console.warn('Network search error, using local pool:', err);
+        if (localMatched.length > 0) {
+          const seen = new Set<string>();
+          const unique = localMatched.filter((t) => (seen.has(t.id) ? false : (seen.add(t.id), true)));
+          setSearchResults(unique.slice(0, 16));
+        } else {
+          setSearchResults([]);
+        }
+      } finally {
+        if (reqId === searchReqIdRef.current) {
+          setIsSearching(false);
+        }
+      }
+    },
+    [genres, handlePlayTrack, recommendations, restrictedVideoIds]
+  );
+
+  // Select Curated Collection from Dropdown
+  const handleSelectCollection = (genreId: string) => {
+    setSelectedCollectionId(genreId);
+    const col = genres.find((g) => g.id === genreId);
+    if (col && col.tracks && col.tracks.length > 0) {
+      setQueue(col.tracks);
+      handlePlayTrack(col.tracks[0]);
+      showToast(`Loaded: ${col.name}`);
+    }
+  };
+
+  const handleSelectGenreFilter = async (genreId: string) => {
+    setActiveGenreFilter(genreId);
+    const selected = genres.find((g) => g.id === genreId);
+    if (selected && selected.tracks) {
+      setSearchResults(selected.tracks);
+    }
+  };
 
   // Surprise Me: Pick and immediately play a totally random unseen song from the live engine
   const handleSurprisePlay = useCallback(async () => {
@@ -922,6 +1017,11 @@ export default function App() {
         onToggleFavorite={handleToggleFavorite}
         onSearch={handleSearch}
         onClearSearch={() => {
+          if (searchAbortRef.current) {
+            searchAbortRef.current.abort();
+          }
+          searchReqIdRef.current += 1;
+          setIsSearching(false);
           setSearchQuery('');
           setSearchResults([]);
         }}

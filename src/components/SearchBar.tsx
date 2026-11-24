@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, X, Loader2, Link2, Sparkles } from 'lucide-react';
+import { Search, X, Loader2, Link2, Sparkles, Mic } from 'lucide-react';
 import { extractYouTubeId } from '../utils/playerUtils';
+import { useVoiceSearch } from '../hooks/useVoiceSearch';
 
 interface SearchBarProps {
   onSearch: (query: string) => void;
@@ -33,6 +34,21 @@ export const SearchBar: React.FC<SearchBarProps> = ({
 
   const containerRef = useRef<HTMLDivElement | null>(null);
   const debounceTimerRef = useRef<any>(null);
+
+  const {
+    isListening: isVoiceListening,
+    isSupported: isVoiceSupported,
+    error: voiceError,
+    toggleListening: toggleVoiceSearch,
+    clearError: clearVoiceError,
+  } = useVoiceSearch({
+    onResult: (text, isFinal) => {
+      setQuery(text);
+      if (isFinal) {
+        handleSubmit(text);
+      }
+    },
+  });
 
   // Check if current input looks like a YouTube URL or direct ID
   useEffect(() => {
@@ -146,14 +162,53 @@ export const SearchBar: React.FC<SearchBarProps> = ({
             </button>
           )}
 
+          {/* Voice Search Button */}
+          <button
+            type="button"
+            onClick={toggleVoiceSearch}
+            className={`p-1.5 rounded-full transition-all mr-1.5 shrink-0 cursor-pointer relative ${
+              isVoiceListening
+                ? 'bg-yellow-400/20 text-yellow-300 shadow-[0_0_12px_rgba(250,204,21,0.4)] animate-pulse'
+                : 'text-white/40 hover:text-yellow-400 hover:bg-white/10'
+            }`}
+            title={
+              !isVoiceSupported
+                ? 'Voice search not supported in this browser'
+                : isVoiceListening
+                ? 'Listening... Click to stop'
+                : 'Search with voice'
+            }
+            aria-label={isVoiceListening ? 'Stop voice search' : 'Start voice search'}
+          >
+            <Mic className={`w-4 h-4 ${isVoiceListening ? 'text-yellow-400 scale-110' : ''}`} />
+            {isVoiceListening && (
+              <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-yellow-400 animate-ping" />
+            )}
+          </button>
+
           <button
             onClick={() => handleSubmit(query)}
             disabled={!query.trim()}
-            className="px-4 py-1.5 text-xs font-bold uppercase tracking-wider bg-yellow-400 hover:bg-yellow-300 text-black disabled:opacity-40 rounded-full transition-all whitespace-nowrap shrink-0"
+            className="px-4 py-1.5 text-xs font-bold uppercase tracking-wider bg-yellow-400 hover:bg-yellow-300 text-black disabled:opacity-40 rounded-full transition-all whitespace-nowrap shrink-0 cursor-pointer"
           >
             Search
           </button>
         </div>
+
+        {/* Voice Search Error Alert */}
+        {voiceError && (
+          <div className="mt-2 p-2 px-3 bg-red-950/80 backdrop-blur-xl border border-red-500/30 rounded-xl flex items-center justify-between text-xs text-red-200 animate-in fade-in">
+            <span>{voiceError}</span>
+            <button
+              type="button"
+              onClick={clearVoiceError}
+              className="text-red-300 hover:text-white p-0.5 cursor-pointer"
+              aria-label="Dismiss error"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
 
         {/* Direct YouTube Link Detection Banner */}
         {directVideoId && query.includes('http') && (

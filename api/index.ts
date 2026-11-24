@@ -330,6 +330,17 @@ function parseDurationSec(durationStr: string): number {
 const app = express();
 app.use(express.json());
 
+// Enable universal CORS so web clients, APKs, and preview environments can access API
+app.use((req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  next();
+});
+
 // In-memory blacklist for known playback-restricted videos (disallowed embedding)
 const KNOWN_RESTRICTED_IDS = new Set<string>(['hLQl3WQQoQ0', 'f-X8f_d1n3Y']);
 
@@ -435,25 +446,28 @@ app.get('/api/genres', (_req: Request, res: Response) => {
     }
   });
 
-  // API 3: YouTube Search Scraper (Prioritizing & Filtering for Official Music Videos)
+  // API 3: YouTube Search Scraper (Prioritizing Official Releases with Universal Song Coverage)
   app.get('/api/search', async (req: Request, res: Response) => {
     const rawQ = (req.query.q as string || '').trim();
     if (!rawQ) {
-      return res.json({ tracks: CURATED_GENRES[0].tracks });
+      return res.json({ tracks: CURATED_GENRES[0].tracks.slice(0, 12) });
     }
 
-    // Append "official music video" to query if not already present
-    const officialQuery = /official\s*(music\s*)?video/i.test(rawQ)
+    const isSpecialQuery = /lo-?fi|chill|remix|cover|acoustic|live|slowed|reverb|karaoke|instrumental|audio|lyrics?|podcast|ambient/i.test(
+      rawQ
+    );
+    const searchQuery = isSpecialQuery || /official/i.test(rawQ)
       ? rawQ
       : `${rawQ} official music video`;
 
     try {
-      const searchUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(officialQuery)}`;
+      const searchUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(searchQuery)}`;
       const response = await fetch(searchUrl, {
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
           'Accept-Language': 'en-US,en;q=0.9',
         },
+        signal: AbortSignal.timeout(5500),
       });
 
       if (!response.ok) {
@@ -465,16 +479,18 @@ app.get('/api/genres', (_req: Request, res: Response) => {
 
       if (!match) {
         // Fallback search across curated tracks if scraping fails
+        const lowerQ = rawQ.toLowerCase();
         const matched = CURATED_GENRES.flatMap(g => g.tracks).filter(t =>
-          t.title.toLowerCase().includes(rawQ.toLowerCase()) ||
-          t.artist.toLowerCase().includes(rawQ.toLowerCase())
+          t.title.toLowerCase().includes(lowerQ) ||
+          t.artist.toLowerCase().includes(lowerQ)
         );
-        return res.json({ tracks: matched.length > 0 ? matched : CURATED_GENRES[0].tracks });
+        return res.json({ tracks: matched });
       }
 
       const data = JSON.parse(match[1]);
       const sections = data.contents?.twoColumnSearchResultsRenderer?.primaryContents?.sectionListRenderer?.contents || [];
       const tracks: any[] = [];
+      const seenLocal = new Set<string>();
 
       for (const sec of sections) {
         const renderers = sec.itemSectionRenderer?.contents || [];
@@ -482,25 +498,29 @@ app.get('/api/genres', (_req: Request, res: Response) => {
           if (item.videoRenderer) {
             const v = item.videoRenderer;
             const videoId = v.videoId;
-            if (!videoId) continue;
+            if (!videoId || seenLocal.has(videoId) || KNOWN_RESTRICTED_IDS.has(videoId)) continue;
 
             const title = v.title?.runs?.map((r: any) => r.text).join('') || v.title?.simpleText || 'Unknown Title';
             const artist = v.ownerText?.runs?.map((r: any) => r.text).join('') || 'YouTube Artist';
             const duration = v.lengthText?.simpleText || 'Live';
+            const durationSec = parseDurationSec(duration);
             const views = v.viewCountText?.simpleText || '';
             const thumbs = v.thumbnail?.thumbnails || [];
             const thumbnail = thumbs[thumbs.length - 1]?.url || `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
 
-            // Skip non-music formats like 10hr loops, full podcasts, reaction videos, or covers when searching for official videos
             const lowerTitle = title.toLowerCase();
             const lowerArtist = artist.toLowerCase();
+
+            // Skip non-music formats like 10hr loops, full podcasts, reaction videos, or tutorials
             const isDisqualified =
               lowerTitle.includes('1 hour') ||
               lowerTitle.includes('10 hours') ||
               lowerTitle.includes('reaction') ||
               lowerTitle.includes('tutorial') ||
               lowerTitle.includes('how to play') ||
-              lowerTitle.includes('parody');
+              lowerTitle.includes('parody') ||
+              lowerTitle.includes('behind the scenes') ||
+              lowerTitle.includes('making of');
 
             if (isDisqualified) continue;
 
@@ -514,12 +534,13 @@ app.get('/api/genres', (_req: Request, res: Response) => {
               lowerArtist.includes('- topic') ||
               v.ownerBadges?.some((b: any) => b.metadataBadgeRenderer?.style === 'BADGE_STYLE_TYPE_VERIFIED_ARTIST');
 
+            seenLocal.add(videoId);
             tracks.push({
               id: videoId,
               title,
               artist,
               duration,
-              durationSec: parseDurationSec(duration),
+              durationSec,
               views,
               thumbnail,
               isOfficial,
@@ -535,14 +556,26 @@ app.get('/api/genres', (_req: Request, res: Response) => {
         return 0;
       });
 
-      // Filter out known playback-restricted videos
       const filtered = tracks.filter((t) => !KNOWN_RESTRICTED_IDS.has(t.id));
 
-      res.json({ tracks: filtered.slice(0, 25) });
+      if (filtered.length > 0) {
+        return res.json({ tracks: filtered.slice(0, 25) });
+      }
+
+      const lowerQ = rawQ.toLowerCase();
+      const matched = CURATED_GENRES.flatMap(g => g.tracks).filter(t =>
+        t.title.toLowerCase().includes(lowerQ) ||
+        t.artist.toLowerCase().includes(lowerQ)
+      );
+      return res.json({ tracks: matched });
     } catch (err: any) {
       console.error('Search error:', err.message);
-      // Fallback
-      res.json({ tracks: CURATED_GENRES[0].tracks });
+      const lowerQ = rawQ.toLowerCase();
+      const matched = CURATED_GENRES.flatMap(g => g.tracks).filter(t =>
+        t.title.toLowerCase().includes(lowerQ) ||
+        t.artist.toLowerCase().includes(lowerQ)
+      );
+      res.json({ tracks: matched });
     }
   });
 
